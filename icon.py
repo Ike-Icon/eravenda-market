@@ -1,5 +1,5 @@
-import cairosvg
-from PIL import Image
+import cairosvg  # type: ignore[reportMissingImports]
+from PIL import Image  # type: ignore[reportMissingImports]
 import io
 
 svg_code = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
