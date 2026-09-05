@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Create an account — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16">
+  <div class="border border-slate-200 rounded-md p-8">
+    <h1 class="font-head text-xl font-semibold mb-4">Create your account</h1>
+    <div id="registerError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3 mb-4"></div>
+    <form id="registerForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Full name</label>
+        <input name="full_name" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Email</label>
+        <input type="email" name="email" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Phone</label>
+        <input name="phone" placeholder="0244 000 000" class="w-full border border-slate-300 rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Password</label>
+        <input type="password" name="password" minlength="6" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">I'm signing up to</label>
+        <select name="role" class="w-full border border-slate-300 rounded-md px-3 py-2">
+          <option value="buyer">Shop for products</option>
+          <option value="seller">Sell products</option>
+        </select>
+      </div>
+      <button type="submit" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2 rounded-md transition-colors">Create account</button>
+    </form>
+    <p class="text-sm text-center text-slate-500 mt-4">Already have an account? <a href="/login" class="text-brand-600 font-semibold">Log in</a></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errBox = document.getElementById("registerError");
+    errBox.classList.add("hidden");
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+
+    try {
+      const data = await apiFetch("/auth/register", { method: "POST", body: payload, auth: false });
+      Auth.setSession(data.access_token, data.user);
+      window.location.href = payload.role === "seller" ? "/seller/dashboard.html" : "/";
+    } catch (err) {
+      errBox.textContent = err.message;
+      errBox.classList.remove("hidden");
+    }
+  });
+</script>
+{% endblock %}

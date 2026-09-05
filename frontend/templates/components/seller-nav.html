@@ -1,0 +1,14 @@
+<nav class="flex md:flex-col gap-1 md:gap-1 overflow-x-auto md:overflow-visible border-b md:border-b-0 md:border-r border-slate-200 pb-2 md:pb-0 md:pr-4 mb-4 md:mb-0">
+  <a href="/seller/dashboard.html"
+     class="px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap {% if active == 'overview' %}bg-brand-50 text-brand-700{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+    Overview
+  </a>
+  <a href="/seller/products.html"
+     class="px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap {% if active == 'products' %}bg-brand-50 text-brand-700{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+    Products
+  </a>
+  <a href="/seller/orders.html"
+     class="px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap {% if active == 'orders' %}bg-brand-50 text-brand-700{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+    Orders
+  </a>
+</nav>

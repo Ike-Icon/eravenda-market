@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Seller dashboard — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-[200px_1fr] gap-8">
+  {% set active = "overview" %}
+  {% include "components/seller-nav.html" with context %}
+
+  <div id="dashContent">
+    <p class="text-slate-500">Loading your store…</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/seller/dashboard.html";
+  }
+
+  function money(n) { return `₵${Number(n).toFixed(2)}`; }
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+
+  const STATUS_STYLES = {
+    pending: "bg-amber-50 text-amber-700",
+    approved: "bg-brand-50 text-brand-700",
+    rejected: "bg-red-50 text-red-700",
+    suspended: "bg-red-50 text-red-700",
+    paid: "bg-brand-50 text-brand-700",
+    processing: "bg-blue-50 text-blue-700",
+    shipped: "bg-blue-50 text-blue-700",
+    delivered: "bg-brand-50 text-brand-700",
+    cancelled: "bg-red-50 text-red-700",
+  };
+  function badgeHtml(status) {
+    const classes = STATUS_STYLES[status] || "bg-slate-100 text-slate-600";
+    return `<span class="text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${classes}">${status}</span>`;
+  }
+
+  async function load() {
+    try {
+      const store = await apiFetch("/stores/me");
+      renderStoreDashboard(store);
+    } catch (err) {
+      // No store yet — show the setup form instead.
+      renderSetupForm();
+    }
+  }
+
+  function renderSetupForm() {
+    document.getElementById("dashContent").innerHTML = `
+      <h1 class="font-head text-2xl font-semibold mb-2">Open your store</h1>
+      <p class="text-slate-500 mb-4">Tell us about your business. An admin reviews every new store before it goes live, usually within a day.</p>
+      <div class="border border-slate-200 rounded-md p-6 max-w-lg">
+        <div id="storeError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3 mb-4"></div>
+        <form id="storeForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Store name</label>
+            <input name="store_name" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Description</label>
+            <textarea name="description" placeholder="What do you sell?" class="w-full border border-slate-300 rounded-md px-3 py-2"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-1">Region</label>
+              <input name="region" placeholder="e.g. Ashanti" class="w-full border border-slate-300 rounded-md px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">City</label>
+              <input name="city" placeholder="e.g. Kumasi" class="w-full border border-slate-300 rounded-md px-3 py-2">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Business registration number (optional)</label>
+            <input name="business_registration_number" class="w-full border border-slate-300 rounded-md px-3 py-2">
+          </div>
+          <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Submit for review</button>
+        </form>
+      </div>
+    `;
+
+    document.getElementById("storeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errBox = document.getElementById("storeError");
+      errBox.classList.add("hidden");
+      const payload = Object.fromEntries(new FormData(e.target).entries());
+      try {
+        await apiFetch("/stores", { method: "POST", body: payload });
+        const user = Auth.getUser();
+        user.role = "seller";
+        Auth.setSession(Auth.getToken(), user);
+        load();
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.classList.remove("hidden");
+      }
+    });
+  }
+
+  async function renderStoreDashboard(store) {
+    const content = document.getElementById("dashContent");
+
+    let products = [];
+    let orders = [];
+    try { products = await apiFetch("/products/store/mine"); } catch {}
+    try { orders = await apiFetch("/orders/store/mine"); } catch {}
+
+    const revenue = orders
+      .filter(o => o.status !== "cancelled")
+      .reduce((sum, o) => sum + Number(o.subtotal) - Number(o.commission_amount), 0);
+
+    const statusNote = {
+      pending: "Your store is awaiting admin approval. You can add products once it's approved.",
+      rejected: `Your store application was rejected. ${escapeHtml(store.rejection_reason || "")}`,
+      suspended: "Your store has been suspended. Contact support for details.",
+    }[store.status];
+
+    content.innerHTML = `
+      <div class="flex items-center justify-between mb-1">
+        <h1 class="font-head text-2xl font-semibold">${escapeHtml(store.store_name)}</h1>
+        ${badgeHtml(store.status)}
+      </div>
+      <p class="text-slate-500 mb-6">Commission rate: ${store.commission_rate}% per sale</p>
+
+      ${statusNote ? `<div class="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-md p-3 mb-6">${statusNote}</div>` : ""}
+
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        <div class="border border-slate-200 rounded-md p-4">
+          <div class="font-head text-2xl font-bold">${products.length}</div>
+          <div class="text-xs text-slate-500">Products listed</div>
+        </div>
+        <div class="border border-slate-200 rounded-md p-4">
+          <div class="font-head text-2xl font-bold">${orders.length}</div>
+          <div class="text-xs text-slate-500">Total orders</div>
+        </div>
+        <div class="border border-slate-200 rounded-md p-4">
+          <div class="font-head text-2xl font-bold">${money(revenue)}</div>
+          <div class="text-xs text-slate-500">Net earnings so far</div>
+        </div>
+      </div>
+
+      <div class="border border-slate-200 rounded-md p-5">
+        <h3 class="font-semibold mb-3">Recent orders</h3>
+        ${orders.length ? `
+          <table class="w-full text-sm">
+            <thead><tr class="text-left text-xs text-slate-500 uppercase"><th class="pb-2">Order</th><th class="pb-2">Status</th><th class="pb-2">Total</th></tr></thead>
+            <tbody>
+              ${orders.slice(0, 5).map(o => `
+                <tr class="border-t border-slate-100">
+                  <td class="py-2">${escapeHtml(o.order_number)}</td>
+                  <td class="py-2">${badgeHtml(o.status)}</td>
+                  <td class="py-2">${money(o.total_amount)}</td>
+                </tr>`).join("")}
+            </tbody>
+          </table>` : `<p class="text-slate-500 text-sm">No orders yet.</p>`}
+      </div>
+    `;
+  }
+
+  load();
+</script>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Admin overview — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <h1 class="font-head text-2xl font-semibold mb-6">Admin overview</h1>
+
+  <div id="statGrid" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+    <p class="text-slate-500 col-span-full">Loading platform stats…</p>
+  </div>
+
+  <div class="border border-slate-200 rounded-md p-5 mb-6">
+    <h3 class="font-semibold mb-3">Stores awaiting approval</h3>
+    <div id="pendingStores" class="space-y-3"><p class="text-slate-500">Loading…</p></div>
+  </div>
+
+  <div class="border border-slate-200 rounded-md p-5">
+    <h3 class="font-semibold mb-3">Products awaiting approval</h3>
+    <div id="pendingProducts" class="space-y-3"><p class="text-slate-500">Loading…</p></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Redirect non-admins away before anything renders. This is a UX guard,
+  // not the real security boundary — every /api/admin/* endpoint checks
+  // the role server-side regardless of what happens here.
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/admin/dashboard.html";
+  }
+  const currentUser = Auth.getUser();
+  if (!currentUser || currentUser.role !== "admin") {
+    window.location.href = "/";
+  }
+
+  function money(n) { return `₵${Number(n).toFixed(2)}`; }
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+
+  async function loadStats() {
+    const grid = document.getElementById("statGrid");
+    try {
+      const stats = await apiFetch("/admin/stats");
+      const items = [
+        [stats.total_orders, "Total orders"],
+        [money(stats.platform_revenue), "Commission earned"],
+        [stats.active_sellers, "Active sellers"],
+        [stats.active_products, "Live products"],
+        [stats.pending_store_approvals, "Stores pending"],
+      ];
+      grid.innerHTML = items.map(([value, label]) => `
+        <div class="border border-slate-200 rounded-md p-4">
+          <div class="font-head text-2xl font-bold">${value}</div>
+          <div class="text-xs text-slate-500">${label}</div>
+        </div>`).join("");
+    } catch (err) {
+      grid.innerHTML = `<p class="text-red-600 col-span-full">You need an admin account to view this page. ${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  async function loadPendingStores() {
+    const el = document.getElementById("pendingStores");
+    try {
+      const stores = await apiFetch("/admin/stores/pending");
+      if (!stores.length) {
+        el.innerHTML = `<p class="text-slate-500 text-sm">Nothing waiting for review.</p>`;
+        return;
+      }
+      el.innerHTML = stores.map(s => `
+        <div class="flex items-center justify-between gap-3 border border-slate-200 rounded-md p-3">
+          <div>
+            <strong>${escapeHtml(s.store_name)}</strong><br>
+            <span class="text-xs text-slate-500">${escapeHtml(s.city || "")}, ${escapeHtml(s.region || "")}</span>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button class="text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-md" data-approve="${s.id}">Approve</button>
+            <button class="text-xs font-semibold bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 rounded-md" data-reject="${s.id}">Reject</button>
+          </div>
+        </div>
+      `).join("");
+
+      el.querySelectorAll("[data-approve]").forEach(btn => btn.addEventListener("click", async () => {
+        await apiFetch(`/admin/stores/${btn.dataset.approve}/approve`, { method: "PUT" });
+        loadPendingStores();
+        loadStats();
+      }));
+      el.querySelectorAll("[data-reject]").forEach(btn => btn.addEventListener("click", async () => {
+        const reason = prompt("Reason for rejecting this store (shown to the seller):") || "";
+        await apiFetch(`/admin/stores/${btn.dataset.reject}/reject`, { method: "PUT", body: { rejection_reason: reason } });
+        loadPendingStores();
+        loadStats();
+      }));
+    } catch (err) {
+      el.innerHTML = `<p class="text-red-600">${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  async function loadPendingProducts() {
+    const el = document.getElementById("pendingProducts");
+    try {
+      const products = await apiFetch("/admin/products/pending");
+      if (!products.length) {
+        el.innerHTML = `<p class="text-slate-500 text-sm">Nothing waiting for review.</p>`;
+        return;
+      }
+      el.innerHTML = products.map(p => `
+        <div class="flex items-center justify-between gap-3 border border-slate-200 rounded-md p-3">
+          <div>
+            <strong>${escapeHtml(p.name)}</strong><br>
+            <span class="text-xs text-slate-500">${money(p.price)}</span>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button class="text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-md" data-approve="${p.id}">Approve</button>
+            <button class="text-xs font-semibold bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 rounded-md" data-reject="${p.id}">Reject</button>
+          </div>
+        </div>
+      `).join("");
+
+      el.querySelectorAll("[data-approve]").forEach(btn => btn.addEventListener("click", async () => {
+        await apiFetch(`/admin/products/${btn.dataset.approve}/approve`, { method: "PUT" });
+        loadPendingProducts();
+        loadStats();
+      }));
+      el.querySelectorAll("[data-reject]").forEach(btn => btn.addEventListener("click", async () => {
+        const reason = prompt("Reason for rejecting this product (shown to the seller):") || "";
+        await apiFetch(`/admin/products/${btn.dataset.reject}/reject`, { method: "PUT", body: { rejection_reason: reason } });
+        loadPendingProducts();
+        loadStats();
+      }));
+    } catch (err) {
+      el.innerHTML = `<p class="text-red-600">${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  loadStats();
+  loadPendingStores();
+  loadPendingProducts();
+</script>
+{% endblock %}

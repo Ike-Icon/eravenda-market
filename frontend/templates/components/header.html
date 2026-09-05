@@ -1,0 +1,143 @@
+<!-- ============================================================
+     HEADER — persistent across every page via base.html's include.
+     Edit this one file and every page updates.
+     Expects (all optional, safe fallbacks provided):
+       categories            list of Category objects, each with .id and .name
+       search_query          current search string, for re-populating the input
+       selected_category_id  current category filter, for re-selecting the dropdown
+     ============================================================ -->
+<header class="sticky top-0 z-40 bg-white border-b border-slate-200">
+
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+
+    <!-- Mobile menu toggle — shown only below md breakpoint -->
+    <button id="mobileMenuBtn" type="button" class="md:hidden p-2 -ml-2 rounded hover:bg-slate-100"
+      aria-label="Open menu" aria-expanded="false" aria-controls="mobileDrawer">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+
+    <!-- Logo  -->
+    <a href="/" class="group inline-flex items-center shrink-0 transition-transform duration-300 ease-in-out hover:scale-[1.02]">
+  <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="EraVenda Logo" class="overflow-visible">
+    <defs>
+      <!-- Brand Gradients -->
+      <linearGradient id="ev-green-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0F766E" />
+        <stop offset="100%" stop-color="#0A5C36" />
+      </linearGradient>
+      <linearGradient id="ev-gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#F59E0B" />
+        <stop offset="100%" stop-color="#D97706" />
+      </linearGradient>
+    </defs>
+
+    <!-- Logo Icon Mark (Letter E + Shopping Handle Concept) -->
+    <g transform="translate(4, 4)" class="transition-transform duration-300 ease-in-out origin-center group-hover:-translate-y-0.5">
+      <!-- Outer Curved Badge -->
+      <rect x="0" y="0" width="48" height="48" rx="14" fill="url(#ev-green-grad)" class="transition-all duration-300 ease-in-out group-hover:shadow-md" />
+
+      <!-- Bag Handle Arc (Lift effect on hover) -->
+      <path d="M18 16 C18 11.5, 30 11.5, 30 16" stroke="url(#ev-gold-grad)" stroke-width="3.5" stroke-linecap="round" fill="none" class="transition-transform duration-300 ease-in-out origin-top group-hover:-translate-y-1" />
+
+      <!-- Stylized E / Folder Shape inside Badge -->
+      <path d="M16 22 H32 M16 28 H27 M16 34 H32" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" />
+    </g>
+
+    <!-- Logo Wordmark Text -->
+    <g transform="translate(62, 38)">
+      <!-- Era -->
+      <text font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="28" fill="#0A5C36" letter-spacing="-0.5">Era</text>
+      <!-- Venda -->
+      <text x="41" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="28" fill="url(#ev-gold-grad)" letter-spacing="-0.5">Venda</text>
+      <!-- Accent Period (Pulse and color shift on hover) -->
+      <circle cx="137" cy="-5" r="4" class="fill-[#0A5C36] group-hover:fill-[#F59E0B] transition-all duration-300 ease-in-out transform origin-center group-hover:scale-125" />
+    </g>
+  </svg>
+</a>
+
+    <!-- Live search with category dropdown -->
+    <form action="/products" method="get" class="hidden sm:flex flex-1 max-w-2xl">
+      <select name="category_id"
+        class="border border-slate-300 border-r-0 rounded-l-md bg-slate-50 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-brand-500 max-w-[9rem] truncate">
+        <option value="">All</option>
+        {% for c in categories|default([]) %}
+        <option value="{{ c.id }}" {% if selected_category_id|default('')==c.id %}selected{% endif %}>{{ c.name }}
+        </option>
+        {% endfor %}
+      </select>
+      <input type="search" name="q" value="{{ search_query|default('') }}"
+        placeholder="Search products, brands and categories"
+        class="flex-1 border-y border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+      <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white px-4 rounded-r-md transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+          stroke-width="2">
+          <circle cx="11" cy="11" r="7" />
+          <path stroke-linecap="round" d="m20 20-3-3" />
+        </svg>
+      </button>
+    </form>
+
+    <!-- Account links / auth state. Server renders the safe "guest" default;
+         main.js swaps this for real account info once it reads the token from
+         localStorage, since login state lives client-side. -->
+    <nav class="ml-auto flex items-center gap-4 text-sm font-medium whitespace-nowrap">
+      <div id="guestLinks" class="flex items-center gap-4">
+        <a href="/login" class="hover:text-brand-600">Log in</a>
+        <a href="/register" class="hidden sm:inline hover:text-brand-600">Sign up</a>
+      </div>
+
+      <div id="userLinks" class="hidden items-center gap-4">
+        <a id="dashboardLink" href="/seller/dashboard.html" class="hidden sm:inline hover:text-brand-600">My store</a>
+        <a href="/orders.html" class="hidden sm:inline hover:text-brand-600">Orders</a>
+        <span class="hidden sm:inline text-slate-400">|</span>
+        <span class="hidden sm:inline text-slate-600">Hi, <span id="userFirstName">there</span></span>
+        <button id="logoutBtn" type="button" class="hover:text-brand-600">Log out</button>
+      </div>
+
+      <a href="/cart" class="relative p-2 -mr-2 rounded hover:bg-slate-100" aria-label="Cart">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+          stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 3h2l.4 2M7 13h10l3.6-8H5.4M7 13 5.4 5M7 13l-2.3 4.6A1 1 0 0 0 5.6 19H17M17 13v6M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
+        </svg>
+        <span id="cartCountBadge"
+          class="{% if not cart_item_count|default(0) %}hidden{% endif %} absolute -top-1 -right-1 bg-accent-500 text-slate-900 text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[1.1rem] text-center">
+          {{ cart_item_count|default(0) }}
+        </span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Category strip — desktop only, mirrors the dropdown above for quick browsing -->
+  <div class="hidden md:block bg-slate-50 border-t border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 py-2 flex gap-6 overflow-x-auto text-sm text-slate-600">
+      {% for c in categories|default([]) %}
+      <a href="/products?category_id={{ c.id }}" class="hover:text-brand-600 whitespace-nowrap">{{ c.name }}</a>
+      {% else %}
+      <span class="text-slate-400">Categories will appear here once an admin adds some.</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Mobile nav drawer -->
+  <div id="mobileDrawer" class="hidden md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-4">
+    <form action="/products" method="get" class="flex">
+      <input type="search" name="q" value="{{ search_query|default('') }}" placeholder="Search products"
+        class="flex-1 border border-slate-300 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+      <button type="submit" class="bg-brand-500 text-white px-4 rounded-r-md">Go</button>
+    </form>
+    <div class="flex flex-col gap-2 text-sm font-medium">
+      {% for c in categories|default([]) %}
+      <a href="/products?category_id={{ c.id }}" class="py-1 hover:text-brand-600">{{ c.name }}</a>
+      {% endfor %}
+    </div>
+    <div class="border-t border-slate-200 pt-4 flex flex-col gap-2 text-sm font-medium" id="mobileAuthLinks">
+      <a href="/login" class="py-1 hover:text-brand-600">Log in</a>
+      <a href="/register" class="py-1 hover:text-brand-600">Sign up</a>
+      <a href="/orders.html" class="py-1 hover:text-brand-600">Orders</a>
+    </div>
+  </div>
+</header>

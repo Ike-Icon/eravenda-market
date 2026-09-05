@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Checkout — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <h1 class="font-head text-2xl font-semibold mb-6">Checkout</h1>
+  <div class="grid md:grid-cols-3 gap-8">
+    <div class="md:col-span-2 border border-slate-200 rounded-md p-5">
+      <h3 class="font-semibold mb-3">Delivery address</h3>
+      <div id="addressList"><p class="text-slate-500 text-sm">Loading your addresses…</p></div>
+      <button id="newAddressToggle" type="button" class="mt-3 text-sm font-semibold text-brand-600 hover:underline">+ Add a new address</button>
+
+      <form id="addressForm" class="hidden mt-4 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <input name="recipient_name" placeholder="Full name" required class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+          <input name="phone" placeholder="Phone" required class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <input name="region" placeholder="Region, e.g. Ashanti" required class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+          <input name="city" placeholder="City, e.g. Kumasi" required class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+        </div>
+        <input name="area" placeholder="Area / suburb" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+        <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-md">Save address</button>
+      </form>
+    </div>
+
+    <div class="border border-slate-200 rounded-md p-5 h-fit">
+      <h3 class="font-semibold mb-3">Order summary</h3>
+      <div id="checkoutSummary" class="text-sm space-y-1"><p class="text-slate-500">Loading…</p></div>
+      <div id="checkoutError" class="hidden text-sm text-red-600 mt-2"></div>
+      <button id="placeOrderBtn" disabled
+              class="mt-4 w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-semibold py-2 rounded-md transition-colors">
+        Place order
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/checkout";
+  }
+
+  function money(n) { return `₵${Number(n).toFixed(2)}`; }
+  let selectedAddressId = null;
+
+  async function loadAddresses() {
+    const list = document.getElementById("addressList");
+    const addresses = await apiFetch("/auth/addresses");
+    if (!addresses.length) {
+      list.innerHTML = `<p class="text-sm text-slate-500">No saved addresses yet — add one below.</p>`;
+      document.getElementById("addressForm").classList.remove("hidden");
+      return;
+    }
+    list.innerHTML = addresses.map(a => `
+      <div class="address-option border border-slate-200 rounded-md p-3 mb-2 cursor-pointer" data-id="${a.id}">
+        <strong>${a.recipient_name}</strong> · ${a.phone}<br>
+        <span class="text-sm text-slate-500">${a.area || ""} ${a.city}, ${a.region}</span>
+      </div>`).join("");
+
+    list.querySelectorAll(".address-option").forEach(el => {
+      el.addEventListener("click", () => {
+        list.querySelectorAll(".address-option").forEach(x => x.classList.remove("border-brand-500", "bg-brand-50"));
+        el.classList.add("border-brand-500", "bg-brand-50");
+        selectedAddressId = el.dataset.id;
+        document.getElementById("placeOrderBtn").disabled = false;
+      });
+    });
+    list.querySelector(".address-option").click();
+  }
+
+  async function loadSummary() {
+    const el = document.getElementById("checkoutSummary");
+    const cart = await apiFetch("/cart");
+    if (!cart.items.length) {
+      el.innerHTML = `<p>Your cart is empty. <a href="/products" class="text-brand-600 font-semibold">Go shopping</a>.</p>`;
+      document.getElementById("placeOrderBtn").classList.add("hidden");
+      return;
+    }
+    const storeCount = new Set(cart.items.map(i => i.product.store_id)).size;
+    const delivery = storeCount * 15;
+    el.innerHTML = `
+      <div class="flex justify-between"><span>${cart.items.length} item(s), ${storeCount} seller(s)</span></div>
+      <div class="flex justify-between"><span>Subtotal</span><span>${money(cart.subtotal)}</span></div>
+      <div class="flex justify-between"><span>Delivery</span><span>${money(delivery)}</span></div>
+      <div class="flex justify-between font-semibold border-t border-slate-200 pt-2 mt-2"><span>Total</span><span>${money(cart.subtotal + delivery)}</span></div>
+    `;
+  }
+
+  document.getElementById("newAddressToggle").addEventListener("click", () => {
+    document.getElementById("addressForm").classList.toggle("hidden");
+  });
+
+  document.getElementById("addressForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = Object.fromEntries(new FormData(e.target).entries());
+    await apiFetch("/auth/addresses", { method: "POST", body: payload });
+    e.target.reset();
+    e.target.classList.add("hidden");
+    loadAddresses();
+  });
+
+  document.getElementById("placeOrderBtn").addEventListener("click", async () => {
+    const errBox = document.getElementById("checkoutError");
+    errBox.classList.add("hidden");
+    if (!selectedAddressId) {
+      errBox.textContent = "Choose a delivery address first.";
+      errBox.classList.remove("hidden");
+      return;
+    }
+    try {
+      await apiFetch("/orders/checkout", { method: "POST", body: { address_id: selectedAddressId } });
+      window.location.href = "/orders.html?placed=1";
+    } catch (err) {
+      errBox.textContent = err.message;
+      errBox.classList.remove("hidden");
+    }
+  });
+
+  loadAddresses();
+  loadSummary();
+</script>
+{% endblock %}

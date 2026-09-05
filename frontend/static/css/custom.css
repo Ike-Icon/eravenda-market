@@ -1,0 +1,16 @@
+/* Small supplement to Tailwind's CDN build — kept intentionally tiny.
+   Anything doable with utility classes belongs in the templates, not here. */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbars on horizontally-scrolling strips (category nav, etc.)
+   while keeping them scrollable via touch/trackpad. */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

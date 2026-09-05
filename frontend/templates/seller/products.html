@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}My products — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-[200px_1fr] gap-8">
+  {% set active = "products" %}
+  {% include "components/seller-nav.html" with context %}
+
+  <div>
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="font-head text-2xl font-semibold">My products</h1>
+      <a href="/seller/add-product.html" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-md transition-colors">+ Add product</a>
+    </div>
+    <div id="productsList"><p class="text-slate-500">Loading…</p></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/seller/products.html";
+  }
+
+  function money(n) { return `₵${Number(n).toFixed(2)}`; }
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+
+  const STATUS_STYLES = {
+    pending: "bg-amber-50 text-amber-700",
+    approved: "bg-brand-50 text-brand-700",
+    rejected: "bg-red-50 text-red-700",
+    out_of_stock: "bg-slate-100 text-slate-600",
+  };
+  function badgeHtml(status) {
+    const classes = STATUS_STYLES[status] || "bg-slate-100 text-slate-600";
+    return `<span class="text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${classes}">${status.replace("_", " ")}</span>`;
+  }
+
+  async function load() {
+    const el = document.getElementById("productsList");
+    try {
+      const products = await apiFetch("/products/store/mine");
+      if (!products.length) {
+        el.innerHTML = `<div class="text-center py-16 text-slate-500">You haven't added any products yet. <a href="/seller/add-product.html" class="text-brand-600 font-semibold">Add your first one</a>.</div>`;
+        return;
+      }
+      el.innerHTML = `
+        <table class="w-full text-sm border border-slate-200 rounded-md overflow-hidden">
+          <thead class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+            <tr><th class="p-3">Name</th><th class="p-3">Price</th><th class="p-3">Stock</th><th class="p-3">Status</th><th class="p-3"></th></tr>
+          </thead>
+          <tbody>
+            ${products.map(p => `
+              <tr class="border-t border-slate-100">
+                <td class="p-3">${escapeHtml(p.name)}</td>
+                <td class="p-3">${money(p.discount_price ?? p.price)}</td>
+                <td class="p-3">${p.stock_quantity}</td>
+                <td class="p-3">${badgeHtml(p.status)}</td>
+                <td class="p-3 text-right"><button class="text-xs text-red-600 hover:underline" data-delete="${p.id}">Delete</button></td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      `;
+
+      el.querySelectorAll("[data-delete]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("Remove this product from your store?")) return;
+          try {
+            await apiFetch(`/products/${btn.dataset.delete}`, { method: "DELETE" });
+            load();
+          } catch (err) { alert(err.message); }
+        });
+      });
+    } catch (err) {
+      el.innerHTML = `<p class="text-red-600">Couldn't load your products: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  load();
+</script>
+{% endblock %}

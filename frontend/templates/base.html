@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Eravenda Market — Shop from independent sellers across Ghana{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Eravenda Market connects buyers with independent sellers across Ghana.{% endblock %}">
+
+  <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+
+  <!-- Modern SVG Favicon -->
+{# <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}"> #}
+<link rel="icon" type="image/svg+xml" href="./static/favicon.svg">
+
+
+  <!-- Tailwind CSS via CDN. No build step, no config file, keeps this project zero-dependency on the frontend. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    // Small brand config so Tailwind's utility classes (bg-brand-600, text-accent-500, etc.)
+    // are available everywhere without a build step.
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eaf5f0', 100: '#cfe9dc', 300: '#5fa886', 500: '#1c6b4f',
+              600: '#17573f', 700: '#12503a', 900: '#0b2d20',
+            },
+            accent: {
+              400: '#f4b85c', 500: '#f2a93b', 600: '#c98a22',
+            },
+          },
+          fontFamily: {
+            head: ['"Space Grotesk"', 'sans-serif'],
+            body: ['Inter', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/custom.css">
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="font-body text-slate-900 bg-white flex min-h-screen flex-col">
+
+  {% include "components/header.html" %}
+
+  <main class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "components/footer.html" %}
+
+  <!-- Shared config + client-side logic. Loaded on every page so cart badge / auth
+       state stay in sync no matter which page the person landed on. -->
+  <script src="/static/js/config.js"></script>
+  <script src="/static/js/main.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

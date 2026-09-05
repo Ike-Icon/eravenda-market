@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Your orders — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <h1 class="font-head text-2xl font-semibold mb-4">Your orders</h1>
+
+  <div id="placedNotice" class="hidden text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-md p-3 mb-6">
+    Your order was placed. The seller will confirm it shortly.
+  </div>
+
+  <div id="ordersList" class="space-y-4">
+    <p class="text-slate-500">Loading your orders…</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/orders.html";
+  }
+
+  if (new URLSearchParams(window.location.search).get("placed")) {
+    document.getElementById("placedNotice").classList.remove("hidden");
+  }
+
+  function money(n) { return `₵${Number(n).toFixed(2)}`; }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+
+  const STATUS_STYLES = {
+    pending: "bg-amber-50 text-amber-700",
+    paid: "bg-brand-50 text-brand-700",
+    processing: "bg-blue-50 text-blue-700",
+    shipped: "bg-blue-50 text-blue-700",
+    delivered: "bg-brand-50 text-brand-700",
+    cancelled: "bg-red-50 text-red-700",
+    refunded: "bg-red-50 text-red-700",
+  };
+
+  function badgeHtml(status) {
+    const classes = STATUS_STYLES[status] || "bg-slate-100 text-slate-600";
+    return `<span class="text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${classes}">${status}</span>`;
+  }
+
+  async function load() {
+    const el = document.getElementById("ordersList");
+    try {
+      const orders = await apiFetch("/orders");
+
+      if (!orders.length) {
+        el.innerHTML = `
+          <div class="text-center py-16 text-slate-500">
+            You haven't placed any orders yet.
+            <a href="/products" class="text-brand-600 font-semibold">Start shopping</a>.
+          </div>`;
+        return;
+      }
+
+      el.innerHTML = orders.map(o => `
+        <div class="border border-slate-200 rounded-md p-5">
+          <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center gap-2">
+              <strong>${escapeHtml(o.order_number)}</strong>
+              ${badgeHtml(o.status)}
+            </div>
+            <div class="text-xs text-slate-500">${new Date(o.created_at).toLocaleDateString()}</div>
+          </div>
+          <table class="w-full text-sm">
+            <tbody>
+              ${o.items.map(i => `
+                <tr class="border-t border-slate-100">
+                  <td class="py-2">${escapeHtml(i.product_name)}</td>
+                  <td class="py-2">x${i.quantity}</td>
+                  <td class="py-2 text-right">${money(i.line_total)}</td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+          <div class="flex justify-between font-semibold border-t border-slate-200 pt-3 mt-1">
+            <span>Total (incl. ₵${Number(o.delivery_fee).toFixed(2)} delivery)</span>
+            <span>${money(o.total_amount)}</span>
+          </div>
+        </div>
+      `).join("");
+    } catch (err) {
+      el.innerHTML = `<p class="text-red-600">Couldn't load your orders: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  load();
+</script>
+{% endblock %}

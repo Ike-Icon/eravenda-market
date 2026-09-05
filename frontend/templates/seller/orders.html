@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Incoming orders — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-[200px_1fr] gap-8">
+  {% set active = "orders" %}
+  {% include "components/seller-nav.html" with context %}
+
+  <div>
+    <h1 class="font-head text-2xl font-semibold mb-4">Incoming orders</h1>
+    <div id="ordersList" class="space-y-4"><p class="text-slate-500">Loading…</p></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/seller/orders.html";
+  }
+
+  const STATUS_OPTIONS = ["pending", "paid", "processing", "shipped", "delivered", "cancelled", "refunded"];
+
+  function money(n) { return `₵${Number(n).toFixed(2)}`; }
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+
+  async function load() {
+    const el = document.getElementById("ordersList");
+    try {
+      const orders = await apiFetch("/orders/store/mine");
+      if (!orders.length) {
+        el.innerHTML = `<div class="text-center py-16 text-slate-500">No orders yet. Once a buyer checks out, orders show up here.</div>`;
+        return;
+      }
+      el.innerHTML = orders.map(o => `
+        <div class="border border-slate-200 rounded-md p-5">
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <strong>${escapeHtml(o.order_number)}</strong>
+              <span class="text-xs text-slate-500 ml-1">· ${new Date(o.created_at).toLocaleDateString()}</span>
+            </div>
+            <select data-order="${o.id}" class="status-select border border-slate-300 rounded-md px-2 py-1 text-sm">
+              ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}
+            </select>
+          </div>
+          <table class="w-full text-sm">
+            <tbody>
+              ${o.items.map(i => `
+                <tr class="border-t border-slate-100">
+                  <td class="py-2">${escapeHtml(i.product_name)}</td>
+                  <td class="py-2">x${i.quantity}</td>
+                  <td class="py-2 text-right">${money(i.line_total)}</td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+          <div class="flex justify-between font-semibold border-t border-slate-200 pt-3 mt-1">
+            <span>Total</span><span>${money(o.total_amount)}</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">
+            Platform commission: ${money(o.commission_amount)} · Your payout: ${money(o.subtotal - o.commission_amount)}
+          </div>
+        </div>
+      `).join("");
+
+      el.querySelectorAll(".status-select").forEach(select => {
+        select.addEventListener("change", async () => {
+          try {
+            await apiFetch(`/orders/${select.dataset.order}/status`, { method: "PUT", body: { status: select.value } });
+          } catch (err) {
+            alert(err.message);
+            load();
+          }
+        });
+      });
+    } catch (err) {
+      el.innerHTML = `<p class="text-red-600">Couldn't load orders: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  load();
+</script>
+{% endblock %}

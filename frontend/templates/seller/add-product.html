@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Add product — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-[200px_1fr] gap-8">
+  {% set active = "products" %}
+  {% include "components/seller-nav.html" with context %}
+
+  <div class="border border-slate-200 rounded-md p-6 max-w-xl">
+    <h1 class="font-head text-2xl font-semibold mb-4">Add a product</h1>
+    <div id="formError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3 mb-4"></div>
+    <div id="formSuccess" class="hidden text-sm text-brand-700 bg-brand-50 rounded-md p-3 mb-4"></div>
+
+    <form id="productForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Product name</label>
+        <input name="name" placeholder="e.g. Samsung Galaxy A15" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Category</label>
+        <select name="category_id" id="categorySelect" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+          <option value="">Choose a category…</option>
+          {% for c in categories|default([]) %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Description</label>
+        <textarea name="description" placeholder="Condition, specs, what's in the box…" class="w-full border border-slate-300 rounded-md px-3 py-2"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Price (₵)</label>
+          <input type="number" name="price" step="0.01" min="0" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Discount price (₵, optional)</label>
+          <input type="number" name="discount_price" step="0.01" min="0" class="w-full border border-slate-300 rounded-md px-3 py-2">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Stock quantity</label>
+          <input type="number" name="stock_quantity" min="0" value="1" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Brand</label>
+          <input name="brand" placeholder="e.g. Samsung" class="w-full border border-slate-300 rounded-md px-3 py-2">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1">Product images</label>
+        <input type="file" id="imageFile" accept="image/*" multiple class="text-sm">
+        <p class="text-xs text-slate-500 mt-1" id="uploadHint"></p>
+        <div class="flex gap-2 flex-wrap mt-2" id="imagePreview"></div>
+      </div>
+
+      <button type="submit" id="publishBtn" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Publish product</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/seller/add-product.html";
+  }
+
+  const uploadedImages = []; // { url, isPrimary }
+
+  async function uploadToCloudinary(file) {
+    const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    const res = await fetch(url, { method: "POST", body: fd });
+    if (!res.ok) throw new Error("Image upload failed");
+    const data = await res.json();
+    return data.secure_url;
+  }
+
+  document.getElementById("imageFile").addEventListener("change", async (e) => {
+    const hint = document.getElementById("uploadHint");
+    const preview = document.getElementById("imagePreview");
+
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+      hint.textContent = "Image uploads aren't configured yet — set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET in static/js/config.js. You can still publish without photos for now.";
+      return;
+    }
+
+    hint.textContent = "Uploading…";
+    for (const file of e.target.files) {
+      try {
+        const url = await uploadToCloudinary(file);
+        uploadedImages.push({ url, isPrimary: uploadedImages.length === 0 });
+        const img = document.createElement("img");
+        img.src = url;
+        img.className = "w-16 h-16 object-cover rounded border border-slate-200";
+        preview.appendChild(img);
+      } catch (err) {
+        hint.textContent = err.message;
+      }
+    }
+    hint.textContent = uploadedImages.length ? `${uploadedImages.length} image(s) ready.` : "";
+  });
+
+  document.getElementById("productForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errBox = document.getElementById("formError");
+    const okBox = document.getElementById("formSuccess");
+    errBox.classList.add("hidden");
+    okBox.classList.add("hidden");
+
+    const fd = new FormData(e.target);
+    const payload = {
+      name: fd.get("name"),
+      category_id: fd.get("category_id"),
+      description: fd.get("description") || null,
+      brand: fd.get("brand") || null,
+      price: parseFloat(fd.get("price")),
+      discount_price: fd.get("discount_price") ? parseFloat(fd.get("discount_price")) : null,
+      stock_quantity: parseInt(fd.get("stock_quantity"), 10),
+    };
+
+    const btn = document.getElementById("publishBtn");
+    btn.disabled = true;
+    btn.textContent = "Publishing…";
+
+    try {
+      const product = await apiFetch("/products", { method: "POST", body: payload });
+      for (const img of uploadedImages) {
+        await apiFetch(`/products/${product.id}/images?image_url=${encodeURIComponent(img.url)}&is_primary=${img.isPrimary}`, { method: "POST" });
+      }
+      okBox.textContent = "Product published. It will appear once an admin approves it.";
+      okBox.classList.remove("hidden");
+      setTimeout(() => { window.location.href = "/seller/products.html"; }, 1200);
+    } catch (err) {
+      errBox.textContent = err.message;
+      errBox.classList.remove("hidden");
+      btn.disabled = false;
+      btn.textContent = "Publish product";
+    }
+  });
+</script>
+{% endblock %}

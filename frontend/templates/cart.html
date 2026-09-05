@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Your cart — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <h1 class="font-head text-2xl font-semibold mb-6">Your cart</h1>
+  <div class="grid md:grid-cols-3 gap-8">
+    <div id="cartItems" class="md:col-span-2 space-y-4">
+      <p class="text-slate-500">Loading your cart…</p>
+    </div>
+    <div class="border border-slate-200 rounded-md p-5 h-fit">
+      <h3 class="font-semibold mb-3">Order summary</h3>
+      <div class="flex justify-between text-sm py-1">
+        <span>Subtotal</span><span id="sumSubtotal">₵0.00</span>
+      </div>
+      <p class="text-xs text-slate-500 mt-2">Delivery is calculated per seller at checkout.</p>
+      <a id="checkoutBtn" href="/checkout"
+         class="mt-4 block text-center bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2 rounded-md transition-colors">
+        Proceed to checkout
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/cart";
+  }
+
+  function money(n) { return `₵${Number(n).toFixed(2)}`; }
+
+  async function loadCart() {
+    const el = document.getElementById("cartItems");
+    try {
+      const cart = await apiFetch("/cart");
+      document.getElementById("sumSubtotal").textContent = money(cart.subtotal);
+
+      if (!cart.items.length) {
+        el.innerHTML = `<div class="text-center py-12 text-slate-500">Your cart is empty. <a href="/products" class="text-brand-600 font-semibold">Start shopping</a>.</div>`;
+        document.getElementById("checkoutBtn").classList.add("pointer-events-none", "opacity-50");
+        return;
+      }
+
+      el.innerHTML = cart.items.map(item => {
+        const p = item.product;
+        const price = Number(p.discount_price ?? p.price);
+        const img = (p.images || []).find(i => i.is_primary) || (p.images || [])[0];
+        return `
+          <div class="flex items-center gap-4 border border-slate-200 rounded-md p-3" data-item-id="${item.id}">
+            ${img ? `<img src="${img.image_url}" class="w-16 h-16 object-cover rounded">` : `<div class="w-16 h-16 bg-slate-100 rounded"></div>`}
+            <div class="flex-1">
+              <div class="font-medium">${p.name}</div>
+              <div class="text-sm text-slate-500">${money(price)} each</div>
+            </div>
+            <input type="number" class="qty-input w-16 border border-slate-300 rounded px-2 py-1 text-center" value="${item.quantity}" min="1" max="${p.stock_quantity}" data-item-id="${item.id}">
+            <div class="text-right">
+              <div class="font-semibold">${money(price * item.quantity)}</div>
+              <button class="text-xs text-red-600 hover:underline mt-1" data-remove="${item.id}">Remove</button>
+            </div>
+          </div>`;
+      }).join("");
+
+      el.querySelectorAll(".qty-input").forEach(input => {
+        input.addEventListener("change", async () => {
+          await apiFetch(`/cart/items/${input.dataset.itemId}`, { method: "PUT", body: { product_id: "", quantity: parseInt(input.value, 10) || 1 } });
+          loadCart();
+          refreshCartBadge();
+        });
+      });
+      el.querySelectorAll("[data-remove]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          await apiFetch(`/cart/items/${btn.dataset.remove}`, { method: "DELETE" });
+          loadCart();
+          refreshCartBadge();
+        });
+      });
+    } catch (err) {
+      el.innerHTML = `<p class="text-red-600">Couldn't load your cart: ${err.message}</p>`;
+    }
+  }
+
+  loadCart();
+</script>
+{% endblock %}
