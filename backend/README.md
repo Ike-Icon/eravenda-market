@@ -36,10 +36,9 @@ to generate one).
 uvicorn app.main:app --reload --port 8000
 ```
 
-Tables are created automatically on startup for local development. For a real
-deployment, replace `Base.metadata.create_all` in `app/main.py` with Alembic
-migrations, since `create_all` won't handle schema changes safely once you
-have live data.
+Tables are created automatically on startup for local development. The Render
+start command also runs the checked-in idempotent SQL migrations before Uvicorn
+starts, so an existing production database receives newly added columns.
 
 5. Open the interactive API docs at `http://localhost:8000/docs`.
 
