@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}FAQ — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-12">
+  <h1 class="font-head text-3xl font-semibold mb-6">Frequently asked questions</h1>
+
+  <div class="space-y-3" id="faqList">
+    {% set faqs = [
+      ("How do I track my order?", "Log in and go to Orders from the account menu. Each order shows its current status — pending, paid, processing, shipped, or delivered."),
+      ("What payment methods do you accept?", "Card and mobile money payments through Paystack, at checkout."),
+      ("How long does delivery take?", "Delivery times vary by seller and location, typically 1–5 business days within Ghana."),
+      ("Can I return a product?", "Contact the seller directly through your order, or reach out to us via the Contact page if you need help resolving an issue."),
+      ("How do I become a seller?", "Click \"Open a store\" from the homepage or your account menu, fill in your store details, and submit for review. Approval usually takes about a day."),
+      ("What does Eravenda Market charge sellers?", "A commission percentage per sale, shown on your seller dashboard once your store is approved. It varies by store."),
+      ("I forgot my password — what do I do?", "Go to the login page and click \"Forgot your password?\" to get a reset link sent to your email."),
+    ] %}
+    {% for question, answer in faqs %}
+    <details class="border border-slate-200 rounded-md p-4 group">
+      <summary class="font-medium cursor-pointer list-none flex justify-between items-center">
+        {{ question }}
+        <span class="text-slate-400 group-open:rotate-45 transition-transform">+</span>
+      </summary>
+      <p class="text-sm text-slate-600 mt-3">{{ answer }}</p>
+    </details>
+    {% endfor %}
+  </div>
+
+  <p class="text-sm text-slate-500 mt-8">
+    Still stuck? <a href="/contact" class="text-brand-600 font-semibold hover:underline">Contact us</a> and we'll help directly.
+  </p>
+</div>
+{% endblock %}

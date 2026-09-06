@@ -54,17 +54,17 @@ UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
 
 ## Key endpoints
 
-| Method | Path | Purpose |
-|---|---|---|
-| POST | `/auth/register` | Create a buyer or seller account |
-| POST | `/auth/login` | Get a JWT (form fields: `username`, `password`) |
-| GET | `/products` | Browse/search/filter approved products |
-| POST | `/stores` | Register a store (requires login) |
-| POST | `/products` | Add a product (requires an approved store) |
-| POST | `/cart/items` | Add an item to the cart |
-| POST | `/orders/checkout` | Turn the cart into one order per store |
-| GET | `/orders/store/mine` | Seller's incoming orders |
-| PUT | `/admin/stores/{id}/approve` | Approve a pending store |
+| Method | Path                           | Purpose                                            |
+| ------ | ------------------------------ | -------------------------------------------------- |
+| POST   | `/auth/register`             | Create a buyer or seller account                   |
+| POST   | `/auth/login`                | Get a JWT (form fields:`username`, `password`) |
+| GET    | `/products`                  | Browse/search/filter approved products             |
+| POST   | `/stores`                    | Register a store (requires login)                  |
+| POST   | `/products`                  | Add a product (requires an approved store)         |
+| POST   | `/cart/items`                | Add an item to the cart                            |
+| POST   | `/orders/checkout`           | Turn the cart into one order per store             |
+| GET    | `/orders/store/mine`         | Seller's incoming orders                           |
+| PUT    | `/admin/stores/{id}/approve` | Approve a pending store                            |
 
 Full request/response shapes are in the auto-generated docs at `/docs`.
 

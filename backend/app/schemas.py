@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field, ConfigDict  # pyright: ignore[reportMissingImports]
 
-from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus
+from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus
 
 
 # ---------- USERS ----------
@@ -23,7 +23,14 @@ class UserOut(BaseModel):
     phone: Optional[str]
     role: UserRole
     is_active: bool
+    avatar_url: Optional[str] = None
     created_at: datetime
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
@@ -35,6 +42,15 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6)
 
 
 # ---------- ADDRESSES ----------
@@ -112,6 +128,9 @@ class ProductCreate(BaseModel):
     category_id: str
     description: Optional[str] = None
     brand: Optional[str] = None
+    condition: ProductCondition = ProductCondition.new
+    sku: Optional[str] = None
+    specifications: Optional[List[str]] = None
     price: float
     discount_price: Optional[float] = None
     stock_quantity: int = 0
@@ -122,6 +141,9 @@ class ProductUpdate(BaseModel):
     category_id: Optional[str] = None
     description: Optional[str] = None
     brand: Optional[str] = None
+    condition: Optional[ProductCondition] = None
+    sku: Optional[str] = None
+    specifications: Optional[List[str]] = None
     price: Optional[float] = None
     discount_price: Optional[float] = None
     stock_quantity: Optional[int] = None
@@ -136,10 +158,14 @@ class ProductOut(BaseModel):
     slug: str
     description: Optional[str]
     brand: Optional[str]
+    condition: ProductCondition
+    sku: Optional[str] = None
+    specifications: Optional[List[str]] = None
     price: float
     discount_price: Optional[float]
     stock_quantity: int
     status: ProductStatus
+    rejection_reason: Optional[str] = None
     average_rating: float
     review_count: int
     images: List[ProductImageOut] = []
@@ -244,3 +270,41 @@ class PayoutOut(BaseModel):
     status: PayoutStatus
     payout_method: Optional[str]
     requested_at: datetime
+
+
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+
+class ProductStatusUpdate(BaseModel):
+    status: ProductStatus
+    rejection_reason: Optional[str] = None
+
+
+# ---------- PAYMENTS (Paystack) ----------
+
+class PaymentInitRequest(BaseModel):
+    order_id: str
+
+
+class PaymentInitOut(BaseModel):
+    authorization_url: str
+    access_code: str
+    reference: str
+
+
+class PaymentVerifyOut(BaseModel):
+    status: PaymentStatus
+    order_id: str
+    order_status: OrderStatus
+    amount: float
+    reference: str
+
+
+# ---------- CONTACT FORM ----------
+
+class ContactMessageCreate(BaseModel):
+    name: str
+    email: EmailStr
+    subject: Optional[str] = None
+    message: str = Field(min_length=5)

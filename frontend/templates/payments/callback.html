@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Payment result — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16 text-center">
+  <div id="resultBox" class="border border-slate-200 rounded-md p-8">
+    <div class="animate-pulse text-slate-500">Confirming your payment…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/payments/callback";
+  }
+
+  async function confirm() {
+    const box = document.getElementById("resultBox");
+    const reference = new URLSearchParams(window.location.search).get("reference")
+      || new URLSearchParams(window.location.search).get("trxref");
+
+    if (!reference) {
+      box.innerHTML = `<p class="text-red-600">No payment reference was provided.</p>`;
+      return;
+    }
+
+    try {
+      const result = await apiFetch(`/payments/verify/${encodeURIComponent(reference)}`);
+      if (result.status === "success") {
+        box.innerHTML = `
+          <div class="text-3xl mb-3">✅</div>
+          <h1 class="font-head text-xl font-semibold mb-2">Payment successful</h1>
+          <p class="text-slate-500 mb-4">Your order is now marked as paid and the seller has been notified.</p>
+          <a href="/orders.html" class="inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">View your orders</a>
+        `;
+      } else {
+        box.innerHTML = `
+          <div class="text-3xl mb-3">⚠️</div>
+          <h1 class="font-head text-xl font-semibold mb-2">Payment not confirmed</h1>
+          <p class="text-slate-500 mb-4">Paystack didn't confirm this payment as successful. No charge should have gone through — you can try again from your orders page.</p>
+          <a href="/orders.html" class="inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Back to orders</a>
+        `;
+      }
+    } catch (err) {
+      box.innerHTML = `<p class="text-red-600">${err.message}</p><a href="/orders.html" class="text-brand-600 font-semibold hover:underline mt-3 inline-block">Back to orders</a>`;
+    }
+  }
+
+  confirm();
+</script>
+{% endblock %}

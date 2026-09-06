@@ -4,10 +4,10 @@ from datetime import datetime
 
 from sqlalchemy import (  # type: ignore[reportMissingImports]
     Column, String, Text, Boolean, Integer, Numeric, ForeignKey,
-    DateTime, Enum, SmallInteger, UniqueConstraint
+    DateTime, Enum, SmallInteger, UniqueConstraint, JSON
 )
 from sqlalchemy.dialects.postgresql import UUID  # type: ignore[reportMissingImports]
-from sqlalchemy.orm import relationship  # type: ignore[reportMissingImports]
+from sqlalchemy.orm import relationship, backref  # type: ignore[reportMissingImports]
 
 from .database import Base
 
@@ -60,6 +60,12 @@ class PayoutStatus(str, enum.Enum):
     failed = "failed"
 
 
+class ProductCondition(str, enum.Enum):
+    new = "new"
+    refurbished = "refurbished"
+    used = "used"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -71,11 +77,12 @@ class User(Base):
     role = Column(Enum(UserRole), nullable=False, default=UserRole.buyer)
     is_active = Column(Boolean, nullable=False, default=True)
     is_verified = Column(Boolean, nullable=False, default=False)
+    avatar_url = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
-    store = relationship("Store", back_populates="owner", uselist=False)
+    store = relationship("Store", back_populates="owner", uselist=False, cascade="all, delete-orphan")
 
 
 class Address(Base):
@@ -129,6 +136,12 @@ class Category(Base):
     icon_url = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    children = relationship(
+        "Category",
+        backref=backref("parent", remote_side=[id]),
+        order_by="Category.name",
+    )
+
 
 class Product(Base):
     __tablename__ = "products"
@@ -141,6 +154,9 @@ class Product(Base):
     slug = Column(String(220), nullable=False)
     description = Column(Text)
     brand = Column(String(100))
+    condition = Column(Enum(ProductCondition), nullable=False, default=ProductCondition.new)
+    sku = Column(String(80), nullable=True)
+    specifications = Column(JSON, nullable=True)  # list of short "spec bullet" strings
     price = Column(Numeric(12, 2), nullable=False)
     discount_price = Column(Numeric(12, 2), nullable=True)
     stock_quantity = Column(Integer, nullable=False, default=0)
@@ -267,3 +283,17 @@ class Payout(Base):
     payout_reference = Column(String(150))
     requested_at = Column(DateTime, default=datetime.utcnow)
     processed_at = Column(DateTime, nullable=True)
+
+
+class ContactMessage(Base):
+    """Submissions from the public Contact Us form. No admin UI reads these
+    yet — they're stored so the form is genuinely functional rather than a
+    dead end. Query them directly (or build a viewer later) as needed."""
+    __tablename__ = "contact_messages"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    name = Column(String(150), nullable=False)
+    email = Column(String(150), nullable=False)
+    subject = Column(String(200), nullable=True)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

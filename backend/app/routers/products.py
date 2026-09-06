@@ -30,7 +30,10 @@ def list_products(
         like = f"%{q}%"
         query = query.filter(or_(models.Product.name.ilike(like), models.Product.brand.ilike(like)))
     if category_id:
-        query = query.filter(models.Product.category_id == category_id)
+        child_ids = [
+            row[0] for row in db.query(models.Category.id).filter(models.Category.parent_id == category_id).all()
+        ]
+        query = query.filter(models.Product.category_id.in_([category_id] + child_ids))
     if min_price is not None:
         query = query.filter(models.Product.price >= min_price)
     if max_price is not None:

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Your account — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto px-4 py-8">
+  <h1 class="font-head text-2xl font-semibold mb-6">Your account</h1>
+
+  <div class="border border-slate-200 rounded-md p-6 mb-6">
+    <h3 class="font-semibold mb-4">Profile details</h3>
+    <div id="profileError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3 mb-4"></div>
+    <div id="profileSuccess" class="hidden text-sm text-brand-700 bg-brand-50 rounded-md p-3 mb-4"></div>
+
+    <form id="profileForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1">Full name</label>
+        <input name="full_name" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Email</label>
+        <input id="emailField" disabled class="w-full border border-slate-200 bg-slate-50 text-slate-500 rounded-md px-3 py-2">
+        <p class="text-xs text-slate-400 mt-1">Email can't be changed here yet.</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Phone</label>
+        <input name="phone" placeholder="0244 000 000" class="w-full border border-slate-300 rounded-md px-3 py-2">
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1">Avatar URL</label>
+        <input name="avatar_url" placeholder="https://…" class="w-full border border-slate-300 rounded-md px-3 py-2">
+      </div>
+      <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Save changes</button>
+    </form>
+  </div>
+
+  <div class="border border-slate-200 rounded-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold">Delivery addresses</h3>
+      <a href="/checkout" class="text-sm text-brand-600 font-semibold hover:underline">Manage at checkout</a>
+    </div>
+    <div id="addressList"><p class="text-slate-500 text-sm">Loading…</p></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/account";
+  }
+
+  async function loadProfile() {
+    try {
+      const user = await apiFetch("/users/me");
+      document.querySelector('[name="full_name"]').value = user.full_name || "";
+      document.getElementById("emailField").value = user.email || "";
+      document.querySelector('[name="phone"]').value = user.phone || "";
+      document.querySelector('[name="avatar_url"]').value = user.avatar_url || "";
+    } catch (err) {
+      document.getElementById("profileError").textContent = err.message;
+      document.getElementById("profileError").classList.remove("hidden");
+    }
+  }
+
+  document.getElementById("profileForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errBox = document.getElementById("profileError");
+    const okBox = document.getElementById("profileSuccess");
+    errBox.classList.add("hidden");
+    okBox.classList.add("hidden");
+
+    const fd = new FormData(e.target);
+    const payload = {
+      full_name: fd.get("full_name"),
+      phone: fd.get("phone") || null,
+      avatar_url: fd.get("avatar_url") || null,
+    };
+
+    try {
+      const user = await apiFetch("/users/me", { method: "PUT", body: payload });
+      const stored = Auth.getUser();
+      stored.full_name = user.full_name;
+      Auth.setSession(Auth.getToken(), stored);
+      okBox.textContent = "Profile updated.";
+      okBox.classList.remove("hidden");
+    } catch (err) {
+      errBox.textContent = err.message;
+      errBox.classList.remove("hidden");
+    }
+  });
+
+  async function loadAddresses() {
+    const el = document.getElementById("addressList");
+    try {
+      const addresses = await apiFetch("/auth/addresses");
+      if (!addresses.length) {
+        el.innerHTML = `<p class="text-sm text-slate-500">No saved addresses yet — you'll be prompted to add one at checkout.</p>`;
+        return;
+      }
+      el.innerHTML = addresses.map(a => `
+        <div class="border border-slate-100 rounded-md p-3 mb-2 text-sm">
+          <strong>${a.recipient_name}</strong> · ${a.phone}<br>
+          <span class="text-slate-500">${a.area || ""} ${a.city}, ${a.region}</span>
+        </div>`).join("");
+    } catch (err) {
+      el.innerHTML = `<p class="text-red-600 text-sm">${err.message}</p>`;
+    }
+  }
+
+  loadProfile();
+  loadAddresses();
+</script>
+{% endblock %}

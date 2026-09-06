@@ -14,9 +14,17 @@
     <div id="pendingStores" class="space-y-3"><p class="text-slate-500">Loading…</p></div>
   </div>
 
-  <div class="border border-slate-200 rounded-md p-5">
+  <div class="border border-slate-200 rounded-md p-5 mb-6">
     <h3 class="font-semibold mb-3">Products awaiting approval</h3>
     <div id="pendingProducts" class="space-y-3"><p class="text-slate-500">Loading…</p></div>
+  </div>
+
+  <div class="border border-slate-200 rounded-md p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-semibold">Manage users</h3>
+      <input id="userSearch" type="search" placeholder="Filter by name or email…" class="border border-slate-300 rounded-md px-3 py-1.5 text-sm">
+    </div>
+    <div id="userList" class="space-y-2 max-h-96 overflow-y-auto"><p class="text-slate-500">Loading…</p></div>
   </div>
 </div>
 {% endblock %}
@@ -116,6 +124,7 @@
           <div class="flex gap-2 shrink-0">
             <button class="text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-md" data-approve="${p.id}">Approve</button>
             <button class="text-xs font-semibold bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 rounded-md" data-reject="${p.id}">Reject</button>
+            <button class="text-xs font-semibold bg-slate-100 hover:bg-slate-700 hover:text-white text-slate-600 px-3 py-1.5 rounded-md" data-delete="${p.id}">Delete</button>
           </div>
         </div>
       `).join("");
@@ -131,13 +140,82 @@
         loadPendingProducts();
         loadStats();
       }));
+      el.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", async () => {
+        if (!confirm("Permanently delete this product? This can't be undone.")) return;
+        try {
+          await apiFetch(`/admin/products/${btn.dataset.delete}`, { method: "DELETE" });
+          loadPendingProducts();
+          loadStats();
+        } catch (err) {
+          alert(err.message);
+        }
+      }));
     } catch (err) {
       el.innerHTML = `<p class="text-red-600">${escapeHtml(err.message)}</p>`;
     }
   }
 
+  let allUsers = [];
+
+  async function loadUsers() {
+    const el = document.getElementById("userList");
+    try {
+      allUsers = await apiFetch("/admin/users");
+      renderUsers(allUsers);
+    } catch (err) {
+      el.innerHTML = `<p class="text-red-600">${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  function renderUsers(list) {
+    const el = document.getElementById("userList");
+    if (!list.length) {
+      el.innerHTML = `<p class="text-slate-500 text-sm">No users found.</p>`;
+      return;
+    }
+    el.innerHTML = list.map(u => `
+      <div class="flex items-center justify-between gap-3 border border-slate-100 rounded-md p-3">
+        <div>
+          <strong>${escapeHtml(u.full_name)}</strong>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full capitalize ml-1 ${u.is_active ? "bg-brand-50 text-brand-700" : "bg-red-50 text-red-700"}">${u.is_active ? u.role : "suspended"}</span>
+          <br><span class="text-xs text-slate-500">${escapeHtml(u.email)}</span>
+        </div>
+        <div class="flex gap-2 shrink-0">
+          ${u.is_active
+            ? `<button class="text-xs font-semibold bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 px-3 py-1.5 rounded-md" data-suspend="${u.id}">Suspend</button>`
+            : `<button class="text-xs font-semibold bg-brand-50 hover:bg-brand-600 hover:text-white text-brand-700 px-3 py-1.5 rounded-md" data-reactivate="${u.id}">Reactivate</button>`}
+          <button class="text-xs font-semibold bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 rounded-md" data-delete-user="${u.id}">Delete</button>
+        </div>
+      </div>
+    `).join("");
+
+    el.querySelectorAll("[data-suspend]").forEach(btn => btn.addEventListener("click", async () => {
+      await apiFetch(`/admin/users/${btn.dataset.suspend}/suspend`, { method: "PUT" });
+      loadUsers();
+    }));
+    el.querySelectorAll("[data-reactivate]").forEach(btn => btn.addEventListener("click", async () => {
+      await apiFetch(`/admin/users/${btn.dataset.reactivate}/reactivate`, { method: "PUT" });
+      loadUsers();
+    }));
+    el.querySelectorAll("[data-delete-user]").forEach(btn => btn.addEventListener("click", async () => {
+      if (!confirm("Permanently delete this user? This can't be undone.")) return;
+      try {
+        await apiFetch(`/admin/users/${btn.dataset.deleteUser}`, { method: "DELETE" });
+        loadUsers();
+      } catch (err) {
+        alert(err.message);
+      }
+    }));
+  }
+
+  document.getElementById("userSearch").addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase();
+    renderUsers(allUsers.filter(u => u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)));
+  });
+
   loadStats();
   loadPendingStores();
   loadPendingProducts();
+  loadUsers();
 </script>
 {% endblock %}

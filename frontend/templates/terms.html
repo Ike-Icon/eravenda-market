@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Terms of Service — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-12">
+  <h1 class="font-head text-3xl font-semibold mb-2">Terms of Service</h1>
+  <p class="text-sm text-slate-500 mb-8">Last updated: {{ current_year }}</p>
+
+  <div class="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-md p-4 mb-8">
+    This is a starter template, not a finished legal document. Have a
+    lawyer review and adapt this before you rely on it for a live business —
+    especially the sections on liability, dispute resolution, and consumer
+    protection, which vary by jurisdiction.
+  </div>
+
+  <div class="prose prose-slate max-w-none space-y-5 text-slate-700 text-sm leading-relaxed">
+    <section>
+      <h2 class="font-head text-lg font-semibold text-slate-900 mb-2">1. Acceptance of terms</h2>
+      <p>By creating an account or using Eravenda Market, you agree to these terms. If you don't agree, please don't use the platform.</p>
+    </section>
+    <section>
+      <h2 class="font-head text-lg font-semibold text-slate-900 mb-2">2. Buyer and seller accounts</h2>
+      <p>You're responsible for the accuracy of the information you provide and for keeping your account credentials secure. Sellers are independent third parties, not employees or agents of Eravenda Market.</p>
+    </section>
+    <section>
+      <h2 class="font-head text-lg font-semibold text-slate-900 mb-2">3. Listings and product accuracy</h2>
+      <p>Sellers are solely responsible for the accuracy of their product listings, pricing, and stock levels. New stores and new product listings are reviewed before going live, but review does not guarantee accuracy.</p>
+    </section>
+    <section>
+      <h2 class="font-head text-lg font-semibold text-slate-900 mb-2">4. Orders and payment</h2>
+      <p>Payments are processed through our payment partner (Paystack). Placing an order is an offer to purchase, which the seller may accept or decline based on stock availability.</p>
+    </section>
+    <section>
+      <h2 class="font-head text-lg font-semibold text-slate-900 mb-2">5. Commission and fees</h2>
+      <p>Eravenda Market charges sellers a commission on completed sales, disclosed on the seller dashboard. Commission rates may vary by seller or category.</p>
+    </section>
+    <section>
+      <h2 class="font-head text-lg font-semibold text-slate-900 mb-2">6. Prohibited conduct</h2>
+      <p>Fraudulent listings, counterfeit goods, and abusive behavior toward other users are grounds for suspension or removal from the platform, at our discretion.</p>
+    </section>
+    <section>
+      <h2 class="font-head text-lg font-semibold text-slate-900 mb-2">7. Limitation of liability</h2>
+      <p>Eravenda Market is a marketplace connecting buyers and sellers. We are not a party to the sale contract between buyer and seller and disclaim liability for product quality disputes, to the fullest extent permitted by law.</p>
+    </section>
+    <section>
+      <h2 class="font-head text-lg font-semibold text-slate-900 mb-2">8. Changes to these terms</h2>
+      <p>We may update these terms from time to time. Continued use of the platform after a change means you accept the updated terms.</p>
+    </section>
+    <section>
+      <h2 class="font-head text-lg font-semibold text-slate-900 mb-2">9. Contact</h2>
+      <p>Questions about these terms? <a href="/contact" class="text-brand-600 font-semibold hover:underline">Contact us</a>.</p>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Add product — Eravenda Market{% endblock %}
+{% block title %}Edit product — Eravenda Market{% endblock %}
 
 {% block content %}
 <div class="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-[200px_1fr] gap-8">
@@ -7,20 +7,19 @@
   {% include "components/seller-nav.html" with context %}
 
   <div class="border border-slate-200 rounded-md p-6 max-w-xl">
-    <h1 class="font-head text-2xl font-semibold mb-4">Add a product</h1>
+    <h1 class="font-head text-2xl font-semibold mb-4">Edit product</h1>
     <div id="formError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3 mb-4"></div>
     <div id="formSuccess" class="hidden text-sm text-brand-700 bg-brand-50 rounded-md p-3 mb-4"></div>
 
     <form id="productForm" class="space-y-4">
       <div>
         <label class="block text-sm font-medium mb-1">Product name</label>
-        <input name="name" placeholder="e.g. Samsung Galaxy A15" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+        <input name="name" required class="w-full border border-slate-300 rounded-md px-3 py-2">
       </div>
 
       <div>
         <label class="block text-sm font-medium mb-1">Category</label>
-        <select name="category_id" id="categorySelect" required class="w-full border border-slate-300 rounded-md px-3 py-2">
-          <option value="">Choose a category…</option>
+        <select name="category_id" required class="w-full border border-slate-300 rounded-md px-3 py-2">
           {% for c in category_tree|default([]) %}
           <option value="{{ c.id }}">{{ c.name }}</option>
           {% for child in c.children %}
@@ -32,7 +31,7 @@
 
       <div>
         <label class="block text-sm font-medium mb-1">Description</label>
-        <textarea name="description" placeholder="Condition, specs, what's in the box…" class="w-full border border-slate-300 rounded-md px-3 py-2"></textarea>
+        <textarea name="description" class="w-full border border-slate-300 rounded-md px-3 py-2"></textarea>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
@@ -49,11 +48,11 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="block text-sm font-medium mb-1">Stock quantity</label>
-          <input type="number" name="stock_quantity" min="0" value="1" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+          <input type="number" name="stock_quantity" min="0" required class="w-full border border-slate-300 rounded-md px-3 py-2">
         </div>
         <div>
           <label class="block text-sm font-medium mb-1">Brand</label>
-          <input name="brand" placeholder="e.g. Samsung" class="w-full border border-slate-300 rounded-md px-3 py-2">
+          <input name="brand" class="w-full border border-slate-300 rounded-md px-3 py-2">
         </div>
       </div>
 
@@ -68,24 +67,27 @@
         </div>
         <div>
           <label class="block text-sm font-medium mb-1">SKU / item code (optional)</label>
-          <input name="sku" placeholder="e.g. SGA15-BLK-128" class="w-full border border-slate-300 rounded-md px-3 py-2">
+          <input name="sku" class="w-full border border-slate-300 rounded-md px-3 py-2">
         </div>
       </div>
 
       <div>
         <label class="block text-sm font-medium mb-1">Key specifications (optional)</label>
-        <textarea name="specifications" rows="4" placeholder="One feature per line, e.g.&#10;6.5-inch display&#10;128GB storage&#10;5000mAh battery" class="w-full border border-slate-300 rounded-md px-3 py-2"></textarea>
+        <textarea name="specifications" rows="4" placeholder="One feature per line" class="w-full border border-slate-300 rounded-md px-3 py-2"></textarea>
         <p class="text-xs text-slate-500 mt-1">Each line becomes a bullet point on the product page.</p>
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Product images</label>
+        <label class="block text-sm font-medium mb-1">Add more images</label>
         <input type="file" id="imageFile" accept="image/*" multiple class="text-sm">
         <p class="text-xs text-slate-500 mt-1" id="uploadHint"></p>
-        <div class="flex gap-2 flex-wrap mt-2" id="imagePreview"></div>
+        <div class="flex gap-2 flex-wrap mt-2" id="existingImages"></div>
       </div>
 
-      <button type="submit" id="publishBtn" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Publish product</button>
+      <div class="flex gap-3">
+        <button type="submit" id="saveBtn" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Save changes</button>
+        <a href="/seller/products.html" class="text-sm text-slate-500 hover:text-slate-700 self-center">Cancel</a>
+      </div>
     </form>
   </div>
 </div>
@@ -94,10 +96,46 @@
 {% block scripts %}
 <script>
   if (!Auth.isLoggedIn()) {
-    window.location.href = "/login?next=/seller/add-product.html";
+    window.location.href = "/login?next=/seller/products.html";
   }
 
-  const uploadedImages = []; // { url, isPrimary }
+  const productId = new URLSearchParams(window.location.search).get("id");
+  const form = document.getElementById("productForm");
+  const pendingImages = []; // newly uploaded, not yet attached
+
+  if (!productId) {
+    document.getElementById("formError").textContent = "No product specified.";
+    document.getElementById("formError").classList.remove("hidden");
+    form.classList.add("hidden");
+  }
+
+  async function loadProduct() {
+    try {
+      const p = await apiFetch(`/products/${productId}`, { auth: false });
+      form.name.value = p.name;
+      form.category_id.value = p.category_id;
+      form.description.value = p.description || "";
+      form.price.value = p.price;
+      form.discount_price.value = p.discount_price ?? "";
+      form.stock_quantity.value = p.stock_quantity;
+      form.brand.value = p.brand || "";
+      form.condition.value = p.condition || "new";
+      form.sku.value = p.sku || "";
+      form.specifications.value = (p.specifications || []).join("\n");
+
+      const preview = document.getElementById("existingImages");
+      (p.images || []).forEach(img => {
+        const el = document.createElement("img");
+        el.src = img.image_url;
+        el.className = "w-16 h-16 object-cover rounded border border-slate-200";
+        preview.appendChild(el);
+      });
+    } catch (err) {
+      document.getElementById("formError").textContent = `Couldn't load this product: ${err.message}`;
+      document.getElementById("formError").classList.remove("hidden");
+      form.classList.add("hidden");
+    }
+  }
 
   async function uploadToCloudinary(file) {
     const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
@@ -112,37 +150,34 @@
 
   document.getElementById("imageFile").addEventListener("change", async (e) => {
     const hint = document.getElementById("uploadHint");
-    const preview = document.getElementById("imagePreview");
-
     if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-      hint.textContent = "Image uploads aren't configured yet — set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET in static/js/config.js. You can still publish without photos for now.";
+      hint.textContent = "Image uploads aren't configured yet — set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET in static/js/config.js.";
       return;
     }
-
     hint.textContent = "Uploading…";
     for (const file of e.target.files) {
       try {
         const url = await uploadToCloudinary(file);
-        uploadedImages.push({ url, isPrimary: uploadedImages.length === 0 });
+        pendingImages.push(url);
         const img = document.createElement("img");
         img.src = url;
         img.className = "w-16 h-16 object-cover rounded border border-slate-200";
-        preview.appendChild(img);
+        document.getElementById("existingImages").appendChild(img);
       } catch (err) {
         hint.textContent = err.message;
       }
     }
-    hint.textContent = uploadedImages.length ? `${uploadedImages.length} image(s) ready.` : "";
+    hint.textContent = pendingImages.length ? `${pendingImages.length} new image(s) ready.` : "";
   });
 
-  document.getElementById("productForm").addEventListener("submit", async (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const errBox = document.getElementById("formError");
     const okBox = document.getElementById("formSuccess");
     errBox.classList.add("hidden");
     okBox.classList.add("hidden");
 
-    const fd = new FormData(e.target);
+    const fd = new FormData(form);
     const specText = (fd.get("specifications") || "").trim();
     const payload = {
       name: fd.get("name"),
@@ -157,24 +192,26 @@
       stock_quantity: parseInt(fd.get("stock_quantity"), 10),
     };
 
-    const btn = document.getElementById("publishBtn");
+    const btn = document.getElementById("saveBtn");
     btn.disabled = true;
-    btn.textContent = "Publishing…";
+    btn.textContent = "Saving…";
 
     try {
-      const product = await apiFetch("/products", { method: "POST", body: payload });
-      for (const img of uploadedImages) {
-        await apiFetch(`/products/${product.id}/images?image_url=${encodeURIComponent(img.url)}&is_primary=${img.isPrimary}`, { method: "POST" });
+      await apiFetch(`/products/${productId}`, { method: "PUT", body: payload });
+      for (const url of pendingImages) {
+        await apiFetch(`/products/${productId}/images?image_url=${encodeURIComponent(url)}&is_primary=false`, { method: "POST" });
       }
-      okBox.textContent = "Product published. It will appear once an admin approves it.";
+      okBox.textContent = "Product updated.";
       okBox.classList.remove("hidden");
-      setTimeout(() => { window.location.href = "/seller/products.html"; }, 1200);
+      setTimeout(() => { window.location.href = "/seller/products.html"; }, 1000);
     } catch (err) {
       errBox.textContent = err.message;
       errBox.classList.remove("hidden");
       btn.disabled = false;
-      btn.textContent = "Publish product";
+      btn.textContent = "Save changes";
     }
   });
+
+  loadProduct();
 </script>
 {% endblock %}

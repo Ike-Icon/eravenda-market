@@ -27,33 +27,30 @@
     <div>
       <h4 class="font-semibold mb-3 text-white">About</h4>
       <ul class="space-y-2 text-brand-100">
-        <li><a href="/about.html" class="hover:text-white">Our story</a></li>
-        <li><a href="/careers.html" class="hover:text-white">Careers</a></li>
-        <li><a href="/press.html" class="hover:text-white">Press</a></li>
+        <li><a href="/about" class="hover:text-white">Our story</a></li>
+        <li><a href="/faq" class="hover:text-white">FAQ</a></li>
       </ul>
     </div>
     <div>
       <h4 class="font-semibold mb-3 text-white">Help</h4>
       <ul class="space-y-2 text-brand-100">
-        <li><a href="/help/orders.html" class="hover:text-white">Track an order</a></li>
-        <li><a href="/help/returns.html" class="hover:text-white">Returns &amp; refunds</a></li>
-        <li><a href="/help/contact.html" class="hover:text-white">Contact support</a></li>
+        <li><a href="/orders.html" class="hover:text-white">Track an order</a></li>
+        <li><a href="/faq" class="hover:text-white">Returns &amp; refunds</a></li>
+        <li><a href="/contact" class="hover:text-white">Contact support</a></li>
       </ul>
     </div>
     <div>
       <h4 class="font-semibold mb-3 text-white">Selling</h4>
       <ul class="space-y-2 text-brand-100">
         <li><a href="/seller/dashboard.html" class="hover:text-white">Start selling</a></li>
-        <li><a href="/help/seller-fees.html" class="hover:text-white">Fees &amp; commission</a></li>
-        <li><a href="/help/seller-guide.html" class="hover:text-white">Seller guide</a></li>
+        <li><a href="/faq" class="hover:text-white">Fees &amp; commission</a></li>
       </ul>
     </div>
     <div>
       <h4 class="font-semibold mb-3 text-white">Legal</h4>
       <ul class="space-y-2 text-brand-100">
-        <li><a href="/legal/terms.html" class="hover:text-white">Terms of service</a></li>
-        <li><a href="/legal/privacy.html" class="hover:text-white">Privacy policy</a></li>
-        <li><a href="/legal/returns-policy.html" class="hover:text-white">Returns policy</a></li>
+        <li><a href="/terms" class="hover:text-white">Terms of service</a></li>
+        <li><a href="/privacy" class="hover:text-white">Privacy policy</a></li>
       </ul>
     </div>
   </div>
@@ -61,12 +58,12 @@
   <!-- Payment icon placeholders — swap for real logos when you have brand assets -->
   <div class="max-w-7xl mx-auto px-4 pb-6 flex flex-wrap items-center gap-2 text-xs text-brand-100">
     <span class="mr-2">We accept:</span>
-    {% for label in ["Paystack", "Flutterwave", "MTN MoMo", "Visa", "Mastercard"] %}
+    {% for label in ["Paystack", "MTN MoMo"] %}
     <span class="bg-brand-700 rounded px-2 py-1 font-medium">{{ label }}</span>
     {% endfor %}
   </div>
 
   <div class="border-t border-brand-700 px-4 py-4 text-xs text-brand-200 text-center">
-    &copy; {{ current_year|default(2026) }} Eravenda Market. All rights reserved.
+    &copy; {{ current_year }} EraVenda Market. All rights reserved.
   </div>
 </footer>

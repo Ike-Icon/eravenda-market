@@ -29,7 +29,13 @@
 
   <div>
     <h1 class="font-head text-2xl font-semibold">{{ product.name }}</h1>
-    <p class="text-sm text-slate-500 mt-1">{% if product.brand %}Brand: {{ product.brand }}{% else %}Sold on Eravenda Market{% endif %}</p>
+    <div class="flex items-center gap-2 mt-1 text-sm text-slate-500">
+      <span>{% if product.brand %}Brand: {{ product.brand }}{% else %}Sold on Eravenda Market{% endif %}</span>
+      {% if product.condition and product.condition.value != "new" %}
+      <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 capitalize">{{ product.condition.value }}</span>
+      {% endif %}
+    </div>
+    {% if product.sku %}<p class="text-xs text-slate-400 mt-1">SKU: {{ product.sku }}</p>{% endif %}
 
     {% if product.review_count and product.review_count > 0 %}
     <div class="text-sm text-accent-600 mt-2">★ {{ "%.1f"|format(product.average_rating) }} ({{ product.review_count }} reviews)</div>
@@ -41,6 +47,14 @@
     </div>
 
     <p class="mt-4 text-slate-600">{{ product.description or "No description provided for this product yet." }}</p>
+
+    {% if product.specifications %}
+    <ul class="mt-3 space-y-1 text-sm text-slate-600 list-disc list-inside">
+      {% for spec in product.specifications %}
+      <li>{{ spec }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
 
     <p class="mt-4 text-sm {% if product.stock_quantity > 0 %}text-brand-700{% else %}text-red-600{% endif %}">
       {% if product.stock_quantity > 0 %}{{ product.stock_quantity }} in stock{% else %}Out of stock{% endif %}

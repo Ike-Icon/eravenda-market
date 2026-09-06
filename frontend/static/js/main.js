@@ -98,6 +98,7 @@ function renderAuthState() {
       mobileAuthLinks.innerHTML = `
         <a href="${dashboardLink ? dashboardLink.href : "/seller/dashboard.html"}" class="py-1 hover:text-brand-600">My store</a>
         <a href="/orders.html" class="py-1 hover:text-brand-600">Orders</a>
+        <a href="/account" class="py-1 hover:text-brand-600">Account</a>
         <button id="mobileLogoutBtn" type="button" class="py-1 text-left hover:text-brand-600">Log out</button>
       `;
       document.getElementById("mobileLogoutBtn").addEventListener("click", logOut);
@@ -174,6 +175,16 @@ function initNewsletterForm() {
 }
 
 // ------------------------------------------------------------------
+// Module: Icons
+// Lucide ships as raw <i data-lucide="..."> placeholders; this call is
+// what actually turns them into visible SVGs. Runs globally since the
+// header's category menu uses icons on every page, not just the homepage.
+// ------------------------------------------------------------------
+function initIcons() {
+  if (window.lucide) lucide.createIcons();
+}
+
+// ------------------------------------------------------------------
 // Boot
 // ------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
@@ -182,4 +193,5 @@ document.addEventListener("DOMContentLoaded", () => {
   refreshCartBadge();
   initLazyImages();
   initNewsletterForm();
+  initIcons();
 });

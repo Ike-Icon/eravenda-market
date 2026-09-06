@@ -11,9 +11,16 @@ from sqlalchemy.orm import Session  # type: ignore
 from .database import get_db
 from . import models
 
-SECRET_KEY = os.getenv("SECRET_KEY", "94e5c9d5d4004a29b38f881c1b806de0d3a60c1c2dcee98810cec82a40e960b1")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY is not set. Generate one with "
+        "`python -c \"import secrets; print(secrets.token_hex(32))\"` "
+        "and put it in backend/.env — never hardcode a fallback here."
+    )
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+PASSWORD_RESET_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
@@ -60,3 +67,25 @@ def require_role(*roles: models.UserRole):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not permitted for this role")
         return user
     return checker
+
+
+def create_password_reset_token(user_id: str) -> str:
+    """Stateless reset token — no database row needed. Short expiry (30 min)
+    and a distinct 'purpose' claim keep it from being reused as a login
+    token even if it leaks."""
+    return create_access_token(
+        {"sub": user_id, "purpose": "password_reset"},
+        expires_delta=timedelta(minutes=PASSWORD_RESET_EXPIRE_MINUTES),
+    )
+
+
+def verify_password_reset_token(token: str) -> str:
+    """Returns the user id encoded in a valid reset token, or raises a 400."""
+    invalid = HTTPException(status_code=400, detail="This reset link is invalid or has expired.")
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise invalid
+    if payload.get("purpose") != "password_reset" or not payload.get("sub"):
+        raise invalid
+    return payload["sub"]
