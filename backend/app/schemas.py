@@ -13,6 +13,9 @@ class UserCreate(BaseModel):
     phone: Optional[str] = None
     password: str = Field(min_length=6)
     role: UserRole = UserRole.buyer
+    region: Optional[str] = None
+    city: Optional[str] = None
+    sub_town: Optional[str] = None
 
 
 class UserOut(BaseModel):
@@ -24,6 +27,9 @@ class UserOut(BaseModel):
     role: UserRole
     is_active: bool
     avatar_url: Optional[str] = None
+    region: Optional[str] = None
+    city: Optional[str] = None
+    sub_town: Optional[str] = None
     created_at: datetime
 
 
@@ -62,6 +68,7 @@ class AddressCreate(BaseModel):
     region: str
     city: str
     area: Optional[str] = None
+    sub_town: Optional[str] = None
     landmark: Optional[str] = None
     is_default: bool = False
 
@@ -78,6 +85,7 @@ class StoreCreate(BaseModel):
     description: Optional[str] = None
     region: Optional[str] = None
     city: Optional[str] = None
+    sub_town: Optional[str] = None
     business_registration_number: Optional[str] = None
 
 
@@ -91,6 +99,7 @@ class StoreOut(BaseModel):
     banner_url: Optional[str]
     region: Optional[str]
     city: Optional[str]
+    sub_town: Optional[str] = None
     status: StoreStatus
     commission_rate: float
     rejection_reason: Optional[str] = None
@@ -213,6 +222,8 @@ class OrderItemOut(BaseModel):
     unit_price: float
     quantity: int
     line_total: float
+    commission_rate: float = 0
+    commission_amount: float = 0
 
 
 class OrderOut(BaseModel):
@@ -231,6 +242,16 @@ class OrderOut(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
+
+
+class DeliveryQuoteRequest(BaseModel):
+    address_id: str
+
+
+class DeliveryQuoteOut(BaseModel):
+    delivery_fee: float
+    store_count: int
+    breakdown: List[dict]
 
 
 # ---------- REVIEWS ----------

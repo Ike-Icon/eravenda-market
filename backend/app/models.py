@@ -78,6 +78,9 @@ class User(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     is_verified = Column(Boolean, nullable=False, default=False)
     avatar_url = Column(Text, nullable=True)
+    region = Column(String(100), nullable=True)
+    city = Column(String(100), nullable=True)
+    sub_town = Column(String(150), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -96,6 +99,7 @@ class Address(Base):
     region = Column(String(100), nullable=False)
     city = Column(String(100), nullable=False)
     area = Column(String(150))
+    sub_town = Column(String(150))
     landmark = Column(String(255))
     is_default = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -116,8 +120,11 @@ class Store(Base):
     business_registration_number = Column(String(100))
     region = Column(String(100))
     city = Column(String(100))
+    sub_town = Column(String(150))
     status = Column(Enum(StoreStatus), nullable=False, default=StoreStatus.pending)
-    commission_rate = Column(Numeric(5, 2), nullable=False, default=10.00)
+    # Retained for backwards-compatible reads of existing stores. Commission is
+    # now calculated from the price tier and snapshotted on each order item.
+    commission_rate = Column(Numeric(5, 2), nullable=False, default=0.00)
     rejection_reason = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -241,6 +248,8 @@ class OrderItem(Base):
     unit_price = Column(Numeric(12, 2), nullable=False)
     quantity = Column(Integer, nullable=False)
     line_total = Column(Numeric(12, 2), nullable=False)
+    commission_rate = Column(Numeric(5, 2), nullable=False, default=0)
+    commission_amount = Column(Numeric(12, 2), nullable=False, default=0)
 
     order = relationship("Order", back_populates="items")
 

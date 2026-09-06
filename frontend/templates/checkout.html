@@ -16,10 +16,11 @@
           <input name="phone" placeholder="Phone" required class="border border-slate-300 rounded-md px-3 py-2 text-sm">
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <input name="region" placeholder="Region, e.g. Ashanti" required class="border border-slate-300 rounded-md px-3 py-2 text-sm">
-          <input name="city" placeholder="City, e.g. Kumasi" required class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+          <select name="region" required data-region-select data-location-group="delivery" class="border border-slate-300 rounded-md px-3 py-2 text-sm"><option value="">Select region</option></select>
+          <select name="city" required data-city-select data-location-group="delivery" disabled class="border border-slate-300 rounded-md px-3 py-2 text-sm"><option value="">Select city / district</option></select>
         </div>
-        <input name="area" placeholder="Area / suburb" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+        <input name="sub_town" placeholder="Sub-town / neighbourhood, e.g. Fiapre" required class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+        <input name="area" placeholder="Landmark or additional address details (optional)" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
         <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-md">Save address</button>
       </form>
     </div>
@@ -57,7 +58,7 @@
     list.innerHTML = addresses.map(a => `
       <div class="address-option border border-slate-200 rounded-md p-3 mb-2 cursor-pointer" data-id="${a.id}">
         <strong>${a.recipient_name}</strong> · ${a.phone}<br>
-        <span class="text-sm text-slate-500">${a.area || ""} ${a.city}, ${a.region}</span>
+        <span class="text-sm text-slate-500">${a.sub_town || a.area || ""}, ${a.city}, ${a.region}</span>
       </div>`).join("");
 
     list.querySelectorAll(".address-option").forEach(el => {
@@ -66,6 +67,7 @@
         el.classList.add("border-brand-500", "bg-brand-50");
         selectedAddressId = el.dataset.id;
         document.getElementById("placeOrderBtn").disabled = false;
+        loadSummary();
       });
     });
     list.querySelector(".address-option").click();
@@ -79,12 +81,23 @@
       document.getElementById("placeOrderBtn").classList.add("hidden");
       return;
     }
+    let delivery = 0;
+    let deliveryNote = "Choose a delivery address to see the delivery fee.";
     const storeCount = new Set(cart.items.map(i => i.product.store_id)).size;
-    const delivery = storeCount * 15;
+    if (selectedAddressId) {
+      try {
+        const quote = await apiFetch("/orders/delivery-quote", { method: "POST", body: { address_id: selectedAddressId } });
+        delivery = Number(quote.delivery_fee);
+        deliveryNote = quote.breakdown.map(row => `${row.store_name}: ${money(row.delivery_fee)}`).join(" · ");
+      } catch (err) {
+        deliveryNote = "Delivery will be confirmed at checkout.";
+      }
+    }
     el.innerHTML = `
       <div class="flex justify-between"><span>${cart.items.length} item(s), ${storeCount} seller(s)</span></div>
       <div class="flex justify-between"><span>Subtotal</span><span>${money(cart.subtotal)}</span></div>
       <div class="flex justify-between"><span>Delivery</span><span>${money(delivery)}</span></div>
+      <p class="text-xs text-slate-500">${deliveryNote}</p>
       <div class="flex justify-between font-semibold border-t border-slate-200 pt-2 mt-2"><span>Total</span><span>${money(cart.subtotal + delivery)}</span></div>
     `;
   }
@@ -99,7 +112,8 @@
     await apiFetch("/auth/addresses", { method: "POST", body: payload });
     e.target.reset();
     e.target.classList.add("hidden");
-    loadAddresses();
+    await loadAddresses();
+    loadSummary();
   });
 
   document.getElementById("placeOrderBtn").addEventListener("click", async () => {
@@ -119,7 +133,9 @@
     }
   });
 
-  loadAddresses();
-  loadSummary();
+  (async () => {
+    await loadAddresses();
+    await loadSummary();
+  })();
 </script>
 {% endblock %}

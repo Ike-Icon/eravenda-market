@@ -14,3 +14,23 @@ html {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Product preview: starts gently magnified, then eases outward while pointer
+   or drag position pans the image. The motion is intentionally CSS-led so it
+   stays fluid even on lower-powered phones. */
+.product-gallery-stage { touch-action: none; }
+.product-main-image { overflow: hidden; cursor: zoom-in; }
+.product-main-image img {
+  transform: translate3d(var(--gallery-x, 0px), var(--gallery-y, 0px), 0) scale(1.16);
+  transition: transform 850ms cubic-bezier(.22, .61, .36, 1);
+  will-change: transform;
+}
+.product-gallery-stage:hover .product-main-image img,
+.product-gallery-stage.is-dragging .product-main-image img {
+  transform: translate3d(var(--gallery-x, 0px), var(--gallery-y, 0px), 0) scale(1.04);
+}
+.product-gallery-stage.is-dragging .product-main-image { cursor: grabbing; }
+.product-gallery-stage.is-dragging .product-main-image img { transition-duration: 0ms; }
+@media (prefers-reduced-motion: reduce) {
+  .product-main-image img { transition: none; transform: none; }
+}

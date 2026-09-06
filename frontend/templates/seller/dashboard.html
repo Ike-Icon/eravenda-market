@@ -52,6 +52,7 @@
   }
 
   function renderSetupForm() {
+    const user = Auth.getUser() || {};
     document.getElementById("dashContent").innerHTML = `
       <h1 class="font-head text-2xl font-semibold mb-2">Open your store</h1>
       <p class="text-slate-500 mb-4">Tell us about your business. An admin reviews every new store before it goes live, usually within a day.</p>
@@ -69,12 +70,16 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-sm font-medium mb-1">Region</label>
-              <input name="region" placeholder="e.g. Ashanti" class="w-full border border-slate-300 rounded-md px-3 py-2">
+              <select name="region" required data-region-select data-location-group="store" data-selected="${escapeHtml(user.region || "")}" class="w-full border border-slate-300 rounded-md px-3 py-2"><option value="">Select region</option></select>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">City</label>
-              <input name="city" placeholder="e.g. Kumasi" class="w-full border border-slate-300 rounded-md px-3 py-2">
+              <label class="block text-sm font-medium mb-1">City / District</label>
+              <select name="city" required data-city-select data-location-group="store" data-selected="${escapeHtml(user.city || "")}" disabled class="w-full border border-slate-300 rounded-md px-3 py-2"><option value="">Select city / district</option></select>
             </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Sub-town / neighbourhood</label>
+            <input name="sub_town" required value="${escapeHtml(user.sub_town || "")}" placeholder="e.g. Fiapre" class="w-full border border-slate-300 rounded-md px-3 py-2">
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Business registration number (optional)</label>
@@ -84,6 +89,7 @@
         </form>
       </div>
     `;
+    initLocationSelects(document.getElementById("storeForm"));
 
     document.getElementById("storeForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -121,12 +127,13 @@
       suspended: "Your store has been suspended. Contact support for details.",
     }[store.status];
 
+    const lowStock = products.filter(product => Number(product.stock_quantity) < 5);
     content.innerHTML = `
       <div class="flex items-center justify-between mb-1">
         <h1 class="font-head text-2xl font-semibold">${escapeHtml(store.store_name)}</h1>
         ${badgeHtml(store.status)}
       </div>
-      <p class="text-slate-500 mb-6">Commission rate: ${store.commission_rate}% per sale</p>
+      <p class="text-slate-500 mb-6">Platform commission is automatically tiered by each product’s price.</p>
 
       ${statusNote ? `<div class="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-md p-3 mb-6">${statusNote}</div>` : ""}
 
@@ -144,6 +151,11 @@
           <div class="text-xs text-slate-500">Net earnings so far</div>
         </div>
       </div>
+
+      ${lowStock.length ? `<div class="border border-amber-200 bg-amber-50 rounded-md p-4 mb-6">
+        <div class="flex items-center gap-2"><span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">Low Stock: Less than 5 remaining</span><span class="text-sm text-amber-900">${lowStock.length} product${lowStock.length === 1 ? " needs" : "s need"} attention.</span></div>
+        <div class="mt-2 text-sm text-amber-800">${lowStock.map(product => `${escapeHtml(product.name)} (${product.stock_quantity})`).join(" · ")}</div>
+      </div>` : ""}
 
       <div class="border border-slate-200 rounded-md p-5">
         <h3 class="font-semibold mb-3">Recent orders</h3>

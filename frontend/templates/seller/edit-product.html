@@ -101,7 +101,7 @@
 
   const productId = new URLSearchParams(window.location.search).get("id");
   const form = document.getElementById("productForm");
-  const pendingImages = []; // newly uploaded, not yet attached
+  const pendingImages = []; 
 
   if (!productId) {
     document.getElementById("formError").textContent = "No product specified.";
@@ -138,10 +138,13 @@
   }
 
   async function uploadToCloudinary(file) {
-    const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+    const cloudName = window.CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = window.CLOUDINARY_UPLOAD_PRESET;
+
+    const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
     const fd = new FormData();
     fd.append("file", file);
-    fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    fd.append("upload_preset", uploadPreset);
     const res = await fetch(url, { method: "POST", body: fd });
     if (!res.ok) throw new Error("Image upload failed");
     const data = await res.json();
@@ -150,7 +153,9 @@
 
   document.getElementById("imageFile").addEventListener("change", async (e) => {
     const hint = document.getElementById("uploadHint");
-    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+    
+    // Check values explicitly on window scope
+    if (!window.CLOUDINARY_CLOUD_NAME || !window.CLOUDINARY_UPLOAD_PRESET) {
       hint.textContent = "Image uploads aren't configured yet — set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET in static/js/config.js.";
       return;
     }

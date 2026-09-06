@@ -86,9 +86,12 @@
             <span>${money(o.total_amount)}</span>
           </div>
           ${o.status === "pending" ? `
-          <div class="mt-3">
+          <div class="mt-3 flex flex-wrap gap-2">
             <button class="pay-btn bg-accent-500 hover:bg-accent-600 text-slate-900 text-sm font-semibold px-4 py-2 rounded-md transition-colors" data-order="${o.id}">
               Pay ${money(o.total_amount)} now
+            </button>
+            <button class="cancel-btn border border-red-200 hover:bg-red-50 text-red-700 text-sm font-semibold px-4 py-2 rounded-md transition-colors" data-order="${o.id}">
+              Cancel order
             </button>
           </div>` : ""}
         </div>
@@ -103,8 +106,24 @@
             window.location.href = data.authorization_url;
           } catch (err) {
             alert(err.message);
-            btn.disabled = false;
+            btn.disabled = true;
             btn.textContent = `Pay now`;
+          }
+        });
+      });
+
+      el.querySelectorAll(".cancel-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("Cancel this pending order? The reserved items will be returned to stock.")) return;
+          btn.disabled = true;
+          btn.textContent = "Cancelling…";
+          try {
+            await apiFetch(`/orders/${btn.dataset.order}/cancel`, { method: "POST" });
+            load();
+          } catch (err) {
+            alert(err.message);
+            btn.disabled = false;
+            btn.textContent = "Cancel order";
           }
         });
       });

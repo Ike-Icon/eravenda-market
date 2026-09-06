@@ -30,6 +30,15 @@
           <option value="seller">Sell products</option>
         </select>
       </div>
+      <fieldset id="sellerLocationFields" class="hidden space-y-3 rounded-md border border-slate-200 p-3">
+        <legend class="px-1 text-sm font-medium">Your store’s pickup location</legend>
+        <p class="text-xs text-slate-500">This helps estimate delivery. You can finish your store profile after registration.</p>
+        <div class="grid grid-cols-2 gap-3">
+          <select name="region" data-region-select data-location-group="registration" class="border border-slate-300 rounded-md px-3 py-2 text-sm"><option value="">Select region</option></select>
+          <select name="city" data-city-select data-location-group="registration" disabled class="border border-slate-300 rounded-md px-3 py-2 text-sm"><option value="">Select city / district</option></select>
+        </div>
+        <input name="sub_town" placeholder="Sub-town / neighbourhood" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+      </fieldset>
       <button type="submit" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2 rounded-md transition-colors">Create account</button>
     </form>
     <p class="text-sm text-center text-slate-500 mt-4">Already have an account? <a href="/login" class="text-brand-600 font-semibold">Log in</a></p>
@@ -39,11 +48,23 @@
 
 {% block scripts %}
 <script>
+  const roleSelect = document.querySelector('[name="role"]');
+  const sellerLocationFields = document.getElementById("sellerLocationFields");
+  roleSelect.addEventListener("change", () => {
+    const isSeller = roleSelect.value === "seller";
+    sellerLocationFields.classList.toggle("hidden", !isSeller);
+    sellerLocationFields.querySelectorAll("select, input").forEach(field => field.required = isSeller);
+  });
   document.getElementById("registerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const errBox = document.getElementById("registerError");
     errBox.classList.add("hidden");
     const payload = Object.fromEntries(new FormData(e.target).entries());
+    if (payload.role !== "seller") {
+      delete payload.region;
+      delete payload.city;
+      delete payload.sub_town;
+    }
 
     try {
       const data = await apiFetch("/auth/register", { method: "POST", body: payload, auth: false });

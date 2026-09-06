@@ -8,7 +8,75 @@ from ..utils import generate_order_number
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
-DELIVERY_FEE_FLAT = 15.00  # GHS, flat rate for the MVP
+# Commission is assessed per item, so an order can accurately preserve the
+# rate in effect for a mixed-price basket even if the policy changes later.
+COMMISSION_TIERS = (
+    (100.00, 10.0),   # accessible, lower-priced goods
+    (500.00, 8.0),
+    (1500.00, 6.0),
+    (float("inf"), 4.0),  # high-ticket goods
+)
+
+
+def commission_rate_for(unit_price: float) -> float:
+    """Return the platform commission percentage for one product unit."""
+    for upper_bound, rate in COMMISSION_TIERS:
+        if unit_price < upper_bound:
+            return rate
+    return COMMISSION_TIERS[-1][1]
+
+
+def _location(value: str | None) -> str:
+    return (value or "").strip().casefold()
+
+
+def delivery_fee_for(address: models.Address, store: models.Store) -> float:
+    """Location-tier delivery price; Sunyani deliveries remain the local base."""
+    buyer_city, seller_city = _location(address.city), _location(store.city)
+    buyer_region, seller_region = _location(address.region), _location(store.region)
+    if buyer_city == "sunyani" and seller_city == "sunyani":
+        # Same neighbourhood has the shortest local run; another Sunyani
+        # sub-town remains a local delivery, but is priced as a longer trip.
+        if _location(address.sub_town) and _location(address.sub_town) == _location(store.sub_town):
+            return 8.00
+        return 10.00
+    if buyer_city == seller_city and buyer_city:
+        return 18.00
+    # A city or sub-town beyond the Sunyani delivery base incurs the extended fee.
+    if buyer_region and buyer_region == seller_region:
+        return 30.00
+    return 45.00
+
+
+def cart_delivery_quotes(cart: models.Cart, address: models.Address, db: Session) -> list[dict]:
+    store_ids = {item.product.store_id for item in cart.items}
+    stores = db.query(models.Store).filter(models.Store.id.in_(store_ids)).all()
+    return [
+        {"store_id": store.id, "store_name": store.store_name, "delivery_fee": delivery_fee_for(address, store)}
+        for store in stores
+    ]
+
+
+@router.post("/delivery-quote", response_model=schemas.DeliveryQuoteOut)
+def delivery_quote(
+    payload: schemas.DeliveryQuoteRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    address = db.query(models.Address).filter(
+        models.Address.id == payload.address_id, models.Address.user_id == current_user.id
+    ).first()
+    if not address:
+        raise HTTPException(status_code=404, detail="Delivery address not found")
+    cart = db.query(models.Cart).filter(models.Cart.user_id == current_user.id).first()
+    if not cart or not cart.items:
+        return schemas.DeliveryQuoteOut(delivery_fee=0, store_count=0, breakdown=[])
+    breakdown = cart_delivery_quotes(cart, address, db)
+    return schemas.DeliveryQuoteOut(
+        delivery_fee=round(sum(row["delivery_fee"] for row in breakdown), 2),
+        store_count=len(breakdown),
+        breakdown=breakdown,
+    )
 
 
 @router.post("/checkout", response_model=list[schemas.OrderOut], status_code=201)
@@ -41,8 +109,13 @@ def checkout(
     for store_id, items in items_by_store.items():
         store = db.query(models.Store).filter(models.Store.id == store_id).first()
         subtotal = sum(float(item.product.discount_price or item.product.price) * item.quantity for item in items)
-        commission_amount = round(subtotal * float(store.commission_rate) / 100, 2)
-        total_amount = subtotal + DELIVERY_FEE_FLAT
+        delivery_fee = delivery_fee_for(address, store)
+        commission_amount = round(sum(
+            float(item.product.discount_price or item.product.price) * item.quantity
+            * commission_rate_for(float(item.product.discount_price or item.product.price)) / 100
+            for item in items
+        ), 2)
+        total_amount = subtotal + delivery_fee
 
         order = models.Order(
             order_number=generate_order_number(),
@@ -50,7 +123,7 @@ def checkout(
             store_id=store_id,
             address_id=address.id,
             subtotal=subtotal,
-            delivery_fee=DELIVERY_FEE_FLAT,
+            delivery_fee=delivery_fee,
             commission_amount=commission_amount,
             total_amount=total_amount,
             status=models.OrderStatus.pending,
@@ -60,13 +133,17 @@ def checkout(
 
         for item in items:
             unit_price = float(item.product.discount_price or item.product.price)
+            rate = commission_rate_for(unit_price)
+            line_total = round(unit_price * item.quantity, 2)
             db.add(models.OrderItem(
                 order_id=order.id,
                 product_id=item.product_id,
                 product_name=item.product.name,
                 unit_price=unit_price,
                 quantity=item.quantity,
-                line_total=round(unit_price * item.quantity, 2),
+                line_total=line_total,
+                commission_rate=rate,
+                commission_amount=round(line_total * rate / 100, 2),
             ))
             item.product.stock_quantity -= item.quantity
             db.delete(item)
@@ -99,6 +176,37 @@ def store_orders(
     ).all()
 
 
+@router.post("/{order_id}/cancel", response_model=schemas.OrderOut)
+def cancel_pending_order(
+    order_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Allow the buyer to cancel only before the seller starts processing."""
+    order = db.query(models.Order).filter(
+        models.Order.id == order_id, models.Order.buyer_id == current_user.id
+    ).with_for_update().first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status != models.OrderStatus.pending:
+        raise HTTPException(
+            status_code=400,
+            detail="This order can no longer be cancelled because it is already being processed.",
+        )
+
+    # Checkout reserves stock immediately. Returning it here keeps inventory
+    # accurate when a pending order is cancelled before payment/fulfilment.
+    for item in order.items:
+        product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
+        if product:
+            product.stock_quantity += item.quantity
+
+    order.status = models.OrderStatus.cancelled
+    db.commit()
+    db.refresh(order)
+    return order
+
+
 @router.get("/{order_id}", response_model=schemas.OrderOut)
 def get_order(
     order_id: str,
@@ -126,9 +234,11 @@ def update_order_status(
 ):
     order = db.query(models.Order).filter(
         models.Order.id == order_id, models.Order.store_id == current_user.store.id
-    ).first()
+    ).with_for_update().first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    if order.status != models.OrderStatus.pending and payload.status == models.OrderStatus.pending:
+        raise HTTPException(status_code=400, detail="An order cannot be moved back to pending once processing has started")
 
     order.status = payload.status
     db.commit()

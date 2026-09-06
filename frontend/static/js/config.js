@@ -3,5 +3,5 @@
 const API_BASE = window.location.origin + "/api";
 
 // Cloudinary unsigned upload preset, used by the seller "add product" flow.
-const CLOUDINARY_CLOUD_NAME = "";
-const CLOUDINARY_UPLOAD_PRESET = "";
+window.CLOUDINARY_CLOUD_NAME = "ni2pcrua";
+window.CLOUDINARY_UPLOAD_PRESET = "eravenda";

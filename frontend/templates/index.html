@@ -64,6 +64,43 @@ delivery across the country.{% endblock %}
   </div>
 </section>
 
+<!-- Promotional campaigns and community events. Replace these image URLs with
+     campaign assets from the admin CMS when that content workflow is added. -->
+<section class="max-w-7xl mx-auto px-4 py-8" aria-labelledby="campaigns-heading">
+  <div class="flex items-baseline justify-between mb-4">
+    <div>
+      <p class="text-xs font-semibold tracking-wider text-brand-600 uppercase">What’s happening</p>
+      <h2 id="campaigns-heading" class="font-head text-xl font-semibold">Offers, events & campaigns</h2>
+    </div>
+    <div class="hidden sm:flex gap-2">
+      <button type="button" data-promo-prev class="w-8 h-8 border border-slate-200 rounded-full hover:border-brand-500" aria-label="Previous promotion">←</button>
+      <button type="button" data-promo-next class="w-8 h-8 border border-slate-200 rounded-full hover:border-brand-500" aria-label="Next promotion">→</button>
+    </div>
+  </div>
+  <div id="promoCarousel" class="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 no-scrollbar" aria-label="Promotions carousel">
+    <a href="/products" class="promo-card snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] relative min-h-48 rounded-xl overflow-hidden text-white bg-brand-900 group">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604606/cld-sample-5.jpg" alt="Marketplace savings promotion" loading="lazy" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 to-slate-950/10"></div>
+      <div class="relative h-full min-h-48 p-5 flex flex-col justify-end"><span class="text-xs font-bold text-accent-400">MARKET WEEK</span><h3 class="font-head text-xl font-bold">Fresh deals from local sellers</h3><span class="text-sm mt-1">Explore the collection →</span></div>
+    </a>
+    <a href="/products" class="promo-card snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] relative min-h-48 rounded-xl overflow-hidden text-white bg-slate-800 group">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604606/cld-sample-4.jpg" alt="Sunyani seller event flyer" loading="lazy" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 to-slate-950/10"></div>
+      <div class="relative h-full min-h-48 p-5 flex flex-col justify-end"><span class="text-xs font-bold text-accent-400">SUNYANI POP-UP</span><h3 class="font-head text-xl font-bold">Meet the makers this weekend</h3><span class="text-sm mt-1">See featured stores →</span></div>
+    </a>
+    <a href="/seller/dashboard.html" class="promo-card snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] relative min-h-48 rounded-xl overflow-hidden text-white bg-brand-700 group">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604606/cld-sample-4.jpg" alt="Sunyani seller event flyer" loading="lazy" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_#f2a93b,_transparent_42%)] opacity-60"></div>
+      <div class="relative h-full min-h-48 p-5 flex flex-col justify-end"><span class="text-xs font-bold text-accent-200">SELLER CAMPAIGN</span><h3 class="font-head text-xl font-bold">Put your products in front of Ghana</h3><span class="text-sm mt-1">Open your store →</span></div>
+    </a>
+    <a href="/products" class="promo-card snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] relative min-h-48 rounded-xl overflow-hidden text-white bg-slate-800 group">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788715622/s8ljocoqyxotc681jn7h.jpg" alt="Sunyani seller event flyer" loading="lazy" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 to-slate-950/10"></div>
+      <div class="relative h-full min-h-48 p-5 flex flex-col justify-end"><span class="text-xs font-bold text-accent-400">SUNYANI POP-UP</span><h3 class="font-head text-xl font-bold">The best local products</h3><span class="text-sm mt-1">See featured stores →</span></div>
+    </a>
+  </div>
+</section>
+
 <script>
   (function () {
     let currentSlide = 0;
@@ -94,6 +131,16 @@ delivery across the country.{% endblock %}
       clearInterval(timer);
       timer = setInterval(nextSlide, slideInterval);
     };
+  })();
+</script>
+
+<script>
+  (function () {
+    const carousel = document.getElementById("promoCarousel");
+    if (!carousel) return;
+    const move = (direction) => carousel.scrollBy({ left: direction * carousel.clientWidth * .82, behavior: "smooth" });
+    document.querySelector("[data-promo-prev]")?.addEventListener("click", () => move(-1));
+    document.querySelector("[data-promo-next]")?.addEventListener("click", () => move(1));
   })();
 </script>
 
