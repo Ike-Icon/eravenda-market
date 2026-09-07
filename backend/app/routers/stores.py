@@ -25,9 +25,6 @@ def create_store(
     store = models.Store(owner_id=current_user.id, slug=slug, **payload.model_dump())
     db.add(store)
 
-    # Registering a store upgrades the account to seller
-    current_user.role = models.UserRole.seller
-
     db.commit()
     db.refresh(store)
     return store

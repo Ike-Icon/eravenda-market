@@ -94,9 +94,12 @@
       <div id="userLinks" class="hidden items-center gap-4">
         <a id="dashboardLink" href="/seller/dashboard.html" class="hidden sm:inline hover:text-brand-600">My store</a>
         <a href="/orders.html" class="hidden sm:inline hover:text-brand-600">Orders</a>
-        <a href="/account" class="hidden sm:inline hover:text-brand-600">Account</a>
         <span class="hidden sm:inline text-slate-400">|</span>
-        <span class="hidden sm:inline text-slate-600">Hi, <span id="userFirstName">there</span></span>
+        <a href="/account" class="hidden sm:flex items-center gap-2 hover:text-brand-600">
+          <img id="userAvatarImg" src="" alt="" class="hidden w-6 h-6 rounded-full object-cover">
+          <span id="userAvatarFallback" class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center">?</span>
+          <span class="text-slate-600">Hi, <span id="userFirstName">there</span></span>
+        </a>
         <button id="logoutBtn" type="button" class="hover:text-brand-600">Log out</button>
       </div>
 

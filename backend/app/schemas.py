@@ -1,8 +1,10 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field, ConfigDict  # pyright: ignore[reportMissingImports]
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator  # pyright: ignore[reportMissingImports]
 
 from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus
+
+AVATAR_KEYS = {"Avery", "Bailey", "Charlie", "Dakota", "Emery", "Finley", "Harper", "Jordan"}
 
 
 # ---------- USERS ----------
@@ -12,10 +14,17 @@ class UserCreate(BaseModel):
     email: EmailStr
     phone: Optional[str] = None
     password: str = Field(min_length=6)
-    role: UserRole = UserRole.buyer
+    avatar_key: str = "Avery"
     region: Optional[str] = None
     city: Optional[str] = None
     sub_town: Optional[str] = None
+
+    @field_validator("avatar_key")
+    @classmethod
+    def avatar_must_be_curated(cls, value: str) -> str:
+        if value not in AVATAR_KEYS:
+            raise ValueError("Choose an avatar from the available options")
+        return value
 
 
 class UserOut(BaseModel):
@@ -26,7 +35,7 @@ class UserOut(BaseModel):
     phone: Optional[str]
     role: UserRole
     is_active: bool
-    avatar_url: Optional[str] = None
+    avatar_key: str = "Avery"
     region: Optional[str] = None
     city: Optional[str] = None
     sub_town: Optional[str] = None
@@ -36,7 +45,14 @@ class UserOut(BaseModel):
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
-    avatar_url: Optional[str] = None
+    avatar_key: Optional[str] = None
+
+    @field_validator("avatar_key")
+    @classmethod
+    def avatar_must_be_curated(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and value not in AVATAR_KEYS:
+            raise ValueError("Choose an avatar from the available options")
+        return value
 
 
 class LoginRequest(BaseModel):

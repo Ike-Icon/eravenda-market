@@ -98,9 +98,6 @@
       const payload = Object.fromEntries(new FormData(e.target).entries());
       try {
         await apiFetch("/stores", { method: "POST", body: payload });
-        const user = Auth.getUser();
-        user.role = "seller";
-        Auth.setSession(Auth.getToken(), user);
         load();
       } catch (err) {
         errBox.textContent = err.message;

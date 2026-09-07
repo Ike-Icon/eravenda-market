@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ store.store_name }} — Eravenda Market{% endblock %}
+{% block meta_description %}Shop products from {{ store.store_name }} on Eravenda Market.{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+
+  <div class="border border-slate-200 rounded-md p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+    {% if store.logo_url %}
+    <img src="{{ store.logo_url }}" alt="{{ store.store_name }}" class="w-16 h-16 rounded-full object-cover border border-slate-200">
+    {% else %}
+    <div class="w-16 h-16 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-head text-2xl font-bold">
+      {{ store.store_name[0]|upper }}
+    </div>
+    {% endif %}
+    <div>
+      <h1 class="font-head text-2xl font-semibold">{{ store.store_name }}</h1>
+      {% if store.city or store.region %}
+      <p class="text-sm text-slate-500 mt-1">
+        <i data-lucide="map-pin" class="w-3.5 h-3.5 inline-block align-text-bottom"></i>
+        {% if store.sub_town %}{{ store.sub_town }}, {% endif %}{{ store.city or "" }}{% if store.city and store.region %}, {% endif %}{{ store.region or "" }}
+      </p>
+      {% endif %}
+      {% if store.description %}<p class="text-sm text-slate-600 mt-2 max-w-2xl">{{ store.description }}</p>{% endif %}
+    </div>
+  </div>
+
+  <h2 class="font-head text-xl font-semibold mb-4">{{ products|length }} product{{ "s" if products|length != 1 else "" }} from this store</h2>
+
+  {% if products %}
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    {% for p in products %}
+    {% set price = p.discount_price if p.discount_price else p.price %}
+    {% set has_discount = p.discount_price and p.discount_price < p.price %}
+    {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+    <a href="/product/{{ p.id }}" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors">
+      <div class="relative aspect-square bg-slate-100 lazy-img">
+        {% if has_discount %}
+        <span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">
+          -{{ ((1 - (price / p.price)) * 100) | round | int }}%
+        </span>
+        {% endif %}
+        {% if primary_image %}
+        <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy" class="w-full h-full object-cover">
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center text-3xl text-slate-300">🛍️</div>
+        {% endif %}
+      </div>
+      <div class="p-3">
+        <div class="text-sm text-slate-700 line-clamp-2 min-h-[2.5em]">{{ p.name }}</div>
+        <div class="mt-1 font-semibold">
+          ₵{{ "%.2f"|format(price) }}
+          {% if has_discount %}<span class="text-xs text-slate-400 line-through font-normal ml-1">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-16 text-slate-500">This store doesn't have any live products yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

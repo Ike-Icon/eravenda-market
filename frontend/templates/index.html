@@ -139,8 +139,25 @@ delivery across the country.{% endblock %}
     const carousel = document.getElementById("promoCarousel");
     if (!carousel) return;
     const move = (direction) => carousel.scrollBy({ left: direction * carousel.clientWidth * .82, behavior: "smooth" });
-    document.querySelector("[data-promo-prev]")?.addEventListener("click", () => move(-1));
-    document.querySelector("[data-promo-next]")?.addEventListener("click", () => move(1));
+
+    // Auto-advance every 5s; loop back to the start once it reaches the end.
+    function autoAdvance() {
+      const atEnd = carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 10;
+      atEnd ? carousel.scrollTo({ left: 0, behavior: "smooth" }) : move(1);
+    }
+    let timer = setInterval(autoAdvance, 5000);
+    function resetTimer() {
+      clearInterval(timer);
+      timer = setInterval(autoAdvance, 5000);
+    }
+
+    document.querySelector("[data-promo-prev]")?.addEventListener("click", () => { move(-1); resetTimer(); });
+    document.querySelector("[data-promo-next]")?.addEventListener("click", () => { move(1); resetTimer(); });
+
+    // Pause while the user's cursor is actually on the carousel, so it
+    // doesn't yank a card away mid-read or mid-hover.
+    carousel.addEventListener("mouseenter", () => clearInterval(timer));
+    carousel.addEventListener("mouseleave", resetTimer);
   })();
 </script>
 

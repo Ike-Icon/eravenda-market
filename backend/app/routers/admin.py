@@ -21,6 +21,7 @@ def approve_store(store_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Store not found")
     store.status = models.StoreStatus.approved
     store.rejection_reason = None
+    store.owner.role = models.UserRole.seller
     db.commit()
     db.refresh(store)
     return store

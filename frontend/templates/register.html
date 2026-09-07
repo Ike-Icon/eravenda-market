@@ -24,21 +24,11 @@
         <input type="password" name="password" minlength="6" required class="w-full border border-slate-300 rounded-md px-3 py-2">
       </div>
       <div>
-        <label class="block text-sm font-medium mb-1">I'm signing up to</label>
-        <select name="role" class="w-full border border-slate-300 rounded-md px-3 py-2">
-          <option value="buyer">Shop for products</option>
-          <option value="seller">Sell products</option>
-        </select>
+        <label class="block text-sm font-medium mb-2">Choose your avatar</label>
+        <div id="avatarChoices" class="grid grid-cols-4 gap-2"></div>
+        <input type="hidden" name="avatar_key" value="Avery">
       </div>
-      <fieldset id="sellerLocationFields" class="hidden space-y-3 rounded-md border border-slate-200 p-3">
-        <legend class="px-1 text-sm font-medium">Your store’s pickup location</legend>
-        <p class="text-xs text-slate-500">This helps estimate delivery. You can finish your store profile after registration.</p>
-        <div class="grid grid-cols-2 gap-3">
-          <select name="region" data-region-select data-location-group="registration" class="border border-slate-300 rounded-md px-3 py-2 text-sm"><option value="">Select region</option></select>
-          <select name="city" data-city-select data-location-group="registration" disabled class="border border-slate-300 rounded-md px-3 py-2 text-sm"><option value="">Select city / district</option></select>
-        </div>
-        <input name="sub_town" placeholder="Sub-town / neighbourhood" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
-      </fieldset>
+      <p class="text-xs text-slate-500">Accounts begin as buyers. You can apply to become a seller from your account after signing up.</p>
       <button type="submit" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2 rounded-md transition-colors">Create account</button>
     </form>
     <p class="text-sm text-center text-slate-500 mt-4">Already have an account? <a href="/login" class="text-brand-600 font-semibold">Log in</a></p>
@@ -48,28 +38,27 @@
 
 {% block scripts %}
 <script>
-  const roleSelect = document.querySelector('[name="role"]');
-  const sellerLocationFields = document.getElementById("sellerLocationFields");
-  roleSelect.addEventListener("change", () => {
-    const isSeller = roleSelect.value === "seller";
-    sellerLocationFields.classList.toggle("hidden", !isSeller);
-    sellerLocationFields.querySelectorAll("select, input").forEach(field => field.required = isSeller);
-  });
+  function renderAvatarChoices(containerId, inputName) {
+    const container = document.getElementById(containerId);
+    const input = document.querySelector(`[name="${inputName}"]`);
+    container.innerHTML = AVATAR_CHOICES.map((key, index) => `<button type="button" data-avatar="${key}" class="avatar-choice border ${index === 0 ? "border-brand-500 ring-2 ring-brand-100" : "border-slate-200"} rounded-md p-1 hover:border-brand-500" aria-label="Choose ${key}"><img src="${avatarImageUrl(key)}" alt="" class="w-12 h-12 mx-auto"></button>`).join("");
+    container.querySelectorAll("[data-avatar]").forEach(button => button.addEventListener("click", () => {
+      input.value = button.dataset.avatar;
+      container.querySelectorAll("[data-avatar]").forEach(choice => choice.classList.remove("border-brand-500", "ring-2", "ring-brand-100"));
+      button.classList.add("border-brand-500", "ring-2", "ring-brand-100");
+    }));
+  }
+  renderAvatarChoices("avatarChoices", "avatar_key");
   document.getElementById("registerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const errBox = document.getElementById("registerError");
     errBox.classList.add("hidden");
     const payload = Object.fromEntries(new FormData(e.target).entries());
-    if (payload.role !== "seller") {
-      delete payload.region;
-      delete payload.city;
-      delete payload.sub_town;
-    }
 
     try {
       const data = await apiFetch("/auth/register", { method: "POST", body: payload, auth: false });
       Auth.setSession(data.access_token, data.user);
-      window.location.href = payload.role === "seller" ? "/seller/dashboard.html" : "/";
+      window.location.href = "/";
     } catch (err) {
       errBox.textContent = err.message;
       errBox.classList.remove("hidden");

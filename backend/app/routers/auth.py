@@ -18,13 +18,15 @@ def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="An account with this email already exists")
 
-    # Only buyer/seller can self-register. Admin accounts are created directly in the database.
-    role = payload.role if payload.role != models.UserRole.admin else models.UserRole.buyer
+    # Accounts always begin as buyers. A store application is reviewed by an
+    # admin, who promotes its owner once the store has been approved.
+    role = models.UserRole.buyer
 
     user = models.User(
         full_name=payload.full_name,
         email=payload.email,
         phone=payload.phone,
+        avatar_key=payload.avatar_key,
         password_hash=auth.hash_password(payload.password),
         role=role,
     )

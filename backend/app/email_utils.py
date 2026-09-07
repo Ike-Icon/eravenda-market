@@ -24,9 +24,10 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "no-reply@eravenda.com")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", FROM_EMAIL)
 
 
-def send_email(to: str, subject: str, body: str) -> None:
+def send_email(to: str, subject: str, body: str, reply_to: str | None = None) -> None:
     if not SMTP_HOST:
         logger.info("=== EMAIL (console fallback, SMTP_HOST not set) ===")
         logger.info("To: %s", to)
@@ -39,6 +40,8 @@ def send_email(to: str, subject: str, body: str) -> None:
     msg["Subject"] = subject
     msg["From"] = FROM_EMAIL
     msg["To"] = to
+    if reply_to:
+        msg["Reply-To"] = reply_to
 
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
         server.starttls()

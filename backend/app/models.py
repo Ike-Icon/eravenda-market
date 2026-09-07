@@ -77,7 +77,7 @@ class User(Base):
     role = Column(Enum(UserRole), nullable=False, default=UserRole.buyer)
     is_active = Column(Boolean, nullable=False, default=True)
     is_verified = Column(Boolean, nullable=False, default=False)
-    avatar_url = Column(Text, nullable=True)
+    avatar_key = Column(String(40), nullable=False, default="Avery")
     region = Column(String(100), nullable=True)
     city = Column(String(100), nullable=True)
     sub_town = Column(String(150), nullable=True)

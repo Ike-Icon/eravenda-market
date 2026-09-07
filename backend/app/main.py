@@ -176,7 +176,43 @@ def product_page(product_id: str, request: Request, db: Session = Depends(get_db
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return templates.TemplateResponse("product.html", page_context(request, db, product=product))
+
+    store = db.query(models.Store).filter(models.Store.id == product.store_id).first()
+
+    more_from_store = (
+        db.query(models.Product)
+        .filter(
+            models.Product.store_id == product.store_id,
+            models.Product.id != product.id,
+            models.Product.status == models.ProductStatus.approved,
+        )
+        .order_by(models.Product.created_at.desc())
+        .limit(6)
+        .all()
+    )
+
+    return templates.TemplateResponse(
+        "product.html",
+        page_context(request, db, product=product, store=store, more_from_store=more_from_store),
+    )
+
+
+@app.get("/store/{store_id}", response_class=HTMLResponse)
+def store_page(store_id: str, request: Request, db: Session = Depends(get_db)):
+    store = db.query(models.Store).filter(models.Store.id == store_id).first()
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+
+    products_list = (
+        db.query(models.Product)
+        .filter(models.Product.store_id == store_id, models.Product.status == models.ProductStatus.approved)
+        .order_by(models.Product.created_at.desc())
+        .all()
+    )
+
+    return templates.TemplateResponse(
+        "store.html", page_context(request, db, store=store, products=products_list)
+    )
 
 
 @app.get("/cart", response_class=HTMLResponse)

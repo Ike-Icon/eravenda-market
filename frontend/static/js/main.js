@@ -30,6 +30,11 @@ const Auth = {
   },
 };
 
+// Curated, deterministic cartoon avatars. Only the key is stored with the
+// account; the URL is derived here, so users never submit arbitrary image URLs.
+window.AVATAR_CHOICES = ["Avery", "Bailey", "Charlie", "Dakota", "Emery", "Finley", "Harper", "Jordan"];
+window.avatarImageUrl = (key) => `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(key)}`;
+
 // Ghana delivery locations used by checkout and store setup. The city select
 // is intentionally limited to common launch markets; a user can still type a
 // precise sub-town/neighbourhood below it.
@@ -131,15 +136,42 @@ function renderAuthState() {
     const firstName = document.getElementById("userFirstName");
     if (firstName) firstName.textContent = user.full_name.split(" ")[0];
 
+    const avatarImg = document.getElementById("userAvatarImg");
+    const avatarFallback = document.getElementById("userAvatarFallback");
+    if (avatarImg && avatarFallback) {
+      if (user.avatar_url) {
+        avatarImg.src = user.avatar_url;
+        avatarImg.alt = user.full_name;
+        avatarImg.classList.remove("hidden");
+        avatarFallback.classList.add("hidden");
+      } else {
+        avatarFallback.textContent = user.full_name.trim().charAt(0).toUpperCase();
+        avatarFallback.classList.remove("hidden");
+        avatarImg.classList.add("hidden");
+      }
+    }
+
     const dashboardLink = document.getElementById("dashboardLink");
+    const hasDashboard = user.role === "admin" || user.role === "seller";
     if (dashboardLink) {
-      dashboardLink.href = user.role === "admin" ? "/admin/dashboard.html" : "/seller/dashboard.html";
-      dashboardLink.textContent = user.role === "admin" ? "Admin" : "My store";
+      if (hasDashboard) {
+        dashboardLink.href = user.role === "admin" ? "/admin/dashboard.html" : "/seller/dashboard.html";
+        dashboardLink.textContent = user.role === "admin" ? "Admin" : "My store";
+        dashboardLink.style.display = "";
+      } else {
+        // Buyers shouldn't see this at all — not just on mobile, where the
+        // base "hidden sm:inline" classes already hide it. Force it off
+        // with an inline style so it stays hidden at every breakpoint too.
+        dashboardLink.style.display = "none";
+      }
     }
 
     if (mobileAuthLinks) {
+      const roleLink = hasDashboard
+        ? `<a href="${dashboardLink.href}" class="py-1 hover:text-brand-600">${dashboardLink.textContent}</a>`
+        : `<a href="/account#seller-application" class="py-1 hover:text-brand-600">Become a seller</a>`;
       mobileAuthLinks.innerHTML = `
-        <a href="${dashboardLink ? dashboardLink.href : "/seller/dashboard.html"}" class="py-1 hover:text-brand-600">My store</a>
+        ${roleLink}
         <a href="/orders.html" class="py-1 hover:text-brand-600">Orders</a>
         <a href="/account" class="py-1 hover:text-brand-600">Account</a>
         <button id="mobileLogoutBtn" type="button" class="py-1 text-left hover:text-brand-600">Log out</button>

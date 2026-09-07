@@ -25,8 +25,9 @@
         <input name="phone" placeholder="0244 000 000" class="w-full border border-slate-300 rounded-md px-3 py-2">
       </div>
       <div>
-        <label class="block text-sm font-medium mb-1">Avatar URL</label>
-        <input name="avatar_url" placeholder="https://…" class="w-full border border-slate-300 rounded-md px-3 py-2">
+        <label class="block text-sm font-medium mb-2">Avatar</label>
+        <div id="avatarChoices" class="grid grid-cols-4 gap-2"></div>
+        <input type="hidden" name="avatar_key" value="Avery">
       </div>
       <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Save changes</button>
     </form>
@@ -38,6 +39,11 @@
       <a href="/checkout" class="text-sm text-brand-600 font-semibold hover:underline">Manage at checkout</a>
     </div>
     <div id="addressList"><p class="text-slate-500 text-sm">Loading…</p></div>
+  </div>
+  <div id="seller-application" class="border border-slate-200 rounded-md p-6 mt-6">
+    <h3 class="font-semibold">Sell on Eravenda</h3>
+    <p class="text-sm text-slate-500 mt-1">Apply with your store details. An admin will review your store before your account becomes a seller account.</p>
+    <a href="/seller/dashboard.html" class="inline-block mt-3 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-md">Apply to become a seller</a>
   </div>
 </div>
 {% endblock %}
@@ -54,7 +60,8 @@
       document.querySelector('[name="full_name"]').value = user.full_name || "";
       document.getElementById("emailField").value = user.email || "";
       document.querySelector('[name="phone"]').value = user.phone || "";
-      document.querySelector('[name="avatar_url"]').value = user.avatar_url || "";
+      setSelectedAvatar(user.avatar_key || "Avery");
+      document.getElementById("seller-application").classList.toggle("hidden", user.role !== "buyer");
     } catch (err) {
       document.getElementById("profileError").textContent = err.message;
       document.getElementById("profileError").classList.remove("hidden");
@@ -72,13 +79,14 @@
     const payload = {
       full_name: fd.get("full_name"),
       phone: fd.get("phone") || null,
-      avatar_url: fd.get("avatar_url") || null,
+      avatar_key: fd.get("avatar_key"),
     };
 
     try {
       const user = await apiFetch("/users/me", { method: "PUT", body: payload });
       const stored = Auth.getUser();
       stored.full_name = user.full_name;
+      stored.avatar_url = user.avatar_url;
       Auth.setSession(Auth.getToken(), stored);
       okBox.textContent = "Profile updated.";
       okBox.classList.remove("hidden");
@@ -87,6 +95,18 @@
       errBox.classList.remove("hidden");
     }
   });
+
+  function setSelectedAvatar(key) {
+    document.querySelector('[name="avatar_key"]').value = key;
+    document.querySelectorAll("[data-avatar]").forEach(choice => {
+      choice.classList.toggle("border-brand-500", choice.dataset.avatar === key);
+      choice.classList.toggle("ring-2", choice.dataset.avatar === key);
+      choice.classList.toggle("ring-brand-100", choice.dataset.avatar === key);
+    });
+  }
+
+  document.getElementById("avatarChoices").innerHTML = AVATAR_CHOICES.map(key => `<button type="button" data-avatar="${key}" class="border border-slate-200 rounded-md p-1 hover:border-brand-500" aria-label="Choose ${key}"><img src="${avatarImageUrl(key)}" alt="" class="w-12 h-12 mx-auto"></button>`).join("");
+  document.querySelectorAll("[data-avatar]").forEach(button => button.addEventListener("click", () => setSelectedAvatar(button.dataset.avatar)));
 
   async function loadAddresses() {
     const el = document.getElementById("addressList");
