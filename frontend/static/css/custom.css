@@ -866,3 +866,119 @@ html[data-theme="dark"] .toggle-slider {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* ============================================================
+   Responsive navigation fit
+   Keeps the header usable from narrow phones through desktops.
+   Navigation-only overrides; page content/layout remains unchanged.
+   ============================================================ */
+
+#siteHeader {
+  width: 100%;
+  max-width: 100vw;
+}
+
+#siteHeader > div:first-child {
+  min-width: 0;
+}
+
+#siteHeader .ev-logo-svg {
+  width: 200px;
+  height: auto;
+  max-width: 100%;
+}
+
+#siteHeader nav[aria-label="Primary navigation"] {
+  min-width: 0;
+}
+
+#siteHeader nav[aria-label="Primary navigation"] .ev-nav-item {
+  min-width: 0;
+}
+
+#siteHeader nav[aria-label="Primary navigation"] .ev-nav-item > span {
+  white-space: nowrap;
+}
+
+#siteHeader form[action="/products"] {
+  min-width: 0;
+}
+
+#siteHeader form[action="/products"] input {
+  min-width: 0;
+}
+
+#siteHeader #mobileDrawer {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#siteHeader #mobileDrawer a,
+#siteHeader #mobileDrawer summary {
+  min-height: 40px;
+}
+
+#siteHeader #mobileDrawer input {
+  min-width: 0;
+}
+
+@media (max-width: 1023px) {
+  #siteHeader .ev-logo-svg {
+    width: 180px;
+  }
+}
+
+@media (max-width: 639px) {
+  #siteHeader .ev-logo-svg {
+    width: 155px;
+  }
+
+  #siteHeader #mobileDrawer {
+    max-height: calc(100dvh - 58px);
+  }
+
+  #siteHeader #mobileDrawer > form {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding-bottom: 2px;
+    background: var(--header-bg);
+  }
+}
+
+@media (max-width: 380px) {
+  #siteHeader .ev-logo-svg {
+    width: 138px;
+  }
+
+  #siteHeader #mobileDrawer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  #siteHeader #mobileDrawer .grid.grid-cols-3 span {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1180px) {
+  #siteHeader .ev-logo-svg {
+    width: 175px;
+  }
+
+  #siteHeader nav[aria-label="Primary navigation"] {
+    font-size: 0.8rem;
+  }
+
+  #siteHeader nav[aria-label="Primary navigation"] .ev-nav-item {
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  #siteHeader nav[aria-label="Primary navigation"] .ev-nav-item > span {
+    max-width: 105px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

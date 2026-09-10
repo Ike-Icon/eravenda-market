@@ -9,10 +9,10 @@
 {% set is_services_page = request.url.path.startswith('/services') %}
 <header id="siteHeader" data-services-page="{{ 'true' if is_services_page else 'false' }}" class="sticky top-0 z-40 bg-white border-b border-slate-200">
 
-  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+  <div class="max-w-7xl mx-auto w-full px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 lg:gap-4">
 
     <!-- Mobile menu toggle — shown only below md breakpoint -->
-    <button id="mobileMenuBtn" type="button" class="md:hidden p-2 -ml-2 rounded hover:bg-slate-100"
+    <button id="mobileMenuBtn" type="button" class="lg:hidden shrink-0 p-2 -ml-2 rounded hover:bg-slate-100"
       aria-label="Open menu" aria-expanded="false" aria-controls="mobileDrawer">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
         stroke-width="2">
@@ -22,7 +22,7 @@
 
     <!-- Logo  -->
     <a href="/" class="group inline-flex items-center shrink-0 transition-transform duration-300 ease-in-out hover:scale-[1.02]">
-  <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="EraVenda Logo" class="overflow-visible">
+  <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="EraVenda Logo" class="overflow-visible ev-logo-svg">
     <defs>
       <!-- Brand Gradients -->
       <linearGradient id="ev-green-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -60,7 +60,7 @@
 </a>
 
     <!-- Live search with category dropdown -->
-    {% if not is_services_page %}<form action="/products" method="get" class="hidden sm:flex flex-1 max-w-2xl">
+    {% if not is_services_page %}<form action="/products" method="get" class="hidden lg:flex flex-1 min-w-0 max-w-2xl">
       <select name="category_id"
         class="border border-slate-300 border-r-0 rounded-l-md bg-slate-50 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-brand-500 max-w-[9rem] truncate">
         <option value="">All</option>
@@ -86,7 +86,7 @@
     <!-- Account links / auth state. Server renders the safe "guest" default;
          main.js swaps this for real account info once it reads the token from
          localStorage, since login state lives client-side. -->
-    <nav class="relative ml-auto flex items-center gap-1 sm:gap-2 text-sm font-medium whitespace-nowrap" aria-label="Primary navigation">
+    <nav class="relative ml-auto shrink-0 hidden lg:flex items-center gap-0.5 xl:gap-1 text-sm font-medium whitespace-nowrap" aria-label="Primary navigation">
       <!-- Handyman Hub — always visible, logged in or not -->
       <div class="relative group">
         <a href="/services" class="ev-nav-item inline-flex items-center gap-1 px-2 py-2 text-slate-700 hover:text-brand-700">
@@ -155,7 +155,7 @@
 
   <!-- Category strip — desktop only. Each parent is a hover target;
        children reveal in a dropdown below on hover, not shown by default. -->
-  {% if not is_services_page %}<div class="hidden md:block bg-slate-50 border-t border-slate-200">
+  {% if not is_services_page %}<div class="hidden lg:block bg-slate-50 border-t border-slate-200">
     <div class="max-w-7xl mx-auto px-4 flex flex-wrap gap-1 text-sm text-slate-600">
       {% for c in category_tree|default([]) %}
       <div class="relative group">
@@ -184,7 +184,7 @@
   </div>{% endif %}
 
   <!-- Mobile nav drawer -->
-  <div id="mobileDrawer" class="hidden md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-4">
+  <div id="mobileDrawer" class="hidden lg:hidden border-t border-slate-200 bg-white px-3 sm:px-4 py-3 sm:py-4 space-y-4 max-h-[calc(100dvh-64px)] overflow-y-auto">
     {% if not is_services_page %}<form action="/products" method="get" class="flex">
       <input type="search" name="q" value="{{ search_query|default('') }}" placeholder="Search products"
         class="flex-1 border border-slate-300 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
@@ -212,6 +212,19 @@
         {% endif %}
       {% endfor %}
     </div>{% endif %}
+    {% if not is_services_page %}
+    <div class="grid grid-cols-3 gap-2 border-t border-slate-200 pt-4 text-sm font-medium">
+      <a href="/wishlist" class="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50">
+        <i class="fas fa-heart text-red-500"></i><span>Wishlist</span>
+      </a>
+      <a href="/cart" class="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50">
+        <i class="fas fa-cart-shopping text-amber-500"></i><span>Cart</span>
+      </a>
+      <a href="/settings" class="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50">
+        <i class="fas fa-gear text-teal-600"></i><span>Settings</span>
+      </a>
+    </div>
+    {% endif %}
     <div class="border-t border-slate-200 pt-4 flex flex-col gap-2 text-sm font-medium" id="mobileAuthLinks">
       <a href="/login" class="py-1 hover:text-brand-600">Log In</a>
       <a href="/register" class="py-1 hover:text-brand-600">Sign Up</a>

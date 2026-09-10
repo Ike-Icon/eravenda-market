@@ -195,11 +195,12 @@
         {% if primary_image %}<img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">{% else %}<div class="w-full h-full flex items-center justify-center text-3xl text-slate-300">🛍️</div>{% endif %}
       </div>
       <div class="p-3">
-        <a href="/product/{{ p.id }}" class="text-sm font-medium text-slate-700 line-clamp-2 min-h-[2.5em] hover:text-brand-600">{{ p.name }}</a>
+        <a href="/product/{{ p.id }}" class="text-sm font-medium text-slate-700 line-clamp-2 min-h-[2.5em] hover:text-brand-600">{{ p.name }}
         <div class="text-xs text-brand-600 mt-1">{{ p.store.store_name }}</div>
         <div class="mt-1 font-bold">₵{{ "%.2f"|format(price) }}{% if has_discount %}<span class="text-xs text-slate-400 line-through font-normal ml-1">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}</div>
         <div class="text-xs text-accent-600 mt-1">★ {{ "%.1f"|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>
         <div class="mt-2"><button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}" data-image="{{ primary_image.image_url if primary_image else '' }}" class="w-full rounded bg-accent-500 hover:bg-accent-600 px-2 py-1.5 text-xs font-bold text-slate-900 transition-colors"><i class="fas fa-shopping-cart mr-1"></i>Add to cart</button></div>
+        </a>
       </div>
     </article>
     {% endfor %}

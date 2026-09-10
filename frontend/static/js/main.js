@@ -486,10 +486,34 @@ function initMobileMenu() {
   const drawer = document.getElementById("mobileDrawer");
   if (!btn || !drawer) return;
 
+  const setOpen = (open) => {
+    drawer.classList.toggle("hidden", !open);
+    btn.setAttribute("aria-expanded", String(open));
+    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+  };
+
   btn.addEventListener("click", () => {
-    const isOpen = !drawer.classList.contains("hidden");
-    drawer.classList.toggle("hidden");
-    btn.setAttribute("aria-expanded", String(!isOpen));
+    setOpen(drawer.classList.contains("hidden"));
+  });
+
+  // Close after navigation so the next page never inherits an open drawer.
+  drawer.addEventListener("click", (event) => {
+    if (event.target.closest("a")) setOpen(false);
+  });
+
+  // Keep keyboard users from getting trapped in the mobile navigation.
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !drawer.classList.contains("hidden")) {
+      setOpen(false);
+      btn.focus();
+    }
+  });
+
+  // If the viewport crosses into desktop, reset the mobile state.
+  window.addEventListener("resize", () => {
+    if (window.innerWidth >= 1024 && !drawer.classList.contains("hidden")) {
+      setOpen(false);
+    }
   });
 }
 
