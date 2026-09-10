@@ -58,6 +58,7 @@
     try {
       const data = await apiFetch("/auth/register", { method: "POST", body: payload, auth: false });
       Auth.setSession(data.access_token, data.user);
+      await mergeGuestData();
       window.location.href = "/";
     } catch (err) {
       errBox.textContent = err.message;

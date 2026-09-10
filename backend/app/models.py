@@ -53,6 +53,27 @@ class PaymentStatus(str, enum.Enum):
     refunded = "refunded"
 
 
+class PaymentMethod(str, enum.Enum):
+    cash_on_delivery = "cash_on_delivery"
+    mobile_money = "mobile_money"
+
+
+class ServiceStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+    suspended = "suspended"
+
+
+class ServiceBookingStatus(str, enum.Enum):
+    requested = "requested"
+    assigned = "assigned"
+    escrow_funded = "escrow_funded"
+    completed = "completed"
+    released = "released"
+    cancelled = "cancelled"
+
+
 class PayoutStatus(str, enum.Enum):
     pending = "pending"
     processing = "processing"
@@ -86,6 +107,7 @@ class User(Base):
 
     addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
     store = relationship("Store", back_populates="owner", uselist=False, cascade="all, delete-orphan")
+    wishlist_items = relationship("Wishlist", back_populates="user", cascade="all, delete-orphan")
 
 
 class Address(Base):
@@ -177,6 +199,7 @@ class Product(Base):
     store = relationship("Store", back_populates="products")
     category = relationship("Category")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
+    wishlisted_by = relationship("Wishlist", back_populates="product", cascade="all, delete-orphan")
 
 
 class ProductImage(Base):
@@ -217,6 +240,18 @@ class CartItem(Base):
     product = relationship("Product")
 
 
+class Wishlist(Base):
+    __tablename__ = "wishlists"
+    __table_args__ = (UniqueConstraint("user_id", "product_id", name="uq_wishlist_user_product"),)
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(UUID(as_uuid=False), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="wishlist_items")
+    product = relationship("Product", back_populates="wishlisted_by")
+
+
 class Order(Base):
     __tablename__ = "orders"
 
@@ -230,6 +265,7 @@ class Order(Base):
     delivery_fee = Column(Numeric(12, 2), nullable=False, default=0)
     commission_amount = Column(Numeric(12, 2), nullable=False, default=0)
     total_amount = Column(Numeric(12, 2), nullable=False)
+    payment_method = Column(Enum(PaymentMethod), nullable=False, default=PaymentMethod.mobile_money)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -305,4 +341,66 @@ class ContactMessage(Base):
     email = Column(String(150), nullable=False)
     subject = Column(String(200), nullable=True)
     message = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class HandymanProfile(Base):
+    __tablename__ = "handyman_profiles"
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    job_title = Column(String(100), nullable=False)
+    custom_job_title = Column(String(100))
+    professional_name = Column(String(150))
+    company_name = Column(String(150))
+    work_experience = Column(Text)
+    education = Column(Text)
+    qualifications = Column(Text, nullable=False)
+    resume_path = Column(Text)
+    status = Column(Enum(ServiceStatus), nullable=False, default=ServiceStatus.pending)
+    verified_pro = Column(Boolean, nullable=False, default=False)
+    background_checked = Column(Boolean, nullable=False, default=False)
+    average_rating = Column(Numeric(3, 2), nullable=False, default=0)
+    review_count = Column(Integer, nullable=False, default=0)
+    terms_accepted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User")
+    portfolio = relationship("ServicePortfolio", back_populates="profile", cascade="all, delete-orphan")
+
+
+class ServicePortfolio(Base):
+    __tablename__ = "service_portfolio"
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    handyman_id = Column(UUID(as_uuid=False), ForeignKey("handyman_profiles.id", ondelete="CASCADE"), nullable=False)
+    image_url = Column(Text, nullable=False)
+    caption = Column(String(200))
+    profile = relationship("HandymanProfile", back_populates="portfolio")
+
+
+class ServiceBooking(Base):
+    __tablename__ = "service_bookings"
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    client_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
+    handyman_id = Column(UUID(as_uuid=False), ForeignKey("handyman_profiles.id"), nullable=False)
+    details = Column(Text, nullable=False)
+    location = Column(String(255), nullable=True)
+    preferred_contact = Column(String(20), nullable=True)
+    contact_details = Column(String(150), nullable=True)
+    quoted_amount = Column(Numeric(12, 2), nullable=True)
+    escrow_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    commission_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    status = Column(Enum(ServiceBookingStatus), nullable=False, default=ServiceBookingStatus.requested)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    handyman = relationship("HandymanProfile")
+    client = relationship("User")
+
+
+class ServiceReview(Base):
+    __tablename__ = "service_reviews"
+    __table_args__ = (UniqueConstraint("booking_id", name="uq_service_review_booking"),)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    booking_id = Column(UUID(as_uuid=False), ForeignKey("service_bookings.id", ondelete="CASCADE"), nullable=False)
+    handyman_id = Column(UUID(as_uuid=False), ForeignKey("handyman_profiles.id", ondelete="CASCADE"), nullable=False)
+    client_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    rating = Column(SmallInteger, nullable=False)
+    comment = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Join as a Handyman — EraVenda Handyman Hub{% endblock %}
+{% block content %}
+<section class="max-w-4xl mx-auto px-4 py-10">
+  <div class="mb-8"><p class="text-brand-700 font-semibold text-sm tracking-wider">ERAVENDA HANDYMAN HUB</p><h1 id="pageTitle" class="font-head text-4xl font-bold mt-2">Join as a handyman professional</h1><p id="pageIntro" class="text-slate-500 mt-2">Create a professional profile so service seekers can understand your experience, qualifications and work before requesting your services.</p></div>
+  <div id="statusBox" class="hidden mb-6 rounded-xl p-4 text-sm"></div>
+  <form id="workerForm" class="border border-slate-200 rounded-2xl p-6 md:p-8 space-y-7 bg-white" enctype="multipart/form-data">
+    <section><h2 class="font-head text-xl font-bold">Professional details</h2><p class="text-sm text-slate-500 mt-1">These details appear on your public professional profile.</p>
+      <div class="grid sm:grid-cols-2 gap-5 mt-5">
+        <div><label class="block text-sm font-semibold mb-1">Professional name</label><input name="professional_name" required maxlength="150" class="w-full border border-slate-300 rounded-lg px-3 py-2.5" placeholder="e.g. Kwame Mensah"></div>
+        <div><label class="block text-sm font-semibold mb-1">Company name <span class="font-normal text-slate-400">optional</span></label><input name="company_name" maxlength="150" class="w-full border border-slate-300 rounded-lg px-3 py-2.5" placeholder="e.g. Mensah Home Services"></div>
+        <div class="sm:col-span-2"><label class="block text-sm font-semibold mb-1">Profession</label><select name="job_title" id="jobTitle" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5"><option value="">Choose a profession</option><option>Electrician</option><option>Plumber</option><option>Carpenter</option><option>Painter</option><option>AC Technician</option><option>Auto Mechanic</option><option>Mason</option><option>Appliance Repair</option><option>Other</option></select><input id="customTitle" name="custom_job_title" class="hidden w-full border border-slate-300 rounded-lg px-3 py-2.5 mt-2" placeholder="Enter your profession"></div>
+        <div class="sm:col-span-2"><label class="block text-sm font-semibold mb-1">Work experience</label><textarea name="work_experience" required rows="4" class="w-full border border-slate-300 rounded-lg px-3 py-2.5" placeholder="Describe your years of experience, main skills and the type of jobs you handle."></textarea></div>
+        <div><label class="block text-sm font-semibold mb-1">Education / training <span class="font-normal text-slate-400">optional</span></label><textarea name="education" rows="4" class="w-full border border-slate-300 rounded-lg px-3 py-2.5" placeholder="Vocational training, apprenticeship, school or other relevant training."></textarea></div>
+        <div><label class="block text-sm font-semibold mb-1">Qualifications / certifications</label><textarea name="qualifications" rows="4" class="w-full border border-slate-300 rounded-lg px-3 py-2.5" placeholder="Licences, certificates and professional qualifications."></textarea></div>
+        <div class="sm:col-span-2"><label class="block text-sm font-semibold mb-1">Resume <span class="font-normal text-slate-400">optional, PDF/DOC/DOCX up to 5 MB</span></label><input name="resume" type="file" accept=".pdf,.doc,.docx" class="w-full text-sm"></div>
+      </div>
+    </section>
+    <section class="border-t border-slate-100 pt-7"><div class="flex items-center justify-between gap-4"><div><h2 class="font-head text-xl font-bold">Work portfolio</h2><p class="text-sm text-slate-500 mt-1">Add images of completed work, similar to a product gallery. Images help customers understand what you do.</p></div><span id="imageCount" class="text-xs text-slate-500">0 images</span></div><div class="mt-5"><input id="portfolioFiles" type="file" accept="image/*" multiple class="w-full text-sm"><p id="uploadHint" class="text-xs text-slate-500 mt-2"></p><div id="portfolioGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5"></div></div></section>
+    <div id="termsWrap" class="border-t border-slate-100 pt-6 space-y-5">
+      <div>
+        <h2 class="font-head text-xl font-bold">Terms &amp; Conditions</h2>
+        <p class="text-sm text-slate-500 mt-1">Please read carefully before submitting your professional profile.</p>
+      </div>
+
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4 text-sm text-slate-700 leading-relaxed max-h-72 overflow-y-auto">
+
+        <div>
+          <h3 class="font-semibold text-slate-900 mb-1">1. Platform Commission</h3>
+          <p>Eravenda charges a <strong>2% platform commission</strong> on every completed job secured through the platform. Unlike traditional marketplaces, <strong>Eravenda does not hold your payment</strong>. You receive payment directly from the client, and you are responsible for remitting the 2% commission to Eravenda after you have been paid. The commission covers platform operations, client matching, dispute resolution and marketing. Commission rates may be adjusted with 30 days' notice.</p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-slate-900 mb-1">2. Payment &amp; Commission Remittance</h3>
+          <p>Clients pay you directly for completed work — Eravenda does not intercept or hold funds in escrow. After receiving payment from a client, you must remit the 2% platform commission to Eravenda within 7 days. Eravenda will provide payment instructions for commission remittance. <strong>If a handyman seeker refuses to pay you for completed work</strong>, do not attempt to resolve the dispute yourself — <strong>contact Eravenda immediately</strong> at support@eravenda.com and we will intervene on your behalf through our dispute resolution process.</p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-slate-900 mb-1">3. Professional Obligations</h3>
+          <p>By registering, you confirm that all information provided — including qualifications, certifications, work experience and identity — is accurate and truthful. You agree to maintain valid licences required for your trade in Ghana. Misrepresentation of credentials is grounds for immediate suspension or permanent removal from the platform.</p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-slate-900 mb-1">4. Quality &amp; Conduct Standards</h3>
+          <p>You agree to deliver work to a professional standard, honour agreed timelines, treat clients and their property with respect, and communicate promptly. Repeated complaints, low ratings or conduct violations may result in profile suspension or removal at Eravenda's discretion.</p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-slate-900 mb-1">5. Insurance &amp; Liability</h3>
+          <p>As an independent contractor, you are responsible for your own tools, materials, personal insurance and tax obligations. Eravenda does not employ service professionals and is not liable for property damage, personal injury or workmanship issues. Clients are encouraged to review profiles and ratings before making requests.</p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-slate-900 mb-1">6. Profile &amp; Data Usage</h3>
+          <p>Eravenda may display your professional name, company name, profession, qualifications, portfolio images and ratings publicly on the platform. You grant Eravenda a non-exclusive licence to use this information for platform operations and marketing. You may request profile deletion at any time by contacting support.</p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-slate-900 mb-1">7. Termination</h3>
+          <p>Eravenda reserves the right to suspend or terminate your professional profile for violations of these terms, fraudulent activity, or prolonged inactivity. You may withdraw from the platform at any time, subject to the completion or cancellation of ongoing service bookings.</p>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-slate-900 mb-1">8. Dispute Resolution</h3>
+          <p>Any disputes arising from platform use shall first be addressed through Eravenda's internal resolution process. If unresolved, disputes are governed by the laws of the Republic of Ghana and subject to the jurisdiction of the courts of Accra.</p>
+        </div>
+      </div>
+
+      <label class="flex gap-3 text-sm text-slate-600">
+        <input name="terms_accepted" type="checkbox" required class="mt-1">
+        <span>I have read and agree to the <strong>Eravenda Handyman Hub Terms &amp; Conditions</strong>. I understand that Eravenda charges a 2% commission on completed jobs, I receive payment directly from clients and must remit the commission to Eravenda afterwards, and I am responsible for my own tools, insurance and tax obligations as an independent contractor.</span>
+      </label>
+    </div>
+    <p id="formError" class="hidden text-red-600 text-sm"></p><p id="formSuccess" class="hidden text-green-700 bg-green-50 border border-green-200 rounded-lg p-3 text-sm"></p>
+    <button id="submitBtn" type="submit" class="bg-brand-500 hover:bg-brand-600 text-white px-6 py-3 rounded-lg font-semibold">Submit for review</button>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+if(!Auth.isLoggedIn()) location.href='/login?next=/services/register';
+const form=document.getElementById('workerForm'), title=document.getElementById('jobTitle'), custom=document.getElementById('customTitle'), files=document.getElementById('portfolioFiles'), grid=document.getElementById('portfolioGrid'), hint=document.getElementById('uploadHint'), count=document.getElementById('imageCount');
+let existing=[], editMode=false;
+function esc(s){const d=document.createElement('div');d.textContent=s??'';return d.innerHTML;}
+function renderPortfolio(){count.textContent=`${existing.length} image${existing.length===1?'':'s'}`;grid.innerHTML=existing.map(x=>`<figure class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50"><img src="${esc(x.image_url)}" class="w-full aspect-video object-cover"><figcaption class="p-3 flex items-center justify-between gap-2"><span class="text-xs text-slate-600 truncate">${esc(x.caption||'Work sample')}</span><button type="button" data-remove="${x.id}" class="text-xs text-red-600 font-semibold">Remove</button></figcaption></figure>`).join('');grid.querySelectorAll('[data-remove]').forEach(b=>b.onclick=async()=>{try{await apiFetch(`/services/me/portfolio/${b.dataset.remove}`,{method:'DELETE'});existing=existing.filter(x=>x.id!==b.dataset.remove);renderPortfolio()}catch(e){alert(e.message)}})}
+title.onchange=()=>{const other=title.value==='Other';custom.classList.toggle('hidden',!other);custom.required=other;};
+async function loadProfile(){try{const p=await apiFetch('/services/me');editMode=true;document.getElementById('pageTitle').textContent='Manage your professional profile';document.getElementById('pageIntro').textContent='Keep your professional information and work portfolio current. Changes are reviewed before the profile is publicly listed again.';for(const [k,v] of Object.entries({professional_name:p.professional_name||'',company_name:p.company_name||'',job_title:p.custom_job_title?'Other':(p.job_title||''),custom_job_title:p.custom_job_title||'',work_experience:p.work_experience||'',education:p.education||'',qualifications:p.qualifications||''})){const el=form.elements[k];if(el)el.value=v;}title.dispatchEvent(new Event('change'));existing=p.portfolio||[];renderPortfolio();document.getElementById('termsWrap').classList.add('hidden');form.elements.terms_accepted.required=false;document.getElementById('submitBtn').textContent='Save profile changes';}catch(e){if(!String(e.message).toLowerCase().includes('do not have a service professional profile')){console.warn(e.message)}}}
+files.onchange=async()=>{if(!files.files.length)return;if(!window.CLOUDINARY_CLOUD_NAME||!window.CLOUDINARY_UPLOAD_PRESET){hint.textContent='Image uploads are not configured. Set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET in static/js/config.js.';return;}hint.textContent='Uploading images…';try{for(const file of files.files){if(!file.type.startsWith('image/'))continue;if(file.size>8*1024*1024)throw new Error(`${file.name} is larger than 8 MB`);const fd=new FormData();fd.append('file',file);fd.append('upload_preset',window.CLOUDINARY_UPLOAD_PRESET);const r=await fetch(`https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CLOUD_NAME}/image/upload`,{method:'POST',body:fd});const d=await r.json();if(!r.ok)throw new Error(d.error?.message||'Image upload failed');const saved=await apiFetch('/services/me/portfolio',{method:'POST',body:{image_url:d.secure_url,caption:file.name.replace(/\.[^.]+$/,'')}});existing.push(saved);renderPortfolio();}hint.textContent='Images added to your work profile.';files.value='';}catch(e){hint.textContent=e.message;}}
+form.onsubmit=async ev=>{ev.preventDefault();const err=document.getElementById('formError'),ok=document.getElementById('formSuccess'),btn=document.getElementById('submitBtn');err.classList.add('hidden');ok.classList.add('hidden');btn.disabled=true;btn.textContent=editMode?'Saving…':'Submitting…';try{const fd=new FormData(form);const res=await fetch(`${API_BASE}${editMode?'/services/me':'/services/register'}`,{method:editMode?'PUT':'POST',headers:{Authorization:`Bearer ${Auth.getToken()}`},body:fd});const data=await res.json().catch(()=>null);if(!res.ok)throw new Error(data?.detail||`Request failed (${res.status})`);if(!editMode){editMode=true;existing=data.portfolio||[];document.getElementById('termsWrap').classList.add('hidden');form.elements.terms_accepted.required=false;document.getElementById('pageTitle').textContent='Manage your professional profile';document.getElementById('pageIntro').textContent='Your application is under review. You can keep your information and work samples updated here.';btn.textContent='Save profile changes';ok.textContent='Your professional application has been submitted. Eravenda Admin will review your profile before it becomes publicly available.';}else{ok.textContent='Your profile changes were saved and sent back for admin review.';}ok.classList.remove('hidden');}catch(e){err.textContent=e.message;err.classList.remove('hidden');}finally{btn.disabled=false;if(editMode)btn.textContent='Save profile changes';else btn.textContent='Submit for review';}};
+loadProfile();
+</script>
+{% endblock %}

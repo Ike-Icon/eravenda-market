@@ -86,7 +86,8 @@
       const user = await apiFetch("/users/me", { method: "PUT", body: payload });
       const stored = Auth.getUser();
       stored.full_name = user.full_name;
-      stored.avatar_url = user.avatar_url;
+      stored.avatar_key = user.avatar_key;
+      stored.phone = user.phone;
       Auth.setSession(Auth.getToken(), stored);
       okBox.textContent = "Profile updated.";
       okBox.classList.remove("hidden");

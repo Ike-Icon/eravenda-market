@@ -1,221 +1,425 @@
 {% extends "base.html" %}
-{% block title %}Admin overview — Eravenda Market{% endblock %}
-
+{% block title %}Admin Dashboard — Eravenda{% endblock %}
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8">
-  <h1 class="font-head text-2xl font-semibold mb-6">Admin overview</h1>
+<div class="bg-slate-50 min-h-full">
+<section class="max-w-7xl mx-auto px-4 py-8">
 
-  <div id="statGrid" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-    <p class="text-slate-500 col-span-full">Loading platform stats…</p>
-  </div>
-
-  <div class="border border-slate-200 rounded-md p-5 mb-6">
-    <h3 class="font-semibold mb-3">Stores awaiting approval</h3>
-    <div id="pendingStores" class="space-y-3"><p class="text-slate-500">Loading…</p></div>
-  </div>
-
-  <div class="border border-slate-200 rounded-md p-5 mb-6">
-    <h3 class="font-semibold mb-3">Products awaiting approval</h3>
-    <div id="pendingProducts" class="space-y-3"><p class="text-slate-500">Loading…</p></div>
-  </div>
-
-  <div class="border border-slate-200 rounded-md p-5">
-    <div class="flex items-center justify-between mb-3">
-      <h3 class="font-semibold">Manage users</h3>
-      <input id="userSearch" type="search" placeholder="Filter by name or email…" class="border border-slate-300 rounded-md px-3 py-1.5 text-sm">
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+    <div>
+      <p class="text-brand-700 text-sm font-bold tracking-wider">ERAVENDA ADMINISTRATION</p>
+      <h1 class="font-head text-3xl font-bold mt-1">Admin Dashboard</h1>
+      <p class="text-slate-500 mt-2">Manage stores, products, categories, professionals, payments and platform accounts from one workspace.</p>
     </div>
-    <div id="userList" class="space-y-2 max-h-96 overflow-y-auto"><p class="text-slate-500">Loading…</p></div>
+    <button id="refreshAll" class="border border-slate-300 bg-white px-4 py-2 rounded-lg font-semibold shrink-0">
+      <i class="fas fa-rotate-right mr-1"></i> Refresh dashboard
+    </button>
   </div>
+
+  <div id="statGrid" class="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-8"></div>
+
+  <div class="grid lg:grid-cols-[220px_1fr] gap-6">
+
+    <!-- Sidebar -->
+    <nav class="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 border-b lg:border-b-0 lg:border-r border-slate-200 lg:pr-4" aria-label="Admin sections">
+      {% set tabs = [
+        ('overview', 'gauge', 'Overview'),
+        ('stores', 'store', 'Stores'),
+        ('products', 'package', 'Products'),
+        ('categories', 'layout-grid', 'Categories'),
+        ('professionals', 'user-check', 'Professionals'),
+        ('requests', 'clipboard-list', 'Service requests'),
+        ('reviews', 'star', 'Reviews'),
+        ('payments', 'credit-card', 'Payments'),
+        ('users', 'users', 'Accounts'),
+      ] %}
+      {% for id, icon, label in tabs %}
+      <button type="button" data-tab="{{ id }}" class="admin-tab-btn whitespace-nowrap text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-white hover:text-brand-700 flex items-center gap-2">
+        <i data-lucide="{{ icon }}" class="w-4 h-4"></i> {{ label }}
+        <span data-badge="{{ id }}" class="ml-auto hidden text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold"></span>
+      </button>
+      {% endfor %}
+    </nav>
+
+    <!-- Panels -->
+    <div>
+
+      <!-- Overview -->
+      <section data-panel="overview" class="admin-panel space-y-6">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 class="font-head text-xl font-bold mb-1">Welcome back</h2>
+          <p class="text-sm text-slate-500">Here's a snapshot of what needs your attention right now. Use the sections on the left to take action.</p>
+          <div id="overviewAlerts" class="mt-5 grid sm:grid-cols-2 gap-3"></div>
+        </div>
+      </section>
+
+      <!-- Stores -->
+      <section data-panel="stores" class="admin-panel hidden space-y-6">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-5">
+            <div><h2 class="font-head text-xl font-bold">Store approvals</h2><p class="text-sm text-slate-500">Review new seller applications before they can publish products.</p></div>
+            <span id="pendingStoreBadge" class="text-xs font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">0 pending</span>
+          </div>
+          <div id="pendingStores" class="space-y-3"></div>
+        </section>
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div><h2 class="font-head text-xl font-bold">All stores</h2><p class="text-sm text-slate-500">Suspend a store to immediately hide its products from buyers.</p></div>
+            <input id="storeSearch" type="search" placeholder="Search store name" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          </div>
+          <div id="allStores" class="space-y-2 max-h-[520px] overflow-y-auto"></div>
+        </section>
+      </section>
+
+      <!-- Products -->
+      <section data-panel="products" class="admin-panel hidden space-y-6">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-5">
+            <div><h2 class="font-head text-xl font-bold">Product approvals</h2><p class="text-sm text-slate-500">New listings wait here until you approve them for the storefront.</p></div>
+            <span id="pendingProductBadge" class="text-xs font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">0 pending</span>
+          </div>
+          <div id="pendingProducts" class="space-y-3"></div>
+        </section>
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div><h2 class="font-head text-xl font-bold">All products</h2><p class="text-sm text-slate-500">Track inventory and pricing, or unpublish / remove a listing that breaks policy.</p></div>
+            <div class="flex items-center gap-2">
+              <input id="productSearch" type="search" placeholder="Search product or store" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+              <button id="refreshProducts" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold shrink-0">Refresh</button>
+            </div>
+          </div>
+          <div id="productTracking" class="space-y-2 max-h-[560px] overflow-y-auto"></div>
+        </section>
+      </section>
+
+      <!-- Categories -->
+      <section data-panel="categories" class="admin-panel hidden space-y-6">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 class="font-head text-xl font-bold mb-1">Add a category</h2>
+          <p class="text-sm text-slate-500 mb-4">Categories power the shop-by-category grid on the homepage and the seller's product form. Use a <a href="https://lucide.dev/icons" target="_blank" rel="noopener" class="text-brand-600 underline">Lucide</a> icon name (e.g. <code class="bg-slate-100 px-1 rounded">shirt</code>) for the icon.</p>
+          <form id="categoryForm" class="grid sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
+            <div class="field !mb-0"><label>Name</label><input name="name" required placeholder="e.g. Home & Garden"></div>
+            <div class="field !mb-0"><label>Parent category</label><select name="parent_id"><option value="">None (top-level)</option></select></div>
+            <div class="field !mb-0"><label>Icon (optional)</label><input name="icon_url" placeholder="e.g. sofa"></div>
+            <button type="submit" class="btn btn-primary h-[42px]">Add</button>
+          </form>
+        </section>
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 class="font-head text-xl font-bold mb-4">All categories</h2>
+          <div id="categoryList" class="space-y-2"></div>
+        </section>
+      </section>
+
+      <!-- Professionals -->
+      <section data-panel="professionals" class="admin-panel hidden space-y-6">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-5">
+            <div><h2 class="font-head text-xl font-bold">Professional approvals</h2><p class="text-sm text-slate-500">Review applications before public listing.</p></div>
+            <span id="pendingBadge" class="text-xs font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">0 pending</span>
+          </div>
+          <div id="pendingServiceWorkers" class="space-y-4"></div>
+        </section>
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 class="font-head text-xl font-bold mb-4">All professionals</h2>
+          <div id="allWorkers" class="space-y-3 max-h-[560px] overflow-y-auto"></div>
+        </section>
+      </section>
+
+      <!-- Service requests -->
+      <section data-panel="requests" class="admin-panel hidden">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="mb-5"><h2 class="font-head text-xl font-bold">Incoming service requests</h2><p class="text-sm text-slate-500">Contact the selected professional using the private contact information shown to admins.</p></div>
+          <div id="serviceRequests" class="space-y-4 max-h-[720px] overflow-y-auto pr-1"></div>
+        </section>
+      </section>
+
+      <!-- Reviews -->
+      <section data-panel="reviews" class="admin-panel hidden">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="mb-5"><h2 class="font-head text-xl font-bold">Service reviews</h2><p class="text-sm text-slate-500">Monitor customer feedback and identify professionals who may need attention.</p></div>
+          <div id="serviceReviews" class="space-y-3"></div>
+        </section>
+      </section>
+
+      <!-- Payments -->
+      <section data-panel="payments" class="admin-panel hidden space-y-6">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div><h2 class="font-head text-xl font-bold">Record cash-on-delivery payment</h2><p class="text-sm text-slate-500">Log a COD payment to keep your records complete. Select an order and confirm the amount collected.</p></div>
+            <button id="refreshCOD" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold shrink-0">Refresh</button>
+          </div>
+          <div id="codPendingList" class="space-y-3"></div>
+        </section>
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-3 mb-5"><div><h2 class="font-head text-xl font-bold">Payment tracking</h2><p class="text-sm text-slate-500">View payment references, buyers, stores and payment status.</p></div><button id="refreshPayments" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold">Refresh</button></div>
+          <div id="paymentTracking" class="space-y-3 max-h-[650px] overflow-y-auto"></div>
+        </section>
+      </section>
+
+      <!-- Users -->
+      <section data-panel="users" class="admin-panel hidden">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex items-center justify-between mb-4 gap-3"><div><h2 class="font-head text-xl font-bold">Account management</h2><p class="text-sm text-slate-500">Suspend an account to block sign-in, or remove it permanently.</p></div><input id="userSearch" type="search" placeholder="Search name or email" class="border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
+          <div id="userList" class="space-y-2 max-h-[650px] overflow-y-auto"></div>
+        </section>
+      </section>
+
+    </div>
+  </div>
+</section>
 </div>
 {% endblock %}
-
 {% block scripts %}
 <script>
-  // Redirect non-admins away before anything renders. This is a UX guard,
-  // not the real security boundary — every /api/admin/* endpoint checks
-  // the role server-side regardless of what happens here.
-  if (!Auth.isLoggedIn()) {
-    window.location.href = "/login?next=/admin/dashboard.html";
+if(!Auth.isLoggedIn())location.href='/login?next=/admin/dashboard.html';
+const _u=Auth.getUser();if(!_u||_u.role!=='admin')location.href='/';
+
+const esc = s => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
+const statusLabel = s => String(s || '').replaceAll('_', ' ');
+const statusPillClass = s => ({
+  approved: 'bg-brand-50 text-brand-700', active: 'bg-brand-50 text-brand-700', paid: 'bg-brand-50 text-brand-700',
+  pending: 'bg-amber-50 text-amber-700',
+  rejected: 'bg-red-50 text-red-700', suspended: 'bg-red-50 text-red-700', failed: 'bg-red-50 text-red-700', cancelled: 'bg-red-50 text-red-700',
+  out_of_stock: 'bg-slate-100 text-slate-600',
+}[s] || 'bg-slate-100 text-slate-600');
+
+// -------------------- Tab navigation --------------------
+function initTabs() {
+  const buttons = document.querySelectorAll('.admin-tab-btn');
+  const panels = document.querySelectorAll('.admin-panel');
+  function activate(tab) {
+    buttons.forEach(b => {
+      const on = b.dataset.tab === tab;
+      b.classList.toggle('bg-brand-50', on);
+      b.classList.toggle('text-brand-700', on);
+      b.classList.toggle('text-slate-600', !on);
+    });
+    panels.forEach(p => p.classList.toggle('hidden', p.dataset.panel !== tab));
+    location.hash = tab;
   }
-  const currentUser = Auth.getUser();
-  if (!currentUser || currentUser.role !== "admin") {
-    window.location.href = "/";
-  }
+  buttons.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
+  activate(location.hash.replace('#', '') || 'overview');
+}
 
-  function money(n) { return `₵${Number(n).toFixed(2)}`; }
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str ?? "";
-    return div.innerHTML;
-  }
+function setBadge(id, count) {
+  const el = document.querySelector(`[data-badge="${id}"]`);
+  if (!el) return;
+  if (count > 0) { el.textContent = count; el.classList.remove('hidden'); }
+  else { el.classList.add('hidden'); }
+}
 
-  async function loadStats() {
-    const grid = document.getElementById("statGrid");
-    try {
-      const stats = await apiFetch("/admin/stats");
-      const items = [
-        [stats.total_orders, "Total orders"],
-        [money(stats.platform_revenue), "Commission earned"],
-        [stats.active_sellers, "Active sellers"],
-        [stats.active_products, "Live products"],
-        [stats.pending_store_approvals, "Stores pending"],
-      ];
-      grid.innerHTML = items.map(([value, label]) => `
-        <div class="border border-slate-200 rounded-md p-4">
-          <div class="font-head text-2xl font-bold">${value}</div>
-          <div class="text-xs text-slate-500">${label}</div>
-        </div>`).join("");
-    } catch (err) {
-      grid.innerHTML = `<p class="text-red-600 col-span-full">You need an admin account to view this page. ${escapeHtml(err.message)}</p>`;
-    }
-  }
+// -------------------- Overview --------------------
+async function loadStats() {
+  const s = await apiFetch('/admin/stats');
+  document.getElementById('statGrid').innerHTML = [
+    [s.pending_store_approvals, 'Pending stores', 'fa-store'],
+    [s.pending_product_approvals, 'Pending products', 'fa-box-open'],
+    [s.service_pending, 'Pending professionals', 'fa-user-clock'],
+    [s.active_sellers, 'Active sellers', 'fa-shop'],
+    [s.active_products, 'Active products', 'fa-boxes-stacked'],
+    [s.total_orders, 'Total orders', 'fa-receipt'],
+    [`GHS ${Number(s.platform_revenue || 0).toFixed(2)}`, 'Platform revenue', 'fa-coins'],
+  ].map(([v, l, i]) => `<div class="bg-white border border-slate-200 rounded-2xl p-4"><div class="flex items-center justify-between"><span class="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">${l}</span><i class="fas ${i} text-brand-600"></i></div><div class="font-head text-2xl font-bold mt-2">${v}</div></div>`).join('');
 
-  async function loadPendingStores() {
-    const el = document.getElementById("pendingStores");
-    try {
-      const stores = await apiFetch("/admin/stores/pending");
-      if (!stores.length) {
-        el.innerHTML = `<p class="text-slate-500 text-sm">Nothing waiting for review.</p>`;
-        return;
-      }
-      el.innerHTML = stores.map(s => `
-        <div class="flex items-center justify-between gap-3 border border-slate-200 rounded-md p-3">
-          <div>
-            <strong>${escapeHtml(s.store_name)}</strong><br>
-            <span class="text-xs text-slate-500">${escapeHtml(s.city || "")}, ${escapeHtml(s.region || "")}</span>
-          </div>
-          <div class="flex gap-2 shrink-0">
-            <button class="text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-md" data-approve="${s.id}">Approve</button>
-            <button class="text-xs font-semibold bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 rounded-md" data-reject="${s.id}">Reject</button>
-          </div>
-        </div>
-      `).join("");
+  setBadge('stores', s.pending_store_approvals);
+  setBadge('products', s.pending_product_approvals);
+  setBadge('professionals', s.service_pending);
+  document.getElementById('pendingStoreBadge').textContent = `${s.pending_store_approvals} pending`;
+  document.getElementById('pendingProductBadge').textContent = `${s.pending_product_approvals} pending`;
+  document.getElementById('pendingBadge').textContent = `${s.service_pending} pending`;
 
-      el.querySelectorAll("[data-approve]").forEach(btn => btn.addEventListener("click", async () => {
-        await apiFetch(`/admin/stores/${btn.dataset.approve}/approve`, { method: "PUT" });
-        loadPendingStores();
-        loadStats();
-      }));
-      el.querySelectorAll("[data-reject]").forEach(btn => btn.addEventListener("click", async () => {
-        const reason = prompt("Reason for rejecting this store (shown to the seller):") || "";
-        await apiFetch(`/admin/stores/${btn.dataset.reject}/reject`, { method: "PUT", body: { rejection_reason: reason } });
-        loadPendingStores();
-        loadStats();
-      }));
-    } catch (err) {
-      el.innerHTML = `<p class="text-red-600">${escapeHtml(err.message)}</p>`;
-    }
-  }
+  const alerts = [];
+  if (s.pending_store_approvals) alerts.push([`${s.pending_store_approvals} store${s.pending_store_approvals === 1 ? '' : 's'} waiting for approval`, 'stores', 'store']);
+  if (s.pending_product_approvals) alerts.push([`${s.pending_product_approvals} product${s.pending_product_approvals === 1 ? '' : 's'} waiting for approval`, 'products', 'package']);
+  if (s.service_pending) alerts.push([`${s.service_pending} professional application${s.service_pending === 1 ? '' : 's'} to review`, 'professionals', 'user-check']);
+  document.getElementById('overviewAlerts').innerHTML = alerts.length
+    ? alerts.map(([label, tab]) => `<button data-goto="${tab}" class="text-left border border-amber-200 bg-amber-50 rounded-xl p-4 hover:border-amber-400 transition-colors"><p class="text-sm font-semibold text-amber-800">${esc(label)}</p><span class="text-xs text-amber-700">Review now →</span></button>`).join('')
+    : '<p class="text-sm text-slate-500 sm:col-span-2">Nothing needs your attention right now. 🎉</p>';
+  document.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => document.querySelector(`[data-tab="${b.dataset.goto}"]`).click());
+}
 
-  async function loadPendingProducts() {
-    const el = document.getElementById("pendingProducts");
-    try {
-      const products = await apiFetch("/admin/products/pending");
-      if (!products.length) {
-        el.innerHTML = `<p class="text-slate-500 text-sm">Nothing waiting for review.</p>`;
-        return;
-      }
-      el.innerHTML = products.map(p => `
-        <div class="flex items-center justify-between gap-3 border border-slate-200 rounded-md p-3">
-          <div>
-            <strong>${escapeHtml(p.name)}</strong><br>
-            <span class="text-xs text-slate-500">${money(p.price)}</span>
-          </div>
-          <div class="flex gap-2 shrink-0">
-            <button class="text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-md" data-approve="${p.id}">Approve</button>
-            <button class="text-xs font-semibold bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 rounded-md" data-reject="${p.id}">Reject</button>
-            <button class="text-xs font-semibold bg-slate-100 hover:bg-slate-700 hover:text-white text-slate-600 px-3 py-1.5 rounded-md" data-delete="${p.id}">Delete</button>
-          </div>
-        </div>
-      `).join("");
+// -------------------- Stores --------------------
+let allStoresCache = [];
+async function loadPendingStores() {
+  const el = document.getElementById('pendingStores');
+  const stores = await apiFetch('/admin/stores/pending');
+  el.innerHTML = stores.length ? stores.map(s => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex flex-col sm:flex-row justify-between gap-3"><div><h3 class="font-semibold">${esc(s.store_name)}</h3><p class="text-xs text-slate-500 mt-1">${esc(s.city || '')}${s.region ? ', ' + esc(s.region) : ''}</p><p class="text-sm text-slate-600 mt-2">${esc(s.description || 'No description provided.')}</p></div><div class="flex sm:flex-col gap-2 sm:min-w-32"><button data-store-approve="${s.id}" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold">Approve</button><button data-store-reject="${s.id}" class="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm font-semibold">Reject</button></div></div></article>`).join('') : '<p class="text-sm text-slate-500">No stores are waiting for approval.</p>';
+  el.querySelectorAll('[data-store-approve]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/stores/${b.dataset.storeApprove}/approve`, { method: 'PUT' }); await Promise.all([loadPendingStores(), loadAllStores(), loadStats()]); });
+  el.querySelectorAll('[data-store-reject]').forEach(b => b.onclick = async () => { const reason = prompt('Reason for rejecting this store (shown to the seller):'); if (reason === null) return; await apiFetch(`/admin/stores/${b.dataset.storeReject}/reject`, { method: 'PUT', body: { rejection_reason: reason } }); await Promise.all([loadPendingStores(), loadAllStores(), loadStats()]); });
+}
+async function loadAllStores() {
+  allStoresCache = await apiFetch('/admin/stores');
+  renderStores(allStoresCache);
+}
+function renderStores(list) {
+  const el = document.getElementById('allStores');
+  el.innerHTML = list.length ? list.map(s => `<div class="border border-slate-100 rounded-lg p-3 flex flex-wrap items-center justify-between gap-3"><div><strong>${esc(s.store_name)}</strong><span class="text-xs ml-2 px-2 py-1 rounded-full capitalize ${statusPillClass(s.status)}">${esc(s.status)}</span><p class="text-xs text-slate-500 mt-1">${esc(s.city || '')}${s.region ? ', ' + esc(s.region) : ''}</p></div>${s.status === 'approved' ? `<button data-store-suspend="${s.id}" class="text-xs text-amber-700 font-semibold">Suspend</button>` : s.status === 'suspended' ? `<button data-store-reinstate="${s.id}" class="text-xs text-brand-700 font-semibold">Reinstate</button>` : ''}</div>`).join('') : '<p class="text-sm text-slate-500">No stores found.</p>';
+  el.querySelectorAll('[data-store-suspend]').forEach(b => b.onclick = async () => { if (!confirm('Suspend this store? Its products will be hidden from buyers.')) return; await apiFetch(`/admin/stores/${b.dataset.storeSuspend}/suspend`, { method: 'PUT' }); await loadAllStores(); });
+  el.querySelectorAll('[data-store-reinstate]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/stores/${b.dataset.storeReinstate}/approve`, { method: 'PUT' }); await loadAllStores(); });
+}
+document.getElementById('storeSearch').oninput = e => renderStores(allStoresCache.filter(s => s.store_name.toLowerCase().includes(e.target.value.toLowerCase())));
 
-      el.querySelectorAll("[data-approve]").forEach(btn => btn.addEventListener("click", async () => {
-        await apiFetch(`/admin/products/${btn.dataset.approve}/approve`, { method: "PUT" });
-        loadPendingProducts();
-        loadStats();
-      }));
-      el.querySelectorAll("[data-reject]").forEach(btn => btn.addEventListener("click", async () => {
-        const reason = prompt("Reason for rejecting this product (shown to the seller):") || "";
-        await apiFetch(`/admin/products/${btn.dataset.reject}/reject`, { method: "PUT", body: { rejection_reason: reason } });
-        loadPendingProducts();
-        loadStats();
-      }));
-      el.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", async () => {
-        if (!confirm("Permanently delete this product? This can't be undone.")) return;
-        try {
-          await apiFetch(`/admin/products/${btn.dataset.delete}`, { method: "DELETE" });
-          loadPendingProducts();
-          loadStats();
-        } catch (err) {
-          alert(err.message);
-        }
-      }));
-    } catch (err) {
-      el.innerHTML = `<p class="text-red-600">${escapeHtml(err.message)}</p>`;
-    }
-  }
+// -------------------- Products --------------------
+let allProductsCache = [];
+async function loadPendingProducts() {
+  const el = document.getElementById('pendingProducts');
+  const products = await apiFetch('/admin/products/pending');
+  el.innerHTML = products.length ? products.map(p => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex flex-col sm:flex-row justify-between gap-3"><div><h3 class="font-semibold">${esc(p.name)}</h3><p class="text-xs text-slate-500 mt-1">${p.sku ? 'SKU ' + esc(p.sku) : 'No SKU'} · GHS ${Number(p.price).toFixed(2)} · ${p.stock_quantity} in stock</p><p class="text-sm text-slate-600 mt-2 line-clamp-2">${esc(p.description || 'No description provided.')}</p></div><div class="flex sm:flex-col gap-2 sm:min-w-32"><button data-product-approve="${p.id}" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold">Approve</button><button data-product-reject="${p.id}" class="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm font-semibold">Reject</button></div></div></article>`).join('') : '<p class="text-sm text-slate-500">No products are waiting for approval.</p>';
+  el.querySelectorAll('[data-product-approve]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/products/${b.dataset.productApprove}/approve`, { method: 'PUT' }); await Promise.all([loadPendingProducts(), loadProducts(), loadStats()]); });
+  el.querySelectorAll('[data-product-reject]').forEach(b => b.onclick = async () => { const reason = prompt('Reason for rejecting this product (shown to the seller):'); if (reason === null) return; await apiFetch(`/admin/products/${b.dataset.productReject}/reject`, { method: 'PUT', body: { rejection_reason: reason } }); await Promise.all([loadPendingProducts(), loadProducts(), loadStats()]); });
+}
+async function loadProducts() {
+  allProductsCache = await apiFetch('/admin/products/tracking');
+  renderProducts(allProductsCache);
+}
+function renderProducts(rows) {
+  const el = document.getElementById('productTracking');
+  el.innerHTML = rows.length ? rows.map(p => `<article class="border border-slate-100 rounded-xl p-3"><div class="flex items-start justify-between gap-3"><div><p class="font-semibold text-sm">${esc(p.name)}</p><p class="text-xs text-slate-500 mt-1">${esc(p.store_name)}${p.sku ? ' · SKU ' + esc(p.sku) : ''}</p></div><span class="text-xs px-2 py-1 rounded-full capitalize ${statusPillClass(p.status)}">${esc(statusLabel(p.status))}</span></div><div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs mt-3"><span><strong>Price:</strong> GHS ${Number(p.price).toFixed(2)}</span><span class="${p.stock_quantity < 5 ? 'text-red-600 font-semibold' : 'text-slate-600'}"><strong>Stock:</strong> ${p.stock_quantity}</span><div class="ml-auto flex gap-2">${p.status !== 'out_of_stock' ? `<button data-product-unpublish="${p.id}" class="text-amber-700 font-semibold">Unpublish</button>` : `<button data-product-republish="${p.id}" class="text-brand-700 font-semibold">Republish</button>`}<button data-product-delete="${p.id}" class="text-red-600 font-semibold">Delete</button></div></div></article>`).join('') : '<p class="text-sm text-slate-500">No products found.</p>';
+  el.querySelectorAll('[data-product-unpublish]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/products/${b.dataset.productUnpublish}/status`, { method: 'PATCH', body: { status: 'out_of_stock' } }); await loadProducts(); });
+  el.querySelectorAll('[data-product-republish]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/products/${b.dataset.productRepublish}/status`, { method: 'PATCH', body: { status: 'approved' } }); await loadProducts(); });
+  el.querySelectorAll('[data-product-delete]').forEach(b => b.onclick = async () => { if (!confirm('Permanently delete this product? This cannot be undone.')) return; try { await apiFetch(`/admin/products/${b.dataset.productDelete}`, { method: 'DELETE' }); await loadProducts(); } catch (e) { alert(e.message); } });
+}
+document.getElementById('refreshProducts').onclick = loadProducts;
+document.getElementById('productSearch').oninput = e => { const q = e.target.value.toLowerCase(); renderProducts(allProductsCache.filter(p => `${p.name} ${p.store_name}`.toLowerCase().includes(q))); };
 
-  let allUsers = [];
+// -------------------- Categories --------------------
+async function loadCategories() {
+  const cats = await apiFetch('/categories', { auth: false });
+  const parentSelect = document.querySelector('#categoryForm [name="parent_id"]');
+  const topLevel = cats.filter(c => !c.parent_id);
+  parentSelect.innerHTML = '<option value="">None (top-level)</option>' + topLevel.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
 
-  async function loadUsers() {
-    const el = document.getElementById("userList");
-    try {
-      allUsers = await apiFetch("/admin/users");
-      renderUsers(allUsers);
-    } catch (err) {
-      el.innerHTML = `<p class="text-red-600">${escapeHtml(err.message)}</p>`;
-    }
-  }
-
-  function renderUsers(list) {
-    const el = document.getElementById("userList");
-    if (!list.length) {
-      el.innerHTML = `<p class="text-slate-500 text-sm">No users found.</p>`;
-      return;
-    }
-    el.innerHTML = list.map(u => `
-      <div class="flex items-center justify-between gap-3 border border-slate-100 rounded-md p-3">
-        <div>
-          <strong>${escapeHtml(u.full_name)}</strong>
-          <span class="text-xs font-semibold px-2 py-0.5 rounded-full capitalize ml-1 ${u.is_active ? "bg-brand-50 text-brand-700" : "bg-red-50 text-red-700"}">${u.is_active ? u.role : "suspended"}</span>
-          <br><span class="text-xs text-slate-500">${escapeHtml(u.email)}</span>
-        </div>
-        <div class="flex gap-2 shrink-0">
-          ${u.is_active
-            ? `<button class="text-xs font-semibold bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 px-3 py-1.5 rounded-md" data-suspend="${u.id}">Suspend</button>`
-            : `<button class="text-xs font-semibold bg-brand-50 hover:bg-brand-600 hover:text-white text-brand-700 px-3 py-1.5 rounded-md" data-reactivate="${u.id}">Reactivate</button>`}
-          <button class="text-xs font-semibold bg-red-50 hover:bg-red-600 hover:text-white text-red-600 px-3 py-1.5 rounded-md" data-delete-user="${u.id}">Delete</button>
-        </div>
-      </div>
-    `).join("");
-
-    el.querySelectorAll("[data-suspend]").forEach(btn => btn.addEventListener("click", async () => {
-      await apiFetch(`/admin/users/${btn.dataset.suspend}/suspend`, { method: "PUT" });
-      loadUsers();
-    }));
-    el.querySelectorAll("[data-reactivate]").forEach(btn => btn.addEventListener("click", async () => {
-      await apiFetch(`/admin/users/${btn.dataset.reactivate}/reactivate`, { method: "PUT" });
-      loadUsers();
-    }));
-    el.querySelectorAll("[data-delete-user]").forEach(btn => btn.addEventListener("click", async () => {
-      if (!confirm("Permanently delete this user? This can't be undone.")) return;
-      try {
-        await apiFetch(`/admin/users/${btn.dataset.deleteUser}`, { method: "DELETE" });
-        loadUsers();
-      } catch (err) {
-        alert(err.message);
-      }
-    }));
-  }
-
-  document.getElementById("userSearch").addEventListener("input", (e) => {
-    const q = e.target.value.toLowerCase();
-    renderUsers(allUsers.filter(u => u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)));
+  const byParent = {};
+  cats.forEach(c => { (byParent[c.parent_id || 'root'] ||= []).push(c); });
+  const renderGroup = parentId => (byParent[parentId] || []).map(c => `
+    <div class="border border-slate-100 rounded-lg p-3 flex items-center justify-between gap-3 ${parentId !== 'root' ? 'ml-6 mt-2' : 'mt-2'}">
+      <div class="flex items-center gap-2 min-w-0"><i data-lucide="${c.icon_url || 'shopping-bag'}" class="w-4 h-4 text-slate-400 shrink-0"></i><span class="text-sm font-medium truncate">${esc(c.name)}</span></div>
+      <button data-cat-delete="${c.id}" class="text-xs text-red-600 font-semibold shrink-0">Delete</button>
+    </div>
+    ${renderGroup(c.id)}
+  `).join('');
+  document.getElementById('categoryList').innerHTML = renderGroup('root') || '<p class="text-sm text-slate-500">No categories yet.</p>';
+  if (window.lucide) lucide.createIcons();
+  document.querySelectorAll('[data-cat-delete]').forEach(b => b.onclick = async () => {
+    if (!confirm('Delete this category?')) return;
+    try { await apiFetch(`/categories/${b.dataset.catDelete}`, { method: 'DELETE' }); await loadCategories(); }
+    catch (e) { alert(e.message); }
   });
+}
+document.getElementById('categoryForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = new FormData(e.target);
+  const body = { name: form.get('name').trim(), parent_id: form.get('parent_id') || null, icon_url: form.get('icon_url').trim() || null };
+  try { await apiFetch('/categories', { method: 'POST', body }); e.target.reset(); await loadCategories(); }
+  catch (err) { alert(err.message); }
+});
 
-  loadStats();
-  loadPendingStores();
-  loadPendingProducts();
-  loadUsers();
+// -------------------- Professionals --------------------
+async function loadPending() {
+  const el = document.getElementById('pendingServiceWorkers');
+  const workers = await apiFetch('/admin/services/pending');
+  el.innerHTML = workers.length ? workers.map(w => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex flex-col sm:flex-row justify-between gap-4"><div><h3 class="font-semibold text-lg">${esc(w.professional_name || w.job_title)}</h3><p class="text-brand-700 text-sm font-semibold">${esc(w.custom_job_title || w.job_title)}${w.company_name ? ' · ' + esc(w.company_name) : ''}</p><p class="text-sm text-slate-600 mt-3"><strong>Experience:</strong> ${esc(w.work_experience || 'Not provided')}</p><p class="text-sm text-slate-600 mt-1"><strong>Education:</strong> ${esc(w.education || 'Not provided')}</p><p class="text-sm text-slate-600 mt-1"><strong>Qualifications:</strong> ${esc(w.qualifications)}</p>${w.portfolio?.length ? `<p class="text-xs text-slate-500 mt-2">${w.portfolio.length} portfolio image${w.portfolio.length === 1 ? '' : 's'}</p>` : ''}</div><div class="flex sm:flex-col gap-2 sm:min-w-36"><label class="text-xs"><input type="checkbox" data-pro="${w.id}" class="mr-1"> Verified Pro</label><label class="text-xs"><input type="checkbox" data-bg="${w.id}" class="mr-1"> Background checked</label><button data-approve="${w.id}" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold">Approve</button><button data-reject="${w.id}" class="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm font-semibold">Reject</button>${w.resume_path ? `<button data-resume="${w.id}" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold">View resume</button>` : ''}</div></div></article>`).join('') : '<p class="text-sm text-slate-500">No professional applications are waiting for approval.</p>';
+  el.querySelectorAll('[data-approve]').forEach(b => b.onclick = async () => { const id = b.dataset.approve; await apiFetch(`/admin/services/${id}/approve?verified_pro=${el.querySelector(`[data-pro="${id}"]`).checked}&background_checked=${el.querySelector(`[data-bg="${id}"]`).checked}`, { method: 'PUT' }); await refresh(); });
+  el.querySelectorAll('[data-reject]').forEach(b => b.onclick = async () => { if (!confirm('Reject this professional application?')) return; await apiFetch(`/admin/services/${b.dataset.reject}/reject`, { method: 'PUT' }); await refresh(); });
+  el.querySelectorAll('[data-resume]').forEach(b => b.onclick = async () => { const r = await fetch(`${API_BASE}/admin/services/${b.dataset.resume}/resume`, { headers: { Authorization: `Bearer ${Auth.getToken()}` } }); if (r.ok) window.open(URL.createObjectURL(await r.blob()), '_blank'); });
+}
+async function loadWorkers() {
+  const el = document.getElementById('allWorkers');
+  const rows = await apiFetch('/admin/services/workers');
+  el.innerHTML = rows.length ? rows.map(w => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex items-start justify-between gap-3"><div><h3 class="font-semibold">${esc(w.professional_name || w.job_title)}</h3><p class="text-sm text-brand-700">${esc(w.custom_job_title || w.job_title)}</p></div><span class="text-xs px-2 py-1 rounded-full capitalize ${statusPillClass(w.status)}">${esc(w.status)}</span></div><p class="text-xs text-slate-500 mt-3">${esc(w.company_name || 'Independent professional')}</p><p class="text-sm text-amber-600 mt-2">★ ${Number(w.average_rating).toFixed(1)} · ${w.review_count} review${w.review_count === 1 ? '' : 's'}</p><p class="text-sm text-slate-600 mt-2">${esc(w.qualifications)}</p><div class="flex flex-wrap items-center gap-2 mt-3">${w.verified_pro ? '<span class="text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded-full">Verified</span>' : ''}${w.background_checked ? '<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Background checked</span>' : ''}<div class="ml-auto flex gap-3">${w.status === 'approved' ? `<button data-worker-suspend="${w.id}" class="text-xs text-amber-700 font-semibold">Suspend</button>` : w.status === 'suspended' ? `<button data-worker-reinstate="${w.id}" class="text-xs text-brand-700 font-semibold">Reinstate</button>` : ''}<button data-worker-delete="${w.id}" class="text-xs text-red-600 font-semibold">Delete</button></div></div></article>`).join('') : '<p class="text-sm text-slate-500">No professional profiles found.</p>';
+  el.querySelectorAll('[data-worker-suspend]').forEach(b => b.onclick = async () => { if (!confirm('Suspend this professional? Their profile will be hidden from service seekers.')) return; await apiFetch(`/admin/services/${b.dataset.workerSuspend}/suspend`, { method: 'PUT' }); await loadWorkers(); });
+  el.querySelectorAll('[data-worker-reinstate]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/services/${b.dataset.workerReinstate}/reinstate`, { method: 'PUT' }); await loadWorkers(); });
+  el.querySelectorAll('[data-worker-delete]').forEach(b => b.onclick = async () => { if (!confirm('Permanently delete this professional profile? This cannot be undone.')) return; try { await apiFetch(`/admin/services/${b.dataset.workerDelete}`, { method: 'DELETE' }); await loadWorkers(); } catch (e) { alert(e.message); } });
+}
+
+// -------------------- Service requests / reviews --------------------
+async function loadRequests() {
+  const el = document.getElementById('serviceRequests'), rows = await apiFetch('/admin/services/bookings');
+  el.innerHTML = rows.length ? rows.map(r => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex justify-between gap-3"><div><p class="text-xs text-slate-400">Request ${esc(r.id.slice(0, 8))}</p><h3 class="font-semibold mt-1">${esc(r.professional_name || 'Professional')}</h3><p class="text-xs text-brand-700">${esc(r.company_name || 'Independent professional')} · ${esc(r.professional_email || 'No email')}${r.professional_phone ? ' · ' + esc(r.professional_phone) : ''}</p></div><span class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 capitalize">${esc(statusLabel(r.status))}</span></div><div class="bg-slate-50 rounded-lg p-3 mt-3 text-sm"><p><strong>Service seeker:</strong> ${esc(r.client_name)} · ${esc(r.client_email)}${r.client_phone ? ' · ' + esc(r.client_phone) : ''}</p><p class="mt-1"><strong>Preferred contact:</strong> ${esc(r.preferred_contact || 'Not specified')} · ${esc(r.contact_details || 'Not provided')}</p><p class="mt-1"><strong>Location:</strong> ${esc(r.location || 'Not provided')}</p><p class="mt-3 whitespace-pre-line">${esc(r.details)}</p></div><div class="flex flex-wrap items-center gap-2 mt-3"><a href="mailto:${esc(r.professional_email)}" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold">Email professional</a>${r.professional_phone ? `<a href="tel:${esc(r.professional_phone)}" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold">Call professional</a>` : ''}<select data-status="${r.id}" class="border border-slate-300 rounded-lg px-3 py-2 text-sm"><option value="requested">Requested</option><option value="assigned">Assigned</option><option value="escrow_funded">Escrow funded</option><option value="completed">Completed</option><option value="released">Released</option><option value="cancelled">Cancelled</option></select><button data-save-status="${r.id}" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold">Update</button></div></article>`).join('') : '<p class="text-sm text-slate-500">No service requests yet.</p>';
+  el.querySelectorAll('[data-status]').forEach(s => s.value = rows.find(r => r.id === s.dataset.status)?.status || 'requested');
+  el.querySelectorAll('[data-save-status]').forEach(b => b.onclick = async () => { const id = b.dataset.saveStatus; await apiFetch(`/admin/services/bookings/${id}`, { method: 'PUT', body: { status: el.querySelector(`[data-status="${id}"]`).value } }); await loadRequests(); });
+}
+async function loadReviews() {
+  const el = document.getElementById('serviceReviews'), rows = await apiFetch('/admin/services/reviews');
+  el.innerHTML = rows.length ? rows.map(r => `<article class="border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3"><div><p class="font-semibold">${esc(r.professional_name || 'Professional')}</p><p class="text-xs text-slate-500 mt-1">Review from ${esc(r.client_name)}</p><p class="text-sm text-slate-700 mt-2">${esc(r.comment || 'No written comment.')}</p></div><div class="text-right shrink-0"><div class="text-amber-500 text-lg">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div><p class="text-xs text-slate-400">${new Date(r.created_at).toLocaleDateString()}</p></div></article>`).join('') : '<p class="text-sm text-slate-500">No service reviews yet.</p>';
+}
+
+// -------------------- Payments --------------------
+async function loadPayments() {
+  const el = document.getElementById('paymentTracking');
+  const rows = await apiFetch('/admin/payments/tracking');
+  el.innerHTML = rows.length ? rows.map(p => `<article class="border border-slate-100 rounded-xl p-3"><div class="flex items-start justify-between gap-3"><div><p class="font-semibold text-sm">${esc(p.order_number)} · ${esc(p.buyer_name)}</p><p class="text-xs text-slate-500 mt-1">${esc(p.store_name)} · ${esc(p.provider)} · ${esc(p.reference)}</p></div><span class="text-xs px-2 py-1 rounded-full capitalize ${statusPillClass(p.status)}">${esc(p.status)}</span></div><p class="text-sm font-semibold mt-3">${esc(p.currency)} ${Number(p.amount).toFixed(2)}</p><p class="text-xs text-slate-400 mt-1">${p.paid_at ? new Date(p.paid_at).toLocaleString() : new Date(p.created_at).toLocaleString()}</p></article>`).join('') : '<p class="text-sm text-slate-500">No payments found.</p>';
+}
+document.getElementById('refreshPayments').onclick = loadPayments;
+
+async function loadCODPending() {
+  const el = document.getElementById('codPendingList');
+  if (!el) return;
+  try {
+    const orders = await apiFetch('/admin/orders/cod-pending');
+    el.innerHTML = orders.length ? orders.map(o => `
+      <div class="border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex-1">
+          <p class="font-semibold text-sm">${esc(o.order_number)}</p>
+          <p class="text-xs text-slate-500 mt-1">${esc(o.buyer_name)} · ${esc(o.store_name)}</p>
+          <p class="text-sm font-semibold mt-2">${esc('GHS')} ${Number(o.total_amount).toFixed(2)}</p>
+          <p class="text-xs text-slate-400 mt-1 capitalize">${esc(o.status)} · ${new Date(o.created_at).toLocaleDateString()}</p>
+        </div>
+        <button data-record-cod="${esc(o.id)}" data-amount="${esc(o.total_amount)}" data-order="${esc(o.order_number)}" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shrink-0">Record Payment</button>
+      </div>
+    `).join('') : '<p class="text-sm text-slate-500">No pending COD payments.</p>';
+    el.querySelectorAll('[data-record-cod]').forEach(btn => {
+      btn.onclick = async () => {
+        const orderId = btn.dataset.recordCod;
+        const amount = parseFloat(btn.dataset.amount);
+        const orderNumber = btn.dataset.order;
+        if (!confirm(`Record cash payment for order ${orderNumber}?\n\nAmount: GHS ${amount.toFixed(2)}\n\nThis will mark the payment as received.`)) return;
+        btn.disabled = true;
+        btn.textContent = 'Recording...';
+        try {
+          await apiFetch('/admin/payments/cod-record', {
+            method: 'POST',
+            body: { order_id: orderId, amount: amount }
+          });
+          showToast('Payment recorded successfully');
+          loadCODPending();
+          loadPayments();
+        } catch (e) {
+          alert('Error: ' + e.message);
+          btn.disabled = false;
+          btn.textContent = 'Record Payment';
+        }
+      };
+    });
+  } catch (e) {
+    el.innerHTML = '<p class="text-sm text-red-600">Failed to load pending COD orders.</p>';
+  }
+}
+if (document.getElementById('refreshCOD')) {
+  document.getElementById('refreshCOD').onclick = loadCODPending;
+}
+
+// -------------------- Users --------------------
+let allUsers = [];
+async function loadUsers() { allUsers = await apiFetch('/admin/users'); renderUsers(allUsers); }
+function renderUsers(list) {
+  const el = document.getElementById('userList');
+  el.innerHTML = list.map(x => `<div class="border border-slate-100 rounded-lg p-3 flex flex-wrap justify-between items-center gap-3"><div><strong>${esc(x.full_name)}</strong><span class="text-xs ml-2 px-2 py-1 rounded-full bg-slate-100 capitalize">${esc(x.role)}</span>${!x.is_active ? '<span class="text-xs ml-1 px-2 py-1 rounded-full bg-red-50 text-red-700">Suspended</span>' : ''}<p class="text-xs text-slate-500 mt-1">${esc(x.email)}</p></div><div class="flex gap-3 shrink-0"><button data-suspend="${x.id}" class="text-xs text-amber-700 font-semibold">${x.is_active ? 'Suspend' : 'Reactivate'}</button><button data-delete-user="${x.id}" class="text-xs text-red-600 font-semibold">Delete</button></div></div>`).join('');
+  el.querySelectorAll('[data-suspend]').forEach(b => b.onclick = async () => { const x = allUsers.find(v => v.id === b.dataset.suspend); await apiFetch(`/admin/users/${b.dataset.suspend}/${x.is_active ? 'suspend' : 'reactivate'}`, { method: 'PUT' }); loadUsers(); });
+  el.querySelectorAll('[data-delete-user]').forEach(b => b.onclick = async () => { if (!confirm('Permanently delete this account? This cannot be undone.')) return; try { await apiFetch(`/admin/users/${b.dataset.deleteUser}`, { method: 'DELETE' }); loadUsers(); } catch (e) { alert(e.message); } });
+}
+document.getElementById('userSearch').oninput = e => renderUsers(allUsers.filter(x => `${x.full_name} ${x.email}`.toLowerCase().includes(e.target.value.toLowerCase())));
+
+// -------------------- Boot --------------------
+async function refresh() {
+  try {
+    await Promise.all([
+      loadStats(), loadPendingStores(), loadAllStores(), loadPendingProducts(), loadProducts(),
+      loadCategories(), loadPending(), loadWorkers(), loadRequests(), loadReviews(), loadUsers(), loadPayments(), loadCODPending(),
+    ]);
+  } catch (e) { console.error(e); }
+}
+document.getElementById('refreshAll').onclick = refresh;
+initTabs();
+refresh();
 </script>
 {% endblock %}

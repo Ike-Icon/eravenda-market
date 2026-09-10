@@ -13,8 +13,9 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session, selectinload
 
 from .database import Base, engine, get_db
+from .migrate import run_migrations
 from . import models  # noqa: F401 - registers models on Base before create_all
-from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact
+from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews
 
 load_dotenv()
 
@@ -33,7 +34,10 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    # For local development. In production, use Alembic migrations instead.
+    # Existing PostgreSQL tables are not changed by SQLAlchemy create_all().
+    # Run the checked-in, idempotent migrations first so pages such as
+    # /services and /services/register always match the ORM schema.
+    run_migrations()
     Base.metadata.create_all(bind=engine)
 
 
@@ -53,6 +57,9 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(payments.router, prefix="/api")
 app.include_router(contact.router, prefix="/api")
+app.include_router(wishlist.router, prefix="/api")
+app.include_router(services.router, prefix="/api")
+app.include_router(reviews.router, prefix="/api")
 
 
 @app.get("/api/health")
@@ -126,11 +133,29 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         db.query(models.Product)
         .filter(models.Product.status == models.ProductStatus.approved)
         .order_by(models.Product.created_at.desc())
-        .limit(15)
+        .limit(30)
+        .all()
+    )
+    flash_deals = (
+        db.query(models.Product)
+        .filter(
+            models.Product.status == models.ProductStatus.approved,
+            models.Product.discount_price.isnot(None),
+            models.Product.discount_price < models.Product.price,
+        )
+        .order_by(models.Product.created_at.desc())
+        .limit(8)
+        .all()
+    )
+    featured_stores = (
+        db.query(models.Store)
+        .order_by(models.Store.created_at.desc())
+        .limit(6)
         .all()
     )
     return templates.TemplateResponse(
-        "index.html", page_context(request, db, products=products_list)
+        "index.html",
+        page_context(request, db, products=products_list, flash_deals=flash_deals, featured_stores=featured_stores),
     )
 
 
@@ -190,10 +215,17 @@ def product_page(product_id: str, request: Request, db: Session = Depends(get_db
         .limit(6)
         .all()
     )
+    reviews = (
+        db.query(models.Review)
+        .filter(models.Review.product_id == product.id)
+        .order_by(models.Review.created_at.desc())
+        .limit(20)
+        .all()
+    )
 
     return templates.TemplateResponse(
         "product.html",
-        page_context(request, db, product=product, store=store, more_from_store=more_from_store),
+        page_context(request, db, product=product, store=store, more_from_store=more_from_store, reviews=reviews),
     )
 
 
@@ -238,6 +270,45 @@ def register_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("register.html", page_context(request, db))
 
 
+@app.get("/wishlist", response_class=HTMLResponse)
+def wishlist_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("wishlist.html", page_context(request, db))
+
+
+@app.get("/services", response_class=HTMLResponse)
+def services_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("services.html", page_context(request, db))
+
+
+@app.get("/services/register", response_class=HTMLResponse)
+def services_register_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("services-register.html", page_context(request, db))
+
+
+@app.get("/professional/dashboard.html", response_class=HTMLResponse)
+def professional_dashboard_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("professional/dashboard.html", page_context(request, db))
+
+
+@app.get("/services/professional/{handyman_id}", response_class=HTMLResponse)
+def service_professional_page(handyman_id: str, request: Request, db: Session = Depends(get_db)):
+    worker = db.query(models.HandymanProfile).options(selectinload(models.HandymanProfile.portfolio)).filter(models.HandymanProfile.id == handyman_id, models.HandymanProfile.status == models.ServiceStatus.approved).first()
+    if not worker:
+        raise HTTPException(status_code=404, detail="Service professional not found")
+    return templates.TemplateResponse("services-professional.html", page_context(request, db, worker=worker))
+
+
+@app.get("/services/request/{handyman_id}", response_class=HTMLResponse)
+def service_request_page(handyman_id: str, request: Request, db: Session = Depends(get_db)):
+    worker = db.query(models.HandymanProfile).filter(
+        models.HandymanProfile.id == handyman_id,
+        models.HandymanProfile.status == models.ServiceStatus.approved,
+    ).first()
+    if not worker:
+        raise HTTPException(status_code=404, detail="Service professional not found")
+    return templates.TemplateResponse("service-request.html", page_context(request, db, worker=worker))
+
+
 @app.get("/forgot-password", response_class=HTMLResponse)
 def forgot_password_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("forgot-password.html", page_context(request, db))
@@ -251,6 +322,11 @@ def reset_password_page(request: Request, db: Session = Depends(get_db)):
 @app.get("/account", response_class=HTMLResponse)
 def account_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("account.html", page_context(request, db))
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("settings.html", page_context(request, db))
 
 
 # ============================================================
@@ -336,6 +412,11 @@ def admin_dashboard_page(request: Request, db: Session = Depends(get_db)):
 # A couple of standalone legacy files that aren't part of the
 # Jinja2 migration yet, served as-is.
 # ============================================================
+@app.get("/pay-order", response_class=HTMLResponse)
+def pay_order_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("pay-order.html", page_context(request, db))
+
+
 @app.get("/orders.html", response_class=HTMLResponse)
 def orders_page(request: Request, db: Session = Depends(get_db)):
     # Order contents are fetched client-side (see orders.html's script

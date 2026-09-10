@@ -1,33 +1,78 @@
 {% extends "base.html" %}
-{% block title %}FAQ — Eravenda Market{% endblock %}
+{% block title %}FAQ — EraVenda Market{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto px-4 py-12">
-  <h1 class="font-head text-3xl font-semibold mb-6">Frequently asked questions</h1>
+<div class="max-w-3xl mx-auto px-4 py-12">
+  <div class="text-center mb-10">
+    <p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase mb-2">Help Centre</p>
+    <h1 class="font-head text-3xl md:text-4xl font-bold">Frequently asked questions</h1>
+    <p class="text-slate-500 mt-3 max-w-xl mx-auto">Everything you need to know about shopping, selling, and booking professionals on EraVenda. Can't find what you're looking for? <a href="/contact" class="text-brand-600 font-semibold hover:underline">Get in touch</a>.</p>
+  </div>
 
-  <div class="space-y-3" id="faqList">
-    {% set faqs = [
-      ("How do I track my order?", "Log in and go to Orders from the account menu. Each order shows its current status — pending, paid, processing, shipped, or delivered."),
-      ("What payment methods do you accept?", "Card and mobile money payments through Paystack, at checkout."),
-      ("How long does delivery take?", "Delivery times vary by seller and location, typically 1–5 business days within Ghana."),
-      ("Can I return a product?", "Contact the seller directly through your order, or reach out to us via the Contact page if you need help resolving an issue."),
-      ("How do I become a seller?", "Click \"Open a store\" from the homepage or your account menu, fill in your store details, and submit for review. Approval usually takes about a day."),
-      ("What does Eravenda Market charge sellers?", "A commission percentage per sale, shown on your seller dashboard once your store is approved. It varies by store."),
-      ("I forgot my password — what do I do?", "Go to the login page and click \"Forgot your password?\" to get a reset link sent to your email."),
-    ] %}
-    {% for question, answer in faqs %}
-    <details class="border border-slate-200 rounded-md p-4 group">
-      <summary class="font-medium cursor-pointer list-none flex justify-between items-center">
-        {{ question }}
-        <span class="text-slate-400 group-open:rotate-45 transition-transform">+</span>
-      </summary>
-      <p class="text-sm text-slate-600 mt-3">{{ answer }}</p>
-    </details>
+  {% set sections = [
+    ("Shopping & Orders", "brand-600", "fa-shopping-bag", [
+      ("How do I place an order?", "Browse products, tap \"Add to cart\", then head to your cart to check out. Choose your delivery address and payment method, and you're done. You'll get an order confirmation right away."),
+      ("How can I track my order?", "Log in and go to Orders from your account menu. Each order shows its current status — pending, paid, processing, shipped, or delivered — so you always know where things stand."),
+      ("How long does delivery take?", "Most deliveries within Ghana arrive in 1–5 business days, depending on the seller's location and your region. You'll see estimated delivery details on each product page and in your order confirmation."),
+      ("Can I return or refund a product?", "Reach out to the seller directly through your order page first. If you can't resolve it, contact us via the Contact page and we'll step in to help."),
+      ("What if a product arrives damaged or wrong?", "Contact the seller within 48 hours of delivery with photos. If the seller doesn't resolve it, we'll mediate. Your protection matters to us."),
+    ]),
+    ("Payments & Pricing", "amber-700", "fa-credit-card", [
+      ("What payment methods do you accept?", "We accept mobile money (MTN, Vodafone, AirtelTigo) and card payments through Paystack — Ghana's trusted payment processor. All transactions are encrypted and secure."),
+      ("Is it safe to pay on EraVenda?", "Yes. We use Paystack, which is PCI-compliant and bank-grade encrypted. We never store your card or mobile money details on our servers."),
+      ("What is cash on delivery?", "Some sellers offer cash on delivery — you pay when the product arrives at your doorstep. Look for the COD badge on product pages to find these items."),
+      ("Are prices in Ghana Cedis?", "Yes, all prices are displayed in Ghana Cedis (GHS). What you see is what you pay, plus any applicable delivery fee shown at checkout."),
+    ]),
+    ("Selling on EraVenda", "teal-700", "fa-store", [
+      ("How do I become a seller?", "Click \"Open a store\" from the homepage or your account menu. Fill in your store details and submit for review. Approval usually takes about one business day."),
+      ("What does EraVenda charge sellers?", "We take a small commission on each sale — the exact rate is shown on your seller dashboard once your store is approved. There are no upfront fees or monthly charges."),
+      ("How do I get paid?", "Funds from completed orders go to your store balance. You can request a payout to your mobile money or bank account from the seller dashboard at any time."),
+      ("Can I sell services too?", "Absolutely. You can apply to offer professional services (repairs, tutoring, cleaning, etc.) alongside or instead of products. Head to the Handyman Hub and click \"Join as a Handyman.\"" ),
+    ]),
+    ("Handyman Hub", "teal-600", "fa-screwdriver-wrench", [
+      ("How do I book a handyman?", "Browse available professionals on the Handyman Hub page, pick one that fits your needs, and submit a booking request with details about the job. The professional will review and respond to you."),
+      ("How do I become a handyman on EraVenda?", "Go to the Handyman Hub and click \"Join as a Handyman.\" Fill in your qualifications, experience, and upload any relevant documents. Once approved, you'll appear in the marketplace."),
+      ("What happens after I book a professional?", "The professional reviews your request and may reach out for more details or to schedule a time. You'll be notified of their response via your account."),
+      ("Can I leave a review for a professional?", "Yes — after a completed booking, you'll be able to rate and review the professional. Your feedback helps other customers make informed choices."),
+    ]),
+    ("Account & Security", "slate-600", "fa-user-shield", [
+      ("I forgot my password — what do I do?", "Go to the login page and click \"Forgot your password?\" We'll send a reset link to your email. The link expires after a short time for security."),
+      ("How do I update my profile or address?", "Log in and go to your Account page. From there you can update your name, phone number, avatar, and manage your delivery addresses."),
+      ("Is my personal information safe?", "Yes. We use industry-standard encryption and never share your personal data with other users. Sellers only see what's needed to fulfil your order."),
+      ("How do I delete my account?", "Contact us through the Contact page and we'll process your account deletion. Please note that active orders must be completed before we can remove your account."),
+    ]),
+  ] %}
+
+  <div class="space-y-8">
+    {% for section_title, color, icon, faqs in sections %}
+    <div>
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-9 h-9 rounded-lg bg-{{ color }}/10 text-{{ color }} flex items-center justify-center shrink-0">
+          <i class="fas {{ icon }}"></i>
+        </div>
+        <h2 class="font-head text-xl font-bold">{{ section_title }}</h2>
+      </div>
+      <div class="space-y-2">
+        {% for question, answer in faqs %}
+        <details class="border border-slate-200 rounded-lg p-4 group bg-white hover:border-brand-300 transition-colors">
+          <summary class="font-medium cursor-pointer list-none flex justify-between items-center gap-4 text-slate-800">
+            {{ question }}
+            <span class="text-slate-400 group-open:rotate-45 transition-transform shrink-0 text-lg leading-none">+</span>
+          </summary>
+          <p class="text-sm text-slate-600 mt-3 leading-relaxed">{{ answer }}</p>
+        </details>
+        {% endfor %}
+      </div>
+    </div>
     {% endfor %}
   </div>
 
-  <p class="text-sm text-slate-500 mt-8">
-    Still stuck? <a href="/contact" class="text-brand-600 font-semibold hover:underline">Contact us</a> and we'll help directly.
-  </p>
+  <div class="mt-12 text-center bg-brand-50 border border-brand-200 rounded-xl p-8">
+    <h3 class="font-head text-lg font-bold mb-2">Still have questions?</h3>
+    <p class="text-sm text-slate-600 mb-4">Our team is here to help. Reach out and we'll get back to you within 24 hours.</p>
+    <a href="/contact" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors">
+      <i class="fas fa-envelope"></i> Contact support
+    </a>
+  </div>
 </div>
 {% endblock %}

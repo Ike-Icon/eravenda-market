@@ -40,6 +40,7 @@
           -{{ ((1 - (price / p.price)) * 100) | round | int }}%
         </span>
         {% endif %}
+        <button type="button" data-wishlist-toggle="{{ p.id }}" class="absolute top-2 right-2 bg-white/90 text-red-500 w-8 h-8 rounded-full z-10" aria-label="Add to wishlist"><i class="far fa-heart"></i></button>
         {% if primary_image %}
         <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy" class="w-full h-full object-cover">
         {% else %}
@@ -51,6 +52,9 @@
         <div class="mt-1 font-semibold">
           ₵{{ "%.2f"|format(price) }}
           {% if has_discount %}<span class="text-xs text-slate-400 line-through font-normal ml-1">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}
+        </div>
+        <div class="mt-2 flex justify-end">
+          <button type="button" data-cart-add="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}" data-image="{{ primary_image.image_url if primary_image else '' }}" class="bg-accent-500 text-slate-900 rounded px-2 py-1 text-xs font-bold"><i class="fas fa-shopping-cart"></i> Add</button>
         </div>
       </div>
     </a>

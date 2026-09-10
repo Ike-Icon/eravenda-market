@@ -6,7 +6,8 @@
        search_query          current search string, for re-populating the input
        selected_category_id  current category filter, for re-selecting the dropdown
      ============================================================ -->
-<header class="sticky top-0 z-40 bg-white border-b border-slate-200">
+{% set is_services_page = request.url.path.startswith('/services') %}
+<header id="siteHeader" data-services-page="{{ 'true' if is_services_page else 'false' }}" class="sticky top-0 z-40 bg-white border-b border-slate-200">
 
   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
 
@@ -59,7 +60,7 @@
 </a>
 
     <!-- Live search with category dropdown -->
-    <form action="/products" method="get" class="hidden sm:flex flex-1 max-w-2xl">
+    {% if not is_services_page %}<form action="/products" method="get" class="hidden sm:flex flex-1 max-w-2xl">
       <select name="category_id"
         class="border border-slate-300 border-r-0 rounded-l-md bg-slate-50 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-brand-500 max-w-[9rem] truncate">
         <option value="">All</option>
@@ -80,46 +81,81 @@
           <path stroke-linecap="round" d="m20 20-3-3" />
         </svg>
       </button>
-    </form>
+    </form>{% endif %}
 
     <!-- Account links / auth state. Server renders the safe "guest" default;
          main.js swaps this for real account info once it reads the token from
          localStorage, since login state lives client-side. -->
-    <nav class="ml-auto flex items-center gap-4 text-sm font-medium whitespace-nowrap">
-      <div id="guestLinks" class="flex items-center gap-4">
-        <a href="/login" class="hover:text-brand-600">Log in</a>
-        <a href="/register" class="hidden sm:inline hover:text-brand-600">Sign up</a>
-      </div>
-
-      <div id="userLinks" class="hidden items-center gap-4">
-        <a id="dashboardLink" href="/seller/dashboard.html" class="hidden sm:inline hover:text-brand-600">My store</a>
-        <a href="/orders.html" class="hidden sm:inline hover:text-brand-600">Orders</a>
-        <span class="hidden sm:inline text-slate-400">|</span>
-        <a href="/account" class="hidden sm:flex items-center gap-2 hover:text-brand-600">
-          <img id="userAvatarImg" src="" alt="" class="hidden w-6 h-6 rounded-full object-cover">
-          <span id="userAvatarFallback" class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center">?</span>
-          <span class="text-slate-600">Hi, <span id="userFirstName">there</span></span>
+    <nav class="relative ml-auto flex items-center gap-1 sm:gap-2 text-sm font-medium whitespace-nowrap" aria-label="Primary navigation">
+      <!-- Handyman Hub — always visible, logged in or not -->
+      <div class="relative group">
+        <a href="/services" class="ev-nav-item inline-flex items-center gap-1 px-2 py-2 text-slate-700 hover:text-brand-700">
+          <i class="ev-nav-icon ev-nav-icon-teal fas fa-screwdriver-wrench"></i>
+          <span>Handyman Hub</span>
+          <i class="fas fa-chevron-down text-[7px] text-slate-400 ml-0.5"></i>
         </a>
-        <button id="logoutBtn" type="button" class="hover:text-brand-600">Log out</button>
+        <div class="absolute left-0 top-full hidden group-hover:block bg-white border border-slate-200 rounded-md shadow-lg py-2 min-w-[200px] z-50">
+          <a href="/services" class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 hover:text-brand-600 whitespace-nowrap">
+            <i class="fas fa-search text-teal-500 w-4 text-center"></i>Hire a Handyman
+          </a>
+          <a href="/services/register" class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 hover:text-brand-600 whitespace-nowrap">
+            <i class="fas fa-user-plus text-purple-500 w-4 text-center"></i>Join as a Handyman
+          </a>
+        </div>
       </div>
 
-      <a href="/cart" class="relative p-2 -mr-2 rounded hover:bg-slate-100" aria-label="Cart">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-          stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M3 3h2l.4 2M7 13h10l3.6-8H5.4M7 13 5.4 5M7 13l-2.3 4.6A1 1 0 0 0 5.6 19H17M17 13v6M9 21a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" />
-        </svg>
-        <span id="cartCountBadge"
-          class="{% if not cart_item_count|default(0) %}hidden{% endif %} absolute -top-1 -right-1 bg-accent-500 text-slate-900 text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[1.1rem] text-center">
-          {{ cart_item_count|default(0) }}
-        </span>
+      <div id="guestLinks" class="flex items-center gap-1 sm:gap-2">
+        <a href="/login" class="ev-nav-item inline-flex items-center px-2 py-2 text-slate-700 hover:text-brand-700"><i class="ev-nav-icon ev-nav-icon-green fas fa-right-to-bracket mr-1"></i>Log In</a>
+        <a href="/register" class="ev-nav-item hidden sm:inline-flex items-center px-2 py-2 text-slate-700 hover:text-brand-700"><i class="ev-nav-icon ev-nav-icon-gold fas fa-user-plus mr-1"></i>Sign Up</a>
+      </div>
+
+      <div id="userLinks" class="hidden">
+        <button id="userMenuBtn" type="button" class="ev-user-menu-btn flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors" aria-expanded="false" aria-haspopup="true">
+          <img id="userAvatarImg" src="" alt="" class="hidden w-7 h-7 rounded-full object-cover border border-slate-200">
+          <span id="userAvatarFallback" class="w-7 h-7 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center">?</span>
+          <span id="userNavName" class="hidden sm:inline text-sm text-slate-700 font-medium max-w-[100px] truncate">?</span>
+          <i class="fas fa-chevron-down text-[9px] text-slate-400"></i>
+        </button>
+        <div id="userDropdown" class="ev-user-dropdown hidden absolute right-0 top-full mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50">
+          <div class="px-4 py-2.5 border-b border-slate-100">
+            <p class="text-sm font-semibold text-slate-800">Hi, <span id="userFirstName">there</span></p>
+            <p class="text-xs text-slate-500 mt-0.5" id="userEmail"></p>
+          </div>
+          <a id="dashboardLink" href="/seller/dashboard.html" class="hidden sm:flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-green fas fa-store w-4 text-center"></i><span>My Store</span></a>
+          <a id="professionalDashboardLink" href="/professional/dashboard.html" class="hidden sm:flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700" style="display:none"><i class="ev-nav-icon-purple fas fa-briefcase w-4 text-center"></i><span>Pro Dashboard</span></a>
+          {% if not is_services_page %}
+          <a href="/orders.html" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-blue fas fa-box w-4 text-center"></i>Orders</a>
+          {% endif %}
+          <a href="/wishlist" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-red fas fa-heart w-4 text-center"></i>Wishlist</a>
+          <a href="/account" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="fas fa-user w-4 text-center text-slate-400"></i>Account</a>
+          <a href="/settings" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-teal fas fa-gear w-4 text-center"></i>Settings</a>
+          <a href="/products" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-blue fas fa-store w-4 text-center"></i>Products</a>
+          <a href="/faq" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="fas fa-circle-question w-4 text-center text-slate-400"></i>Help &amp; FAQ</a>
+          <div class="border-t border-slate-100 mt-1 pt-1">
+            <button id="logoutBtn" type="button" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-orange fas fa-right-from-bracket w-4 text-center"></i>Log Out</button>
+          </div>
+        </div>
+      </div>
+
+      {% if not is_services_page %}
+      <a href="/wishlist" class="ev-nav-item relative p-2 rounded hover:bg-slate-100" aria-label="Wishlist" title="Wishlist">
+        <i class="ev-nav-icon ev-nav-icon-red fas fa-heart text-lg"></i>
+        <span id="wishlistCountBadge" class="wishlist-badge hidden">0</span>
+      </a>
+      <a href="/cart" class="ev-nav-item relative p-2 rounded hover:bg-slate-100" aria-label="Shopping cart" title="Cart">
+        <i class="ev-nav-icon ev-nav-icon-gold fas fa-cart-shopping text-lg"></i>
+        <span id="cartCountBadge" class="hidden absolute -top-1 -right-1 bg-accent-500 text-slate-900 text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[1.1rem] text-center">0</span>
+      </a>
+      {% endif %}
+      <a href="/settings" class="ev-nav-item relative p-2 rounded hover:bg-slate-100" aria-label="Settings" title="Settings">
+        <i class="ev-nav-icon ev-nav-icon-teal fas fa-gear text-lg"></i>
       </a>
     </nav>
   </div>
 
   <!-- Category strip — desktop only. Each parent is a hover target;
        children reveal in a dropdown below on hover, not shown by default. -->
-  <div class="hidden md:block bg-slate-50 border-t border-slate-200">
+  {% if not is_services_page %}<div class="hidden md:block bg-slate-50 border-t border-slate-200">
     <div class="max-w-7xl mx-auto px-4 flex flex-wrap gap-1 text-sm text-slate-600">
       {% for c in category_tree|default([]) %}
       <div class="relative group">
@@ -145,11 +181,11 @@
       <span class="text-slate-400 py-2">Categories will appear here once an admin adds some.</span>
       {% endfor %}
     </div>
-  </div>
+  </div>{% endif %}
 
   <!-- Mobile nav drawer -->
   <div id="mobileDrawer" class="hidden md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-4">
-    <form action="/products" method="get" class="flex">
+    {% if not is_services_page %}<form action="/products" method="get" class="flex">
       <input type="search" name="q" value="{{ search_query|default('') }}" placeholder="Search products"
         class="flex-1 border border-slate-300 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
       <button type="submit" class="bg-brand-500 text-white px-4 rounded-r-md">Go</button>
@@ -175,11 +211,13 @@
         </a>
         {% endif %}
       {% endfor %}
-    </div>
+    </div>{% endif %}
     <div class="border-t border-slate-200 pt-4 flex flex-col gap-2 text-sm font-medium" id="mobileAuthLinks">
-      <a href="/login" class="py-1 hover:text-brand-600">Log in</a>
-      <a href="/register" class="py-1 hover:text-brand-600">Sign up</a>
-      <a href="/orders.html" class="py-1 hover:text-brand-600">Orders</a>
+      <a href="/login" class="py-1 hover:text-brand-600">Log In</a>
+      <a href="/register" class="py-1 hover:text-brand-600">Sign Up</a>
+      <a href="/services" class="py-1 text-brand-700"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
+      <a href="/services" class="pl-6 py-1 hover:text-brand-600">Hire a Handyman</a>
+      <a href="/services/register" class="pl-6 py-1 hover:text-brand-600">Join as a Handyman</a>
     </div>
   </div>
 </header>

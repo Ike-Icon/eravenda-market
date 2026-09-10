@@ -4,6 +4,9 @@
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 py-8">
   <h1 class="font-head text-2xl font-semibold mb-6">Your cart</h1>
+  <div id="guestCartBanner" class="hidden mb-4 bg-brand-50 border border-brand-200 rounded-md p-3 text-sm text-brand-800">
+    <a href="/login?next=/cart" class="font-semibold underline">Log in</a> or <a href="/register" class="font-semibold underline">create an account</a> to save your cart permanently.
+  </div>
   <div class="grid md:grid-cols-3 gap-8">
     <div id="cartItems" class="md:col-span-2 space-y-4">
       <p class="text-slate-500">Loading your cart…</p>
@@ -25,11 +28,49 @@
 
 {% block scripts %}
 <script>
-  if (!Auth.isLoggedIn()) {
-    window.location.href = "/login?next=/cart";
-  }
-
   function money(n) { return `₵${Number(n).toFixed(2)}`; }
+
+  function renderGuestCart() {
+    const el = document.getElementById("cartItems");
+    const items = GuestCart.getItems();
+    document.getElementById("guestCartBanner").classList.remove("hidden");
+
+    if (!items.length) {
+      el.innerHTML = `<div class="text-center py-12 text-slate-500">Your cart is empty. <a href="/products" class="text-brand-600 font-semibold">Start shopping</a>.</div>`;
+      document.getElementById("sumSubtotal").textContent = "₵0.00";
+      document.getElementById("checkoutBtn").classList.add("pointer-events-none", "opacity-50");
+      return;
+    }
+
+    document.getElementById("sumSubtotal").textContent = money(GuestCart.getTotal());
+
+    el.innerHTML = items.map(item => `
+      <div class="flex items-center gap-4 border border-slate-200 rounded-md p-3" data-product-id="${item.product_id}">
+        ${item.image_url ? `<img src="${item.image_url}" class="w-16 h-16 object-cover rounded">` : `<div class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center text-2xl text-slate-300">🛍️</div>`}
+        <div class="flex-1">
+          <div class="font-medium">${item.name || "Product"}</div>
+          <div class="text-sm text-slate-500">${money(item.price)} each</div>
+        </div>
+        <input type="number" class="guest-qty-input w-16 border border-slate-300 rounded px-2 py-1 text-center" value="${item.quantity}" min="1" data-product-id="${item.product_id}">
+        <div class="text-right">
+          <div class="font-semibold">${money(Number(item.price) * item.quantity)}</div>
+          <button class="text-xs text-red-600 hover:underline mt-1" data-guest-remove="${item.product_id}">Remove</button>
+        </div>
+      </div>`).join("");
+
+    el.querySelectorAll(".guest-qty-input").forEach(input => {
+      input.addEventListener("change", () => {
+        GuestCart.updateQuantity(input.dataset.productId, parseInt(input.value, 10) || 1);
+        renderGuestCart();
+      });
+    });
+    el.querySelectorAll("[data-guest-remove]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        GuestCart.removeItem(btn.dataset.guestRemove);
+        renderGuestCart();
+      });
+    });
+  }
 
   async function loadCart() {
     const el = document.getElementById("cartItems");
@@ -81,6 +122,10 @@
     }
   }
 
-  loadCart();
+  if (Auth.isLoggedIn()) {
+    loadCart();
+  } else {
+    renderGuestCart();
+  }
 </script>
 {% endblock %}

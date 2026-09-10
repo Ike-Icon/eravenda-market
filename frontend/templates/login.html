@@ -40,6 +40,7 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Login failed");
       Auth.setSession(data.access_token, data.user);
+      await mergeGuestData();
       const params = new URLSearchParams(window.location.search);
       window.location.href = params.get("next") || "/";
     } catch (err) {

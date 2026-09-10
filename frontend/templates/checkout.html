@@ -27,6 +27,7 @@
 
     <div class="border border-slate-200 rounded-md p-5 h-fit">
       <h3 class="font-semibold mb-3">Order summary</h3>
+      <fieldset class="mb-4 text-sm space-y-2"><legend class="font-semibold mb-2">Payment method</legend><label class="flex gap-2"><input type="radio" name="payment_method" value="mobile_money" checked> Mobile Money (secure online payment)</label><label class="flex gap-2"><input type="radio" name="payment_method" value="cash_on_delivery"> Pay on delivery</label></fieldset>
       <div id="checkoutSummary" class="text-sm space-y-1"><p class="text-slate-500">Loading…</p></div>
       <div id="checkoutError" class="hidden text-sm text-red-600 mt-2"></div>
       <button id="placeOrderBtn" disabled
@@ -125,7 +126,8 @@
       return;
     }
     try {
-      await apiFetch("/orders/checkout", { method: "POST", body: { address_id: selectedAddressId } });
+      const payment_method = document.querySelector('[name="payment_method"]:checked').value;
+      await apiFetch("/orders/checkout", { method: "POST", body: { address_id: selectedAddressId, payment_method } });
       window.location.href = "/orders.html?placed=1";
     } catch (err) {
       errBox.textContent = err.message;

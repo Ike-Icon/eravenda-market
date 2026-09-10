@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Settings — Eravenda Market{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="font-head text-2xl font-bold mb-6">Settings</h1>
+
+  <!-- Appearance -->
+  <div class="settings-section">
+    <h3><i class="fas fa-palette text-brand-500 mr-2"></i>Appearance</h3>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Dark mode</div>
+        <div class="settings-description">Switch between light and dark themes</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" data-theme-toggle>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Interface density</div>
+        <div class="settings-description">Choose how compact or spacious the layout feels</div>
+      </div>
+      <select data-setting="density" class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+        <option value="comfortable">Comfortable</option>
+        <option value="compact">Compact</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Currency & Language -->
+  <div class="settings-section">
+    <h3><i class="fas fa-globe text-brand-500 mr-2"></i>Region & currency</h3>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Currency</div>
+        <div class="settings-description">Prices will display in this currency</div>
+      </div>
+      <select data-setting="currency" class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+        <option value="GHS">GH₵ — Ghanaian Cedi</option>
+        <option value="USD">US$ — US Dollar</option>
+        <option value="EUR">€ — Euro</option>
+        <option value="GBP">£ — British Pound</option>
+      </select>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Language</div>
+        <div class="settings-description">Interface language</div>
+      </div>
+      <select data-setting="language" class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+        <option value="en">English</option>
+        <option value="tw">Twi</option>
+        <option value="ee">Ewe</option>
+        <option value="ha">Hausa</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="settings-section">
+    <h3><i class="fas fa-bell text-brand-500 mr-2"></i>Notifications</h3>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Email notifications</div>
+        <div class="settings-description">Receive order updates and offers via email</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" data-setting="emailNotifs">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Push notifications</div>
+        <div class="settings-description">Get browser notifications for order status changes</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" data-setting="pushNotifs">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Account shortcuts -->
+  <div class="settings-section">
+    <h3><i class="fas fa-user text-brand-500 mr-2"></i>Account</h3>
+    <div class="flex flex-wrap gap-3 mt-2">
+      <a href="/account" class="text-sm font-semibold text-brand-600 hover:underline">Edit profile</a>
+      <a href="/orders.html" class="text-sm font-semibold text-brand-600 hover:underline">My orders</a>
+      <a href="/wishlist" class="text-sm font-semibold text-brand-600 hover:underline">Wishlist</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

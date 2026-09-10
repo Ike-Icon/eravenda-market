@@ -11,10 +11,9 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 # Commission is assessed per item, so an order can accurately preserve the
 # rate in effect for a mixed-price basket even if the policy changes later.
 COMMISSION_TIERS = (
-    (100.00, 10.0),   # accessible, lower-priced goods
-    (500.00, 8.0),
-    (1500.00, 6.0),
-    (float("inf"), 4.0),  # high-ticket goods
+    (1000.00, 3.0),    # products under GHS 1,000
+    (10000.00, 4.0),   # products GHS 1,000 – 10,000
+    (float("inf"), 5.0),  # products above GHS 10,000
 )
 
 
@@ -126,6 +125,7 @@ def checkout(
             delivery_fee=delivery_fee,
             commission_amount=commission_amount,
             total_amount=total_amount,
+            payment_method=payload.payment_method,
             status=models.OrderStatus.pending,
         )
         db.add(order)
@@ -204,6 +204,36 @@ def cancel_pending_order(
     order.status = models.OrderStatus.cancelled
     db.commit()
     db.refresh(order)
+    return order
+
+
+@router.get("/search", response_model=schemas.OrderOut)
+def search_my_order(
+    order_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Find one of the signed-in buyer's orders by order number or database ID."""
+    value = (order_id or "").strip()
+    if not value:
+        raise HTTPException(status_code=400, detail="Enter an order ID or order number")
+
+    order = db.query(models.Order).filter(
+        models.Order.buyer_id == current_user.id,
+        models.Order.order_number == value,
+    ).first()
+
+    if not order:
+        try:
+            order = db.query(models.Order).filter(
+                models.Order.buyer_id == current_user.id,
+                models.Order.id == value,
+            ).first()
+        except Exception:
+            order = None
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found. Check the order ID and try again.")
     return order
 
 

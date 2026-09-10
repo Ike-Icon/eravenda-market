@@ -53,6 +53,10 @@ def initialize_payment(
     if order.status != models.OrderStatus.pending:
         raise HTTPException(status_code=400, detail=f"This order is already {order.status.value}")
 
+    # A buyer may switch a pending pay-on-delivery order to online payment
+    # later. Once online payment is initialized, the order is treated as a
+    # mobile-money payment order.
+    order.payment_method = models.PaymentMethod.mobile_money
     amount_pesewas = int(round(float(order.total_amount) * 100))
     reference = f"ERV-{order.order_number}-{os.urandom(3).hex()}"
 

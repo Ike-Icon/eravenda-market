@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Pay an order — Eravenda Market{% endblock %}
+
+{% block content %}
+<section class="max-w-2xl mx-auto px-4 py-10">
+  <div class="mb-6">
+    <p class="text-brand-600 font-semibold text-sm">ORDER PAYMENT</p>
+    <h1 class="font-head text-3xl font-bold mt-1">Pay for an existing order</h1>
+    <p class="text-slate-500 mt-2">Enter your order ID or order number to find a pending order and complete payment online.</p>
+  </div>
+
+  <form id="orderSearchForm" class="flex gap-2">
+    <input id="orderIdInput" required autocomplete="off"
+      class="flex-1 border border-slate-300 rounded-md px-3 py-3"
+      placeholder="e.g. ERV-20260909-ABC123">
+    <button class="bg-brand-500 hover:bg-brand-600 text-white px-5 py-3 rounded-md font-semibold">Search</button>
+  </form>
+  <p id="searchError" class="hidden text-red-600 text-sm mt-3"></p>
+
+  <article id="orderResult" class="hidden border border-slate-200 rounded-xl p-5 mt-6"></article>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+if (!Auth.isLoggedIn()) {
+  location.href = `/login?next=${encodeURIComponent('/pay-order')}`;
+}
+
+const form = document.getElementById('orderSearchForm');
+const result = document.getElementById('orderResult');
+const errorBox = document.getElementById('searchError');
+
+function money(value) {
+  return `₵${Number(value).toFixed(2)}`;
+}
+
+function statusClass(status) {
+  return {
+    pending: 'bg-amber-50 text-amber-700',
+    paid: 'bg-brand-50 text-brand-700',
+    processing: 'bg-blue-50 text-blue-700',
+    shipped: 'bg-blue-50 text-blue-700',
+    delivered: 'bg-brand-50 text-brand-700',
+    cancelled: 'bg-red-50 text-red-700',
+    refunded: 'bg-red-50 text-red-700'
+  }[status] || 'bg-slate-100 text-slate-600';
+}
+
+function renderOrder(order) {
+  const canPay = order.status === 'pending';
+  result.innerHTML = `
+    <div class="flex justify-between gap-3 items-start">
+      <div>
+        <p class="text-xs text-slate-500">Order</p>
+        <h2 class="font-head text-xl font-bold">${escapeHtml(order.order_number)}</h2>
+      </div>
+      <span class="text-xs font-semibold px-2 py-1 rounded-full capitalize ${statusClass(order.status)}">${escapeHtml(order.status)}</span>
+    </div>
+    <div class="mt-4 space-y-2 text-sm">
+      ${order.items.map(item => `
+        <div class="flex justify-between gap-4 border-t border-slate-100 pt-2">
+          <span>${escapeHtml(item.product_name)} × ${item.quantity}</span>
+          <span>${money(item.line_total)}</span>
+        </div>`).join('')}
+      <div class="flex justify-between border-t border-slate-200 pt-3 font-semibold">
+        <span>Total</span><span>${money(order.total_amount)}</span>
+      </div>
+    </div>
+    <div class="mt-5">
+      ${canPay
+        ? `<button id="payExistingOrder" class="bg-accent-500 hover:bg-accent-600 text-slate-900 px-5 py-3 rounded-md font-semibold">Pay ${money(order.total_amount)} with Mobile Money</button>
+           <p class="text-xs text-slate-500 mt-2">This also works for orders that were originally marked Pay on delivery.</p>`
+        : order.status === 'paid'
+          ? `<p class="text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-md p-3">This order has already been paid.</p>`
+          : `<p class="text-sm text-slate-600 bg-slate-50 rounded-md p-3">This order is ${escapeHtml(order.status)} and cannot be paid from this page.</p>`}
+    </div>`;
+  result.classList.remove('hidden');
+
+  document.getElementById('payExistingOrder')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = 'Opening secure payment…';
+    try {
+      const payment = await apiFetch('/payments/initialize', {
+        method: 'POST',
+        body: { order_id: order.id }
+      });
+      location.href = payment.authorization_url;
+    } catch (err) {
+      errorBox.textContent = err.message;
+      errorBox.classList.remove('hidden');
+      button.disabled = false;
+      button.textContent = `Pay ${money(order.total_amount)} with Mobile Money`;
+    }
+  });
+}
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  errorBox.classList.add('hidden');
+  result.classList.add('hidden');
+
+  try {
+    const order = await apiFetch(`/orders/search?order_id=${encodeURIComponent(document.getElementById('orderIdInput').value.trim())}`);
+    renderOrder(order);
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.classList.remove('hidden');
+  }
+});
+</script>
+{% endblock %}

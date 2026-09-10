@@ -100,6 +100,385 @@ async function apiFetch(path, { method = "GET", body, auth = true } = {}) {
 }
 
 // ------------------------------------------------------------------
+// Module: Toast
+// Brief, auto-dismissing status message. Keeps cart/wishlist feedback
+// consistent across every page without each template reinventing it.
+// ------------------------------------------------------------------
+function showToast(message, type = "success") {
+  let container = document.getElementById("ev-toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "ev-toast-container";
+    container.className = "fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none";
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement("div");
+  const colors = type === "error" ? "bg-red-600 text-white" : "bg-brand-700 text-white";
+  toast.className = `pointer-events-auto px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium ${colors} opacity-0 translate-y-2 transition-all duration-300`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  requestAnimationFrame(() => { toast.classList.remove("opacity-0", "translate-y-2"); });
+  setTimeout(() => {
+    toast.classList.add("opacity-0", "translate-y-2");
+    setTimeout(() => toast.remove(), 300);
+  }, 2200);
+}
+
+// ------------------------------------------------------------------
+// Module: GuestCart
+// localStorage-backed cart that works without authentication. Items
+// are stored as simple product snapshots — when the user logs in,
+// mergeGuestData() pushes them to the server cart and clears local
+// storage so the server becomes the source of truth.
+// ------------------------------------------------------------------
+const CART_STORAGE_KEY = "erv_cart";
+
+const GuestCart = {
+  getItems() {
+    try { return JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || []; }
+    catch { return []; }
+  },
+  _save(items) {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    this._updateBadge();
+  },
+  addItem(product) {
+    const items = this.getItems();
+    const existing = items.find(i => i.product_id === product.product_id);
+    if (existing) {
+      existing.quantity += product.quantity || 1;
+    } else {
+      items.push({
+        product_id: product.product_id,
+        name: product.name,
+        price: product.price,
+        image_url: product.image_url || "",
+        quantity: product.quantity || 1,
+      });
+    }
+    this._save(items);
+  },
+  removeItem(productId) {
+    this._save(this.getItems().filter(i => i.product_id !== productId));
+  },
+  updateQuantity(productId, qty) {
+    const items = this.getItems();
+    const item = items.find(i => i.product_id === productId);
+    if (item) { item.quantity = Math.max(1, qty); }
+    this._save(items);
+  },
+  getCount() {
+    return this.getItems().reduce((sum, i) => sum + i.quantity, 0);
+  },
+  getTotal() {
+    return this.getItems().reduce((sum, i) => sum + (Number(i.price) * i.quantity), 0);
+  },
+  clear() {
+    localStorage.removeItem(CART_STORAGE_KEY);
+    this._updateBadge();
+  },
+  _updateBadge() {
+    const badge = document.getElementById("cartCountBadge");
+    if (!badge) return;
+    const count = this.getCount();
+    badge.textContent = count;
+    badge.classList.toggle("hidden", count === 0);
+  },
+};
+
+// ------------------------------------------------------------------
+// Module: GuestWishlist
+// localStorage-backed wishlist of product IDs. Same merge-on-login
+// strategy as GuestCart — server becomes authoritative after sign-in.
+// ------------------------------------------------------------------
+const WISHLIST_STORAGE_KEY = "erv_wishlist";
+
+const GuestWishlist = {
+  getItems() {
+    try { return JSON.parse(localStorage.getItem(WISHLIST_STORAGE_KEY)) || []; }
+    catch { return []; }
+  },
+  _save(ids) {
+    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(ids));
+    refreshWishlistBadge();
+  },
+  has(productId) {
+    return this.getItems().includes(productId);
+  },
+  toggle(productId) {
+    const ids = this.getItems();
+    const idx = ids.indexOf(productId);
+    if (idx >= 0) { ids.splice(idx, 1); } else { ids.push(productId); }
+    this._save(ids);
+    return idx < 0;
+  },
+  add(productId) {
+    const ids = this.getItems();
+    if (!ids.includes(productId)) { ids.push(productId); this._save(ids); }
+  },
+  remove(productId) {
+    this._save(this.getItems().filter(id => id !== productId));
+  },
+  clear() {
+    localStorage.removeItem(WISHLIST_STORAGE_KEY);
+    refreshWishlistBadge();
+  },
+  getCount() {
+    return this.getItems().length;
+  },
+};
+
+// ------------------------------------------------------------------
+// Module: Wishlist badge
+// Updates the wishlist counter badge in the header. For guests, reads
+// from localStorage; for logged-in users, fetches from the server.
+// ------------------------------------------------------------------
+function refreshWishlistBadge() {
+  const badge = document.getElementById("wishlistCountBadge");
+  if (!badge) return;
+
+  if (!Auth.isLoggedIn()) {
+    const count = GuestWishlist.getCount();
+    badge.textContent = count;
+    badge.classList.toggle("hidden", count === 0);
+    return;
+  }
+
+  apiFetch("/wishlist").then(items => {
+    const count = Array.isArray(items) ? items.length : 0;
+    badge.textContent = count;
+    badge.classList.toggle("hidden", count === 0);
+  }).catch(() => {});
+}
+
+// ------------------------------------------------------------------
+// Module: Theme switcher
+// Toggles between light and dark mode. Persists the choice in
+// localStorage and applies it via data-theme on <html>.
+// ------------------------------------------------------------------
+const ThemeSwitcher = {
+  get() {
+    return document.documentElement.getAttribute("data-theme") || "light";
+  },
+  set(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("erv_theme", theme);
+  },
+  toggle() {
+    this.set(this.get() === "dark" ? "light" : "dark");
+  },
+  init() {
+    document.querySelectorAll("[data-theme-toggle]").forEach(el => {
+      el.addEventListener("change", () => {
+        this.set(el.checked ? "dark" : "light");
+        document.querySelectorAll("[data-theme-toggle]").forEach(other => {
+          if (other !== el) other.checked = el.checked;
+        });
+      });
+      el.addEventListener("click", () => {
+        if (el.tagName === "BUTTON") {
+          this.toggle();
+          document.querySelectorAll("[data-theme-toggle]").forEach(other => {
+            if (other.tagName === "INPUT") other.checked = this.get() === "dark";
+          });
+        }
+      });
+    });
+    document.querySelectorAll("[data-theme-toggle]").forEach(el => {
+      if (el.tagName === "INPUT") el.checked = this.get() === "dark";
+    });
+  },
+};
+
+// ------------------------------------------------------------------
+// Module: Settings
+// Manages user preferences stored in localStorage: currency, density,
+// notification toggles, language.
+// ------------------------------------------------------------------
+const UserSettings = {
+  _defaults: { currency: "GHS", density: "comfortable", emailNotifs: false, pushNotifs: false, language: "en" },
+  get() {
+    try { return Object.assign({}, this._defaults, JSON.parse(localStorage.getItem("erv_settings")) || {}); }
+    catch { return Object.assign({}, this._defaults); }
+  },
+  set(key, value) {
+    const s = this.get();
+    s[key] = value;
+    localStorage.setItem("erv_settings", JSON.stringify(s));
+    this._apply(s);
+  },
+  _apply(s) {
+    document.documentElement.setAttribute("data-density", s.density || "comfortable");
+    document.documentElement.setAttribute("data-currency", s.currency || "GHS");
+  },
+  init() {
+    const s = this.get();
+    this._apply(s);
+    document.querySelectorAll("[data-setting]").forEach(el => {
+      const key = el.dataset.setting;
+      if (el.type === "checkbox") {
+        el.checked = !!s[key];
+        el.addEventListener("change", () => this.set(key, el.checked));
+      } else if (el.tagName === "SELECT") {
+        el.value = s[key] || "";
+        el.addEventListener("change", () => this.set(key, el.value));
+      }
+    });
+  },
+};
+
+// ------------------------------------------------------------------
+// Module: Merge guest data on login
+// After a successful login/register, push local cart items to the
+// server cart and local wishlist items to the server wishlist, then
+// clear localStorage so the server is the single source of truth.
+// ------------------------------------------------------------------
+async function mergeGuestData() {
+  const localCart = GuestCart.getItems();
+  for (const item of localCart) {
+    try {
+      await apiFetch("/cart/items", { method: "POST", body: { product_id: item.product_id, quantity: item.quantity } });
+    } catch (_) { /* individual item failures shouldn't block the rest */ }
+  }
+  GuestCart.clear();
+
+  const localWishlist = GuestWishlist.getItems();
+  for (const productId of localWishlist) {
+    try {
+      await apiFetch(`/wishlist/${productId}`, { method: "POST" });
+    } catch (_) { /* same reasoning */ }
+  }
+  GuestWishlist.clear();
+
+  refreshCartBadge();
+  refreshWishlistBadge();
+  hydrateWishlistHearts();
+}
+
+// ------------------------------------------------------------------
+// Module: Wishlist heart hydration
+// Fills in the heart icon on every product card whose ID is already
+// in the guest wishlist (or the server wishlist after login). Runs
+// on page load and again after merge.
+// ------------------------------------------------------------------
+function hydrateWishlistHearts() {
+  const isGuest = !Auth.isLoggedIn();
+  document.querySelectorAll("[data-wishlist-toggle], [data-home-wishlist], [data-wishlist]").forEach(btn => {
+    const productId = btn.dataset.wishlistToggle || btn.dataset.homeWishlist || btn.dataset.wishlist;
+    if (!productId) return;
+    const inWishlist = isGuest ? GuestWishlist.has(productId) : null;
+    const icon = btn.querySelector("i");
+    if (!icon) return;
+    if (isGuest && inWishlist) {
+      icon.className = "fas fa-heart";
+    } else if (isGuest) {
+      icon.className = "far fa-heart";
+    }
+  });
+}
+
+// ------------------------------------------------------------------
+// Module: Card actions
+// Wires up add-to-cart and wishlist buttons across every product
+// card on the site. Uses data attributes so templates don't need
+// inline scripts — just the right data-* on each button.
+// ------------------------------------------------------------------
+function initCardActions() {
+  document.querySelectorAll("[data-cart-add]").forEach(btn => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", async () => {
+      const productId = btn.dataset.cartAdd;
+      if (!Auth.isLoggedIn()) {
+        GuestCart.addItem({ product_id: productId, name: btn.dataset.name || "", price: btn.dataset.price || "0", image_url: btn.dataset.image || "", quantity: 1 });
+        showToast("Added to your cart");
+        return;
+      }
+      try {
+        await apiFetch("/cart/items", { method: "POST", body: { product_id: productId, quantity: 1 } });
+        showToast("Added to your cart");
+        refreshCartBadge();
+      } catch (err) { showToast(err.message, "error"); }
+    });
+  });
+
+  document.querySelectorAll("[data-wishlist-toggle]").forEach(btn => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", async () => {
+      const productId = btn.dataset.wishlistToggle;
+      const icon = btn.querySelector("i");
+      if (!Auth.isLoggedIn()) {
+        const added = GuestWishlist.toggle(productId);
+        if (icon) icon.className = added ? "fas fa-heart" : "far fa-heart";
+        showToast(added ? "Added to wishlist" : "Removed from wishlist");
+        return;
+      }
+      try {
+        await apiFetch(`/wishlist/${productId}`, { method: "POST" });
+        if (icon) icon.className = "fas fa-heart";
+        showToast("Added to wishlist");
+      } catch (err) {
+        if (err.message.includes("already")) {
+          await apiFetch(`/wishlist/${productId}`, { method: "DELETE" });
+          if (icon) icon.className = "far fa-heart";
+          showToast("Removed from wishlist");
+        } else {
+          showToast(err.message, "error");
+        }
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-home-cart]").forEach(btn => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", async () => {
+      const productId = btn.dataset.homeCart;
+      if (!Auth.isLoggedIn()) {
+        GuestCart.addItem({ product_id: productId, name: btn.dataset.name || "", price: btn.dataset.price || "0", image_url: btn.dataset.image || "", quantity: 1 });
+        showToast("Added to your cart");
+        return;
+      }
+      try {
+        await apiFetch("/cart/items", { method: "POST", body: { product_id: productId, quantity: 1 } });
+        btn.innerHTML = '<i class="fas fa-check"></i> Added';
+        showToast("Added to your cart");
+        refreshCartBadge();
+      } catch (err) { showToast(err.message, "error"); }
+    });
+  });
+
+  document.querySelectorAll("[data-home-wishlist]").forEach(btn => {
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "true";
+    btn.addEventListener("click", async () => {
+      const productId = btn.dataset.homeWishlist;
+      const icon = btn.querySelector("i");
+      if (!Auth.isLoggedIn()) {
+        const added = GuestWishlist.toggle(productId);
+        if (icon) icon.className = added ? "fas fa-heart" : "far fa-heart";
+        showToast(added ? "Added to wishlist" : "Removed from wishlist");
+        return;
+      }
+      try {
+        await apiFetch(`/wishlist/${productId}`, { method: "POST" });
+        if (icon) icon.className = "fas fa-heart";
+        showToast("Added to wishlist");
+      } catch (err) {
+        if (err.message.includes("already")) {
+          await apiFetch(`/wishlist/${productId}`, { method: "DELETE" });
+          if (icon) icon.className = "far fa-heart";
+          showToast("Removed from wishlist");
+        } else {
+          showToast(err.message, "error");
+        }
+      }
+    });
+  });
+}
+
+// ------------------------------------------------------------------
 // Module: Mobile navigation drawer
 // ------------------------------------------------------------------
 function initMobileMenu() {
@@ -120,7 +499,7 @@ function initMobileMenu() {
 // lives in localStorage, not a cookie. This swaps in the real state
 // once the page loads, and wires up the logout button.
 // ------------------------------------------------------------------
-function renderAuthState() {
+async function renderAuthState() {
   const guestLinks = document.getElementById("guestLinks");
   const userLinks = document.getElementById("userLinks");
   const mobileAuthLinks = document.getElementById("mobileAuthLinks");
@@ -132,6 +511,7 @@ function renderAuthState() {
     guestLinks.classList.add("hidden");
     userLinks.classList.remove("hidden");
     userLinks.classList.add("flex");
+    initUserDropdown();
 
     const firstName = document.getElementById("userFirstName");
     if (firstName) firstName.textContent = user.full_name.split(" ")[0];
@@ -139,8 +519,8 @@ function renderAuthState() {
     const avatarImg = document.getElementById("userAvatarImg");
     const avatarFallback = document.getElementById("userAvatarFallback");
     if (avatarImg && avatarFallback) {
-      if (user.avatar_url) {
-        avatarImg.src = user.avatar_url;
+      if (user.avatar_key) {
+        avatarImg.src = avatarImageUrl(user.avatar_key);
         avatarImg.alt = user.full_name;
         avatarImg.classList.remove("hidden");
         avatarFallback.classList.add("hidden");
@@ -151,28 +531,54 @@ function renderAuthState() {
       }
     }
 
+    const navName = document.getElementById("userNavName");
+    if (navName) navName.textContent = user.full_name.split(" ")[0];
+
     const dashboardLink = document.getElementById("dashboardLink");
+    const professionalDashboardLink = document.getElementById("professionalDashboardLink");
     const hasDashboard = user.role === "admin" || user.role === "seller";
     if (dashboardLink) {
       if (hasDashboard) {
         dashboardLink.href = user.role === "admin" ? "/admin/dashboard.html" : "/seller/dashboard.html";
-        dashboardLink.textContent = user.role === "admin" ? "Admin" : "My store";
+        const icon = dashboardLink.querySelector("i");
+        const span = dashboardLink.querySelector("span");
+        if (user.role === "admin") {
+          if (icon) icon.className = "ev-nav-icon-green fas fa-gauge-high w-4 text-center";
+          if (span) span.textContent = "Admin Dashboard";
+        } else {
+          if (icon) icon.className = "ev-nav-icon-green fas fa-store w-4 text-center";
+          if (span) span.textContent = "My Store";
+        }
         dashboardLink.style.display = "";
       } else {
-        // Buyers shouldn't see this at all — not just on mobile, where the
-        // base "hidden sm:inline" classes already hide it. Force it off
-        // with an inline style so it stays hidden at every breakpoint too.
         dashboardLink.style.display = "none";
       }
     }
 
+    let hasProfessionalProfile = false;
+    try {
+      const profile = await apiFetch('/services/me');
+      hasProfessionalProfile = !!profile;
+    } catch (_) {
+      hasProfessionalProfile = false;
+    }
+    if (professionalDashboardLink) {
+      professionalDashboardLink.style.display = hasProfessionalProfile ? "" : "none";
+    }
+
     if (mobileAuthLinks) {
       const roleLink = hasDashboard
-        ? `<a href="${dashboardLink.href}" class="py-1 hover:text-brand-600">${dashboardLink.textContent}</a>`
-        : `<a href="/account#seller-application" class="py-1 hover:text-brand-600">Become a seller</a>`;
+        ? `<a href="${dashboardLink.href}" class="py-2 px-2 hover:bg-brand-50 rounded-lg">${dashboardLink.querySelector("span")?.textContent || "Dashboard"}</a>`
+        : `<a href="/account#seller-application" class="py-2 px-2 hover:bg-brand-50 rounded-lg">Become a Seller</a>`;
+      const professionalLink = hasProfessionalProfile
+        ? `<a href="/professional/dashboard.html" class="py-2 px-2 hover:bg-brand-50 rounded-lg"><i class="fas fa-briefcase text-accent-600 mr-2"></i>Pro Dashboard</a>`
+        : `<a href="/services/register" class="py-2 px-2 hover:bg-brand-50 rounded-lg"><i class="fas fa-user-plus text-accent-600 mr-2"></i>Join as a Handyman</a>`;
       mobileAuthLinks.innerHTML = `
         ${roleLink}
         <a href="/orders.html" class="py-1 hover:text-brand-600">Orders</a>
+        <a href="/services" class="py-1 text-brand-700"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
+        <a href="/services" class="pl-6 py-1 hover:text-brand-600">Hire a Handyman</a>
+        <a href="/services/register" class="pl-6 py-1 hover:text-brand-600">Join as a Handyman</a>
         <a href="/account" class="py-1 hover:text-brand-600">Account</a>
         <button id="mobileLogoutBtn" type="button" class="py-1 text-left hover:text-brand-600">Log out</button>
       `;
@@ -181,7 +587,38 @@ function renderAuthState() {
 
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logOut);
+
+    refreshWishlistBadge();
   }
+}
+
+function initUserDropdown() {
+  const btn = document.getElementById("userMenuBtn");
+  const dropdown = document.getElementById("userDropdown");
+  if (!btn || !dropdown || btn.dataset.bound) return;
+  btn.dataset.bound = "true";
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = !dropdown.classList.contains("hidden");
+    dropdown.classList.toggle("hidden", isOpen);
+    btn.setAttribute("aria-expanded", String(!isOpen));
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!dropdown.classList.contains("hidden") && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+      dropdown.classList.add("hidden");
+      btn.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  dropdown.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      dropdown.classList.add("hidden");
+      btn.setAttribute("aria-expanded", "false");
+      btn.focus();
+    }
+  });
 }
 
 function logOut() {
@@ -196,7 +633,12 @@ function logOut() {
 // ------------------------------------------------------------------
 async function refreshCartBadge() {
   const badge = document.getElementById("cartCountBadge");
-  if (!badge || !Auth.isLoggedIn()) return;
+  if (!badge) return;
+
+  if (!Auth.isLoggedIn()) {
+    GuestCart._updateBadge();
+    return;
+  }
 
   try {
     const cart = await apiFetch("/cart");
@@ -343,9 +785,14 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileMenu();
   renderAuthState();
   refreshCartBadge();
+  refreshWishlistBadge();
   initLazyImages();
   initProductGallery();
   initNewsletterForm();
   initLocationSelects();
   initIcons();
+  initCardActions();
+  hydrateWishlistHearts();
+  ThemeSwitcher.init();
+  UserSettings.init();
 });

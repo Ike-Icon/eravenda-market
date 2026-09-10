@@ -23,7 +23,7 @@
   </div>
 
   <!-- Link columns -->
-  <div class="max-w-7xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+  <div class="max-w-7xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-5 gap-8 text-sm">
     <div>
       <h4 class="font-semibold mb-3 text-white">About</h4>
       <ul class="space-y-2 text-brand-100">
@@ -37,6 +37,14 @@
         <li><a href="/orders.html" class="hover:text-white">Track an order</a></li>
         <li><a href="/faq" class="hover:text-white">Returns &amp; refunds</a></li>
         <li><a href="/contact" class="hover:text-white">Contact support</a></li>
+        <li><a href="/pay-order" class="hover:text-white">Pay an order</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4 class="font-semibold mb-3 text-white">Handyman Hub</h4>
+      <ul class="space-y-2 text-brand-100">
+        <li><a href="/services" class="hover:text-white">Hire a Handyman</a></li>
+        <li><a href="/services/register" class="hover:text-white">Join as a Handyman</a></li>
       </ul>
     </div>
     <div>
@@ -58,7 +66,7 @@
   <!-- Payment icon placeholders — swap for real logos when you have brand assets -->
   <div class="max-w-7xl mx-auto px-4 pb-6 flex flex-wrap items-center gap-2 text-xs text-brand-100">
     <span class="mr-2">We accept:</span>
-    {% for label in ["Paystack", "MTN MoMo"] %}
+    {% for label in ["Pay on delivery", "MTN MoMo"] %}
     <span class="bg-brand-700 rounded px-2 py-1 font-medium">{{ label }}</span>
     {% endfor %}
   </div>

@@ -34,13 +34,14 @@
     {% set price = p.discount_price if p.discount_price else p.price %}
     {% set has_discount = p.discount_price and p.discount_price < p.price %}
     {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
-    <a href="/product/{{ p.id }}" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors">
+    <article class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors">
       <div class="relative aspect-square bg-slate-100 lazy-img">
         {% if has_discount %}
         <span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">
           -{{ ((1 - (price / p.price)) * 100) | round | int }}%
         </span>
         {% endif %}
+        <button data-wishlist="{{ p.id }}" class="absolute top-2 right-2 bg-white/90 text-red-500 w-8 h-8 rounded-full" aria-label="Add to wishlist"><i class="far fa-heart"></i></button>
         {% if primary_image %}
         <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy" class="w-full h-full object-cover">
         {% else %}
@@ -48,13 +49,16 @@
         {% endif %}
       </div>
       <div class="p-3">
-        <div class="text-sm text-slate-700 line-clamp-2 min-h-[2.5em]">{{ p.name }}</div>
+        <a href="/product/{{ p.id }}" class="text-sm text-slate-700 line-clamp-2 min-h-[2.5em]">{{ p.name }}</a>
+        <p class="text-xs text-brand-600 mt-1">{{ p.store.store_name }}</p>
+        <p class="text-xs text-amber-600 mt-1">★ {{ "%.1f"|format(p.average_rating) }} ({{ p.review_count }})</p>
         <div class="mt-1 font-semibold">
           ₵{{ "%.2f"|format(price) }}
           {% if has_discount %}<span class="text-xs text-slate-400 line-through font-normal ml-1">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}
         </div>
+        <div class="mt-2 flex gap-2"><span class="text-xs {% if p.stock_quantity < 5 %}text-red-600{% else %}text-brand-700{% endif %}">{{ p.stock_quantity }} items left</span><button data-cart="{{ p.id }}" class="ml-auto bg-accent-500 text-slate-900 rounded px-2 py-1 text-xs font-bold"><i class="fas fa-shopping-cart"></i> Add</button></div>
       </div>
-    </a>
+    </article>
     {% endfor %}
   </div>
   {% else %}
@@ -62,3 +66,20 @@
   {% endif %}
 </div>
 {% endblock %}
+{% block scripts %}<script>
+document.querySelectorAll('[data-cart]').forEach(b => {
+  const productId = b.dataset.cart;
+  b.setAttribute('data-cart-add', productId);
+  b.removeAttribute('data-cart');
+  b.dataset.name = b.closest('article')?.querySelector('.line-clamp-2')?.textContent?.trim() || '';
+  b.dataset.price = b.closest('article')?.querySelector('.font-semibold')?.textContent?.replace(/[₵\s]/g,'') || '0';
+  const img = b.closest('article')?.querySelector('img');
+  b.dataset.image = img ? img.src : '';
+});
+document.querySelectorAll('[data-wishlist]').forEach(b => {
+  b.setAttribute('data-wishlist-toggle', b.dataset.wishlist);
+  b.removeAttribute('data-wishlist');
+});
+initCardActions();
+hydrateWishlistHearts();
+</script>{% endblock %}

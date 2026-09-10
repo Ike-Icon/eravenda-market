@@ -67,7 +67,7 @@
     {% endif %}
 
     <p class="mt-4 text-sm {% if product.stock_quantity > 0 %}text-brand-700{% else %}text-red-600{% endif %}">
-      {% if product.stock_quantity > 0 %}{{ product.stock_quantity }} in stock{% else %}Out of stock{% endif %}
+      {% if product.stock_quantity > 0 %}{{ product.stock_quantity }} items left in stock{% else %}Out of stock{% endif %}
     </p>
 
     <div class="mt-4 flex items-center gap-3">
@@ -76,12 +76,20 @@
       <button id="addToCartBtn" data-product-id="{{ product.id }}"
               {% if product.stock_quantity == 0 %}disabled{% endif %}
               class="bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-semibold px-6 py-2 rounded-md transition-colors">
-        Add to cart
+        <i class="fas fa-shopping-cart"></i> Add to cart
       </button>
+      <button id="wishlistBtn" data-product-id="{{ product.id }}" class="border border-red-200 text-red-500 hover:bg-red-50 p-2 rounded-md" aria-label="Add to wishlist"><i class="far fa-heart"></i></button>
     </div>
     <div id="pdpMessage" class="mt-3 text-sm"></div>
   </div>
 </div>
+
+<section class="max-w-7xl mx-auto px-4 pb-10" id="ratings">
+  <div class="border border-slate-200 rounded-lg p-5">
+    <div class="flex items-baseline justify-between gap-4 mb-4"><h2 class="font-head text-xl font-semibold">Buyer ratings & reviews</h2><div class="text-accent-600 font-semibold">★ {{ "%.1f"|format(product.average_rating) }} <span class="text-sm font-normal text-slate-500">from {{ product.review_count }} review{{ '' if product.review_count == 1 else 's' }}</span></div></div>
+    {% if reviews %}<div class="divide-y divide-slate-100">{% for review in reviews %}<article class="py-4"><div class="flex justify-between text-sm"><span class="text-accent-600">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span><time class="text-slate-400">{{ review.created_at.strftime('%d %b %Y') }}</time></div>{% if review.comment %}<p class="mt-2 text-sm text-slate-700">{{ review.comment }}</p>{% endif %}</article>{% endfor %}</div>{% else %}<p class="text-sm text-slate-500">This product has not received any buyer reviews yet.</p>{% endif %}
+  </div>
+</section>
 
 {% if more_from_store %}
 <div class="max-w-7xl mx-auto px-4 pb-12">
@@ -126,12 +134,17 @@
 <script>
   document.getElementById("addToCartBtn").addEventListener("click", async (e) => {
     const msg = document.getElementById("pdpMessage");
-    if (!Auth.isLoggedIn()) {
-      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
-      return;
-    }
     const productId = e.target.dataset.productId;
     const quantity = parseInt(document.getElementById("qtyInput").value, 10) || 1;
+
+    if (!Auth.isLoggedIn()) {
+      GuestCart.addItem({ product_id: productId, name: {{ product.name|tojson }}, price: "{{ price }}", image_url: "{% if primary_image %}{{ primary_image.image_url }}{% endif %}", quantity });
+      msg.textContent = "Added to your cart.";
+      msg.className = "mt-3 text-sm text-brand-700";
+      refreshCartBadge();
+      return;
+    }
+
     try {
       await apiFetch("/cart/items", { method: "POST", body: { product_id: productId, quantity } });
       msg.textContent = "Added to your cart.";
@@ -140,6 +153,33 @@
     } catch (err) {
       msg.textContent = err.message;
       msg.className = "mt-3 text-sm text-red-600";
+    }
+  });
+
+  document.getElementById("wishlistBtn").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    const productId = btn.dataset.productId;
+    const icon = btn.querySelector("i");
+
+    if (!Auth.isLoggedIn()) {
+      const added = GuestWishlist.toggle(productId);
+      icon.className = added ? "fas fa-heart" : "far fa-heart";
+      showToast(added ? "Added to wishlist" : "Removed from wishlist");
+      return;
+    }
+
+    try {
+      await apiFetch(`/wishlist/${productId}`, { method: "POST" });
+      icon.className = "fas fa-heart";
+      showToast("Added to wishlist");
+    } catch (err) {
+      if (err.message.includes("already")) {
+        await apiFetch(`/wishlist/${productId}`, { method: "DELETE" });
+        icon.className = "far fa-heart";
+        showToast("Removed from wishlist");
+      } else {
+        showToast(err.message, "error");
+      }
     }
   });
 </script>

@@ -85,6 +85,65 @@
             <label class="block text-sm font-medium mb-1">Business registration number (optional)</label>
             <input name="business_registration_number" class="w-full border border-slate-300 rounded-md px-3 py-2">
           </div>
+          <div class="border-t border-slate-200 pt-4 mt-2">
+            <details class="group">
+              <summary class="cursor-pointer text-sm font-semibold text-slate-700 hover:text-brand-700">Read the Seller Terms &amp; Conditions</summary>
+              <div class="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4 text-sm text-slate-700 leading-relaxed max-h-64 overflow-y-auto">
+
+                <div>
+                  <h3 class="font-semibold text-slate-900 mb-1">1. Seller Commission</h3>
+                  <p>Eravenda charges a <strong>tiered commission</strong> based on the price of each product sold. The commission is deducted automatically before your payout:</p>
+                  <ul class="list-disc pl-5 mt-2 space-y-1">
+                    <li><strong>3%</strong> for products priced below GHS 1,000</li>
+                    <li><strong>4%</strong> for products priced GHS 1,000 – 10,000</li>
+                    <li><strong>5%</strong> for products priced above GHS 10,000</li>
+                  </ul>
+                  <p class="mt-2">The commission covers payment processing, platform operations, buyer support and marketing. Commission rates may be adjusted with 30 days' notice.</p>
+                </div>
+
+                <div>
+                  <h3 class="font-semibold text-slate-900 mb-1">2. Payouts &amp; Settlement</h3>
+                  <p>Seller payouts are processed after the buyer confirms delivery or the return window expires (7 days from delivery). Cash-on-delivery orders are settled once Eravenda confirms receipt of payment. Payouts are made to your registered mobile money or bank account within 3 business days.</p>
+                </div>
+
+                <div>
+                  <h3 class="font-semibold text-slate-900 mb-1">3. Product Listings &amp; Accuracy</h3>
+                  <p>All product listings must accurately describe the item, including condition, specifications, and pricing. Misleading descriptions, counterfeit goods, or prohibited items will be removed and may result in store suspension. You are responsible for maintaining accurate stock levels.</p>
+                </div>
+
+                <div>
+                  <h3 class="font-semibold text-slate-900 mb-1">4. Order Fulfillment</h3>
+                  <p>You agree to process and ship orders within the timeframe stated in your store policy. Orders not fulfilled within 7 days may be auto-cancelled. Repeated late shipments or cancellations affect your store rating and may lead to suspension.</p>
+                </div>
+
+                <div>
+                  <h3 class="font-semibold text-slate-900 mb-1">5. Returns &amp; Disputes</h3>
+                  <p>Buyers may request returns within 7 days of delivery for defective or misrepresented items. Eravenda facilitates dispute resolution and may issue refunds at its discretion. Sellers are expected to cooperate in good faith during disputes.</p>
+                </div>
+
+                <div>
+                  <h3 class="font-semibold text-slate-900 mb-1">6. Store Suspension &amp; Termination</h3>
+                  <p>Eravenda may suspend or terminate your store for policy violations, fraudulent activity, consistently poor ratings, or prolonged inactivity. Upon termination, pending orders must still be fulfilled or refunded. You may close your store voluntarily by contacting support.</p>
+                </div>
+
+                <div>
+                  <h3 class="font-semibold text-slate-900 mb-1">7. Seller Responsibilities</h3>
+                  <p>You are responsible for product quality, accurate descriptions, pricing, packaging, applicable taxes, and compliance with Ghanaian trade regulations. Eravenda acts as a marketplace intermediary and is not liable for product defects or seller conduct.</p>
+                </div>
+
+                <div>
+                  <h3 class="font-semibold text-slate-900 mb-1">8. Governing Law</h3>
+                  <p>These terms are governed by the laws of the Republic of Ghana. Disputes are subject to the jurisdiction of the courts of Accra.</p>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <label class="flex gap-3 text-sm text-slate-600 mt-4">
+            <input id="storeTermsAccepted" type="checkbox" required class="mt-1">
+            <span>I have read and agree to the <strong>Eravenda Seller Terms &amp; Conditions</strong>. I understand that commission is tiered by product price (3% under GHS 1,000, 4% for GHS 1,000–10,000, 5% above GHS 10,000), payouts follow the settlement schedule, and I am responsible for product accuracy, order fulfillment and applicable taxes.</span>
+          </label>
+
           <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Submit for review</button>
         </form>
       </div>

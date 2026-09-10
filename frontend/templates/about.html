@@ -1,40 +1,98 @@
 {% extends "base.html" %}
-{% block title %}About Us — Eravenda Market{% endblock %}
-{% block meta_description %}Eravenda Market connects independent sellers with buyers across Ghana.{% endblock %}
+{% block title %}About EraVenda — Your Marketplace. Reimagined.{% endblock %}
+{% block meta_description %}EraVenda is Ghana's marketplace for quality products and trusted professionals. Shop from verified sellers or book reviewed pros for any job.{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-12">
-  <h1 class="font-head text-3xl font-semibold mb-6">About Eravenda Market</h1>
 
-  <div class="prose prose-slate max-w-none space-y-4 text-slate-700">
-    <p>
-      Eravenda Market is a home for independent sellers across Ghana — from a
-      phone shop in Kumasi to a fashion boutique in Accra — to reach buyers
-      without building their own website or payment system from scratch.
+  <div class="mb-10">
+    <p class="text-xs font-bold tracking-[0.22em] text-brand-600 uppercase mb-3">About Us</p>
+    <h1 class="font-head text-3xl md:text-4xl font-bold mb-4">Your Marketplace. Reimagined.</h1>
+    <p class="text-lg text-slate-600 leading-relaxed">
+      EraVenda is where Ghana shops. We bring together the products you need and the
+      professionals you can count on — all in one place, with real reviews and secure payments.
     </p>
-    <p>
-      We handle the storefront, search, cart, checkout, and payment
-      processing. Sellers focus on what they do best: sourcing good products
-      and getting them delivered.
-    </p>
-    <h2 class="font-head text-xl font-semibold mt-8 mb-2">How it works</h2>
-    <p>
-      Buyers browse products from many independent sellers in one place.
-      Sellers register a store, list products, and get notified the moment
-      an order comes in. Every new store and every new product listing is
-      reviewed before it goes live, so buyers can shop with confidence.
-    </p>
-    <h2 class="font-head text-xl font-semibold mt-8 mb-2">Where we operate</h2>
-    <p>
-      We're focused on Ghana first — delivery, pricing in Ghana cedis (₵),
-      and support for how people actually shop and pay here, including
-      mobile money.
-    </p>
-    <p class="text-sm text-slate-500 mt-8">
-      Have a question we haven't answered? Visit our
-      <a href="/faq" class="text-brand-600 font-semibold hover:underline">FAQ</a>
-      or <a href="/contact" class="text-brand-600 font-semibold hover:underline">get in touch</a>.
-    </p>
+  </div>
+
+  <div class="prose prose-slate max-w-none space-y-6 text-slate-700">
+
+    <section>
+      <h2 class="font-head text-xl font-bold text-slate-900 mb-3">What we do</h2>
+      <p>
+        We run a marketplace. Independent sellers list their products alongside verified
+        professionals who offer their services — and you get everything in one storefront.
+        No more jumping between WhatsApp vendors, Instagram pages, and word-of-mouth
+        recommendations. It's all here, organized, reviewed, and easy to buy from.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="font-head text-xl font-bold text-slate-900 mb-3">What you can find</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 not-prose">
+        <div class="border border-slate-200 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center"><i class="fas fa-store text-sm"></i></div>
+            <h3 class="font-head font-bold text-sm">Products</h3>
+          </div>
+          <p class="text-sm text-slate-600">Electronics, phones, fashion, beauty, home appliances, groceries, health and wellness — from hundreds of verified sellers across Ghana.</p>
+        </div>
+        <div class="border border-slate-200 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center"><i class="fas fa-screwdriver-wrench text-sm"></i></div>
+            <h3 class="font-head font-bold text-sm">Handyman Hub</h3>
+          </div>
+          <p class="text-sm text-slate-600">Repairs, cleaning, installations, tutoring, fitness coaching and more — from reviewed professionals you can book online.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="font-head text-xl font-bold text-slate-900 mb-3">Why people trust us</h2>
+      <ul class="space-y-3">
+        <li class="flex items-start gap-3">
+          <i class="fas fa-check-circle text-brand-600 mt-1 shrink-0"></i>
+          <div><strong>Verified sellers.</strong> Every store is reviewed before it goes live. We check who's selling and what they're listing.</div>
+        </li>
+        <li class="flex items-start gap-3">
+          <i class="fas fa-check-circle text-brand-600 mt-1 shrink-0"></i>
+          <div><strong>Real reviews.</strong> Ratings come from verified buyers and service customers — not bots, not paid placements.</div>
+        </li>
+        <li class="flex items-start gap-3">
+          <i class="fas fa-check-circle text-brand-600 mt-1 shrink-0"></i>
+          <div><strong>Secure payments.</strong> Card, mobile money, or cash on delivery — every method is encrypted and protected.</div>
+        </li>
+        <li class="flex items-start gap-3">
+          <i class="fas fa-check-circle text-brand-600 mt-1 shrink-0"></i>
+          <div><strong>Tracked delivery.</strong> Follow your order from purchase to doorstep with real-time updates.</div>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="font-head text-xl font-bold text-slate-900 mb-3">Where we operate</h2>
+      <p>
+        Ghana first. Pricing in cedis (₵), delivery across the country, and payment options
+        that match how people actually shop here — including mobile money. We're building
+        this for our market, our sellers, and our communities.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="font-head text-xl font-bold text-slate-900 mb-3">For sellers & professionals</h2>
+      <p>
+        If you sell products or offer services, EraVenda gives you a storefront, order
+        management, and access to customers who are already looking for what you offer.
+        <a href="/seller/dashboard.html" class="text-brand-600 font-semibold hover:underline">Open a store</a>
+        or
+        <a href="/services/register" class="text-brand-600 font-semibold hover:underline">register as a professional</a>
+        — it takes minutes.
+      </p>
+    </section>
+
+    <div class="border-t border-slate-200 pt-6 mt-8 text-sm text-slate-500">
+      <p>Questions? We'd love to hear from you. Visit our <a href="/faq" class="text-brand-600 font-semibold hover:underline">FAQ</a> or <a href="/contact" class="text-brand-600 font-semibold hover:underline">get in touch</a>.</p>
+    </div>
+
   </div>
 </div>
 {% endblock %}

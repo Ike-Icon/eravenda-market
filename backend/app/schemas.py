@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator  # pyright: ignore[reportMissingImports]
 
-from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus
+from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus, PaymentMethod, ServiceStatus, ServiceBookingStatus
 
 AVATAR_KEYS = {"Avery", "Bailey", "Charlie", "Dakota", "Emery", "Finley", "Harper", "Jordan"}
 
@@ -224,10 +224,18 @@ class CartOut(BaseModel):
     subtotal: float
 
 
+class WishlistOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    product: ProductOut
+    created_at: datetime
+
+
 # ---------- ORDERS ----------
 
 class CheckoutRequest(BaseModel):
     address_id: str
+    payment_method: PaymentMethod = PaymentMethod.mobile_money
 
 
 class OrderItemOut(BaseModel):
@@ -252,6 +260,7 @@ class OrderOut(BaseModel):
     delivery_fee: float
     commission_amount: float
     total_amount: float
+    payment_method: PaymentMethod
     items: List[OrderItemOut] = []
     created_at: datetime
 
@@ -268,6 +277,111 @@ class DeliveryQuoteOut(BaseModel):
     delivery_fee: float
     store_count: int
     breakdown: List[dict]
+
+
+# ---------- SERVICES ----------
+class ServicePortfolioCreate(BaseModel):
+    image_url: str = Field(min_length=1, max_length=2000)
+    caption: Optional[str] = Field(default=None, max_length=200)
+
+
+class ServicePortfolioOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    image_url: str
+    caption: Optional[str]
+
+
+class HandymanOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    job_title: str
+    custom_job_title: Optional[str]
+    professional_name: Optional[str]
+    company_name: Optional[str]
+    work_experience: Optional[str]
+    education: Optional[str]
+    qualifications: str
+    resume_path: Optional[str] = None
+    status: ServiceStatus
+    verified_pro: bool
+    background_checked: bool
+    average_rating: float
+    review_count: int
+    portfolio: List[ServicePortfolioOut] = []
+    created_at: datetime
+
+
+class ServiceBookingCreate(BaseModel):
+    handyman_id: str
+    details: str = Field(min_length=10)
+    location: Optional[str] = Field(default=None, max_length=255)
+    preferred_contact: Optional[str] = Field(default=None, max_length=20)
+    contact_details: Optional[str] = Field(default=None, max_length=150)
+
+
+class ServiceBookingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    handyman_id: str
+    details: str
+    location: Optional[str] = None
+    preferred_contact: Optional[str] = None
+    contact_details: Optional[str] = None
+    quoted_amount: Optional[float]
+    escrow_amount: float
+    commission_amount: float
+    status: ServiceBookingStatus
+    created_at: datetime
+
+
+class AdminServiceBookingOut(BaseModel):
+    id: str
+    handyman_id: str
+    professional_name: Optional[str]
+    company_name: Optional[str]
+    professional_email: Optional[EmailStr]
+    professional_phone: Optional[str]
+    client_name: str
+    client_email: EmailStr
+    client_phone: Optional[str]
+    details: str
+    location: Optional[str]
+    preferred_contact: Optional[str]
+    contact_details: Optional[str]
+    quoted_amount: Optional[float]
+    status: ServiceBookingStatus
+    created_at: datetime
+
+
+class AdminServiceReviewOut(BaseModel):
+    id: str
+    booking_id: str
+    handyman_id: str
+    professional_name: Optional[str]
+    client_name: str
+    rating: int
+    comment: Optional[str]
+    created_at: datetime
+
+
+class ServiceBookingUpdate(BaseModel):
+    status: ServiceBookingStatus
+    quoted_amount: Optional[float] = Field(default=None, gt=0)
+    escrow_amount: Optional[float] = Field(default=None, ge=0)
+
+
+class ServiceReviewCreate(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: Optional[str] = Field(default=None, max_length=1000)
+
+
+class ServiceReviewOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    rating: int
+    comment: Optional[str]
+    created_at: datetime
 
 
 # ---------- REVIEWS ----------
@@ -336,6 +450,12 @@ class PaymentVerifyOut(BaseModel):
     order_status: OrderStatus
     amount: float
     reference: str
+
+
+class CODPaymentRecord(BaseModel):
+    order_id: str
+    amount: float = Field(gt=0)
+    reference: Optional[str] = Field(default=None, max_length=150)
 
 
 # ---------- CONTACT FORM ----------
