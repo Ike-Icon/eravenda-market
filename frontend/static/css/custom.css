@@ -982,3 +982,15 @@ html[data-theme="dark"] .toggle-slider {
     text-overflow: ellipsis;
   }
 }
+
+/* Category strip — horizontal slider, arrows scroll it, no wrap/visible scrollbar */
+#categoryStrip {
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+#categoryStrip::-webkit-scrollbar {
+  display: none;
+}
+

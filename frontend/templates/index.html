@@ -1,50 +1,69 @@
 {% extends "base.html" %}
 
 {% block title %}EraVenda — Your Marketplace. Reimagined.{% endblock %}
-{% block meta_description %}Shop quality products from verified Ghanaian sellers or book trusted professionals for any job. Electronics, fashion, home essentials, repairs, cleaning and more — all in one marketplace with secure checkout and tracked delivery.{% endblock %}
+{% block meta_description %}Shop quality products from verified Ghanaian sellers or book trusted professionals for any
+job. Electronics, fashion, home essentials, repairs, cleaning and more — all in one marketplace with secure checkout and
+tracked delivery.{% endblock %}
 
 {% block content %}
 
 <!-- ============================================================
      HERO SPOTLIGHT — warm, open, product-focused
      ============================================================ -->
-<section id="hero-slideshow" class="relative overflow-hidden text-white min-h-[520px] md:min-h-[580px] flex items-center">
+<section id="hero-slideshow"
+  class="relative overflow-hidden text-white min-h-[520px] md:min-h-[580px] flex items-center">
   <div class="absolute inset-0">
     <div class="slide absolute inset-0 opacity-100 transition-opacity duration-1000 ease-in-out">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788609082/uwfb57qmaa6e4amjwzb5.webp"
-           alt="Products available on Eravenda Market" fetchpriority="high" class="w-full h-full object-cover object-center">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604601/samples/shoe.jpg"
+        alt="Products available on Eravenda Market" fetchpriority="high"
+        class="w-full h-full object-cover object-center">
+    </div>
+    <div class="slide absolute inset-0 opacity-100 transition-opacity duration-1000 ease-in-out">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604593/samples/ecommerce/analog-classic.jpg"
+        alt="Products available on Eravenda Market" fetchpriority="high"
+        class="w-full h-full object-cover object-center">
     </div>
     <div class="slide absolute inset-0 opacity-0 transition-opacity duration-1000 ease-in-out">
       <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604606/cld-sample-5.jpg"
-           alt="Featured products from Eravenda sellers" loading="lazy" class="w-full h-full object-cover object-center">
+        alt="Featured products from Eravenda sellers" loading="lazy" class="w-full h-full object-cover object-center">
     </div>
   </div>
-  <div class="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/50 to-slate-950/20 pointer-events-none"></div>
+  <div class="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/50 to-slate-950/20 pointer-events-none">
+  </div>
 
   <div class="relative z-10 max-w-7xl mx-auto px-4 py-16 md:py-20 w-full">
     <div class="max-w-2xl">
-      <span class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold tracking-[0.18em] text-accent-300 uppercase">
+      <span
+        class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold tracking-[0.18em] text-accent-300 uppercase">
         Your Marketplace. Reimagined.
       </span>
       <h1 class="font-head text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.05] mt-5 max-w-2xl">
         Everything you need,<br>from sellers you can trust.
       </h1>
       <p class="mt-5 text-base md:text-lg leading-relaxed text-slate-200 max-w-xl">
-        Ghana's products and professionals, all in one place. Shop from verified sellers or book a trusted pro — with real reviews, secure checkout, and delivery you can track.
+        Ghana's products and professionals, all in one place. Shop from verified sellers or book a trusted pro — with
+        real reviews, secure checkout, and delivery you can track.
       </p>
       <div class="mt-8 flex flex-wrap items-center gap-3">
-        <a href="/products" class="group bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold px-6 py-3.5 rounded-lg transition-colors shadow-lg flex items-center gap-2">
-          Browse products <i data-lucide="arrow-right" class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
+        <a href="/products"
+          class="group bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold px-6 py-3.5 rounded-lg transition-colors shadow-lg flex items-center gap-2">
+          Browse products <i data-lucide="arrow-right"
+            class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
         </a>
-        <a href="/services" class="text-sm font-semibold text-white/80 hover:text-white underline underline-offset-4">Need a professional?</a>
+        <a href="/services"
+          class="text-sm font-semibold text-white/80 hover:text-white underline underline-offset-4">Need a professional
+          handyman?</a>
       </div>
-      <p class="mt-4 text-sm text-slate-300">Selling products? <a href="/seller/dashboard.html" class="underline font-semibold hover:text-accent-300">Open a store</a> and reach new customers.</p>
+      <p class="mt-4 text-sm text-slate-300">Selling products? <a href="/seller/dashboard.html"
+          class="underline font-semibold hover:text-accent-300">Open a store</a> and reach new customers.</p>
     </div>
   </div>
 
   <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-10" aria-label="Hero slides">
-    <button onclick="goToSlide(0)" class="dot w-2.5 h-2.5 rounded-full bg-white opacity-100 transition-opacity" aria-label="Show slide 1"></button>
-    <button onclick="goToSlide(1)" class="dot w-2.5 h-2.5 rounded-full bg-white opacity-40 transition-opacity" aria-label="Show slide 2"></button>
+    <button onclick="goToSlide(0)" class="dot w-2.5 h-2.5 rounded-full bg-white opacity-100 transition-opacity"
+      aria-label="Show slide 1"></button>
+    <button onclick="goToSlide(1)" class="dot w-2.5 h-2.5 rounded-full bg-white opacity-40 transition-opacity"
+      aria-label="Show slide 2"></button>
   </div>
 </section>
 
@@ -56,16 +75,16 @@
   <div class="max-w-7xl mx-auto px-4">
 
     <!-- Motto banner -->
-    <div class="text-center max-w-3xl mx-auto mb-6">
+    <div class="text-center max-w-3xl mx-auto mb-3">
       <p class="text-xs font-bold tracking-[0.22em] text-brand-600 uppercase mb-2">Our Promise</p>
       <h2 class="font-head text-2xl md:text-3xl font-bold leading-tight">Shop local. Shop smart. Shop EraVenda.</h2>
-      <p class="mt-3 text-base text-slate-700 leading-relaxed">
-        We built EraVenda because shopping in Ghana shouldn't mean guessing who to trust.
-        Every seller is vetted, every pro is reviewed, and every order is tracked — so you can focus on getting what you need.
+      <p class="mt-1 text-base text-slate-700 leading-relaxed">
+        No more guessing who to trust. Eravenda delivers vetted sellers, reviewed handymen, and tracked orders straight
+        to you.
       </p>
     </div>
 
-  
+
   </div>
 </section>
 <!-- ============================================================
@@ -78,24 +97,53 @@
       <h2 id="campaigns-heading" class="font-head text-xl md:text-2xl font-bold">Offers, campaigns & local finds</h2>
     </div>
     <div class="hidden sm:flex gap-2">
-      <button type="button" data-promo-prev class="w-8 h-8 border border-slate-200 rounded hover:border-brand-500 bg-white text-sm" aria-label="Previous">←</button>
-      <button type="button" data-promo-next class="w-8 h-8 border border-slate-200 rounded hover:border-brand-500 bg-white text-sm" aria-label="Next">→</button>
+      <button type="button" data-promo-prev
+        class="w-8 h-8 border border-slate-200 rounded hover:border-brand-500 bg-white text-sm"
+        aria-label="Previous">←</button>
+      <button type="button" data-promo-next
+        class="w-8 h-8 border border-slate-200 rounded hover:border-brand-500 bg-white text-sm"
+        aria-label="Next">→</button>
     </div>
   </div>
   <div id="promoCarousel" class="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 no-scrollbar">
-    <a href="/products" class="promo-banner snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] text-white bg-brand-900 group">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604606/cld-sample-5.jpg" alt="Fresh deals" loading="lazy" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700">
+    <a href="/products"
+      class="promo-banner snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] text-white bg-brand-900 group">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081195/Gemini_Generated_Image_1xyv7m1xyv7m1xyv.jpg" alt="Fresh deals"
+        loading="lazy"
+        class="absolute inset-0 w-full h-full object-cover opacity-100 group-hover:scale-105 transition-transform duration-700">
       <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 to-slate-950/10"></div>
-      <div class="relative h-full min-h-[200px] p-5 flex flex-col justify-end"><span class="text-xs font-bold text-accent-400 tracking-wider">SHOP LOCAL</span><h3 class="font-head text-xl font-bold mt-1">Fresh finds from Ghanaian sellers</h3><span class="text-sm mt-2">Start exploring →</span></div>
+      <div class="relative h-full min-h-[200px] p-5 flex flex-col justify-end">
+      <span class="text-xs font-bold text-accent-300 tracking-wider">SHOP LOCAL</span>
+        {# <h3 class="font-head text-xl font-bold mt-1">Fresh finds from Ghanaian sellers</h3> #}
+        <span
+          class="text-sm mt-2">Start exploring →</span>
+      </div>
     </a>
-    <a href="/seller/dashboard.html" class="promo-banner snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] text-white bg-brand-700 group">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604606/cld-sample-4.jpg" alt="Sell on Eravenda" loading="lazy" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-700">
+    <a href="/seller/dashboard.html"
+      class="promo-banner snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] text-white bg-brand-700 group">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081367/Gemini_Generated_Image_h8fvveh8fvveh8fv.jpg" alt="Sell on Eravenda"
+        loading="lazy"
+        class="absolute inset-0 w-full h-full object-cover opacity-100 group-hover:scale-105 transition-transform duration-700">
       <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 to-transparent"></div>
-      <div class="relative h-full min-h-[200px] p-5 flex flex-col justify-end"><span class="text-xs font-bold text-accent-300 tracking-wider">SELL ON ERAVENDA</span><h3 class="font-head text-xl font-bold mt-1">Turn your products into opportunities</h3><span class="text-sm mt-2">Open your store →</span></div>
+      <div class="relative h-full min-h-[200px] p-5 flex flex-col justify-end"><span
+          class="text-xs font-bold text-accent-400 tracking-wider">SELL ON ERAVENDA</span>
+        {# <h3 class="font-head text-xl font-bold mt-1">Turn your products into opportunities</h3> #}
+        <span
+          class="text-sm mt-2">Open your store →</span>
+      </div>
     </a>
-    <a href="/services" class="promo-banner snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] text-white bg-teal-800 group">
+    <a href="/services"
+      class="promo-banner snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] text-white bg-teal-800 group">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081557/Gemini_Generated_Image_mlwywumlwywumlwy.jpg" alt="Handyman Hub"
+        loading="lazy"
+        class="absolute inset-0 w-full h-full object-cover opacity-100 group-hover:scale-105 transition-transform duration-700">
       <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent"></div>
-      <div class="relative h-full min-h-[200px] p-5 flex flex-col justify-end"><span class="text-xs font-bold text-accent-300 tracking-wider">HANDYMAN HUB</span><h3 class="font-head text-xl font-bold mt-1">Find verified pros for any job</h3><span class="text-sm mt-2">Browse handymen →</span></div>
+      <div class="relative h-full min-h-[200px] p-5 flex flex-col justify-end">
+      <span class="text-xs font-bold text-accent-300 tracking-wider">HANDYMAN HUB</span>
+        {# <h3 class="font-head text-xl font-bold mt-1">Find verified pros for any job</h3> #}
+        <span
+          class="text-sm mt-2">Browse handymen →</span>
+      </div>
     </a>
   </div>
 </section>
@@ -118,21 +166,32 @@
     {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
     <article class="flash-sale-card group">
       <div class="relative aspect-square bg-slate-100 overflow-hidden">
-        <span class="discount-badge absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">-{{ ((1 - (price / p.price)) * 100) | round | int }}%</span>
+        <span
+          class="discount-badge absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">-{{
+          ((1 - (price / p.price)) * 100) | round | int }}%</span>
         <div class="flash-shimmer"></div>
         <div class="card-quick-actions">
-          <button type="button" data-home-wishlist="{{ p.id }}" class="card-quick-btn wishlist-btn" aria-label="Add to wishlist"><i class="far fa-heart"></i></button>
-          <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}" data-image="{{ primary_image.image_url if primary_image else '' }}" class="card-quick-btn" aria-label="Add to cart"><i class="fas fa-cart-plus"></i></button>
+          <button type="button" data-home-wishlist="{{ p.id }}" class="card-quick-btn wishlist-btn"
+            aria-label="Add to wishlist"><i class="far fa-heart"></i></button>
+          <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
+            data-image="{{ primary_image.image_url if primary_image else '' }}" class="card-quick-btn"
+            aria-label="Add to cart"><i class="fas fa-cart-plus"></i></button>
         </div>
-        {% if primary_image %}<img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">{% else %}<div class="w-full h-full flex items-center justify-center text-3xl text-slate-300">🛍️</div>{% endif %}
+        {% if primary_image %}<img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">{% else %}<div
+          class="w-full h-full flex items-center justify-center text-3xl text-slate-300">🛍️</div>{% endif %}
       </div>
       <div class="p-3">
-        <a href="/product/{{ p.id }}" class="text-sm font-medium text-slate-700 line-clamp-2 min-h-[2.5em] hover:text-brand-600">{{ p.name }}</a>
+        <a href="/product/{{ p.id }}"
+          class="text-sm font-medium text-slate-700 line-clamp-2 min-h-[2.5em] hover:text-brand-600">{{ p.name }}</a>
         <div class="mt-1.5 flex items-baseline gap-2">
           <span class="font-bold text-red-600">₵{{ "%.2f"|format(price) }}</span>
           <span class="text-xs text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
         </div>
-        <div class="mt-2"><button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}" data-image="{{ primary_image.image_url if primary_image else '' }}" class="w-full rounded bg-accent-500 hover:bg-accent-600 px-2 py-1.5 text-xs font-bold text-slate-900 transition-colors"><i class="fas fa-shopping-cart mr-1"></i>Add to cart</button></div>
+        <div class="mt-2"><button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}"
+            data-price="{{ price }}" data-image="{{ primary_image.image_url if primary_image else '' }}"
+            class="w-full rounded bg-accent-500 hover:bg-accent-600 px-2 py-1.5 text-xs font-bold text-slate-900 transition-colors"><i
+              class="fas fa-shopping-cart mr-1"></i>Add to cart</button></div>
       </div>
     </article>
     {% endfor %}
@@ -146,21 +205,30 @@
 {% if category_tree|default([]) %}
 <section class="max-w-7xl mx-auto px-4 pt-10 pb-4">
   <div class="flex items-end justify-between mb-5">
-    <div><p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Browse</p><h2 class="font-head text-xl md:text-2xl font-bold">Shop by category</h2></div>
+    <div>
+      <p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Browse</p>
+      <h2 class="font-head text-xl md:text-2xl font-bold">Shop by category</h2>
+    </div>
     <a href="/products" class="text-sm font-semibold text-brand-600 hover:underline">View all products</a>
   </div>
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
     {% for c in category_tree %}
     <div class="relative group">
-      <a href="/products?category_id={{ c.id }}" class="border border-slate-200 rounded-lg p-4 text-center bg-white hover:border-brand-500 hover:shadow-sm transition-all flex flex-col items-center justify-center min-h-[100px]">
+      <a href="/products?category_id={{ c.id }}"
+        class="border border-slate-200 rounded-lg p-4 text-center bg-white hover:border-brand-500 hover:shadow-sm transition-all flex flex-col items-center justify-center min-h-[100px]">
         <i data-lucide="{{ c.icon_url or 'shopping-bag' }}" class="w-5 h-5 text-slate-700 mb-2"></i>
         <div class="text-xs font-semibold text-slate-700 truncate w-full">{{ c.name }}</div>
-        {% if c.children %}<div class="text-[10px] text-slate-400 mt-0.5">{{ c.children|length }} subcategories</div>{% endif %}
+        {% if c.children %}<div class="text-[10px] text-slate-400 mt-0.5">{{ c.children|length }} subcategories</div>{%
+        endif %}
       </a>
       {% if c.children %}
-      <div class="absolute left-0 top-full hidden group-hover:block bg-white border border-slate-200 rounded-md shadow-lg py-2 min-w-[200px] z-50">
+      <div
+        class="absolute left-0 top-full hidden group-hover:block bg-white border border-slate-200 rounded-md shadow-lg py-2 min-w-[200px] z-50">
         {% for child in c.children %}
-        <a href="/products?category_id={{ child.id }}" class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 hover:text-brand-600 whitespace-nowrap"><i data-lucide="{{ child.icon_url or 'shopping-bag' }}" class="w-3.5 h-3.5 text-slate-400"></i>{{ child.name }}</a>
+        <a href="/products?category_id={{ child.id }}"
+          class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 hover:text-brand-600 whitespace-nowrap"><i
+            data-lucide="{{ child.icon_url or 'shopping-bag' }}" class="w-3.5 h-3.5 text-slate-400"></i>{{ child.name
+          }}</a>
         {% endfor %}
       </div>
       {% endif %}
@@ -175,7 +243,10 @@
      ============================================================ -->
 <section class="max-w-7xl mx-auto px-4 py-10">
   <div class="flex items-end justify-between mb-5">
-    <div><p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Featured products</p><h2 class="font-head text-xl md:text-2xl font-bold">Popular picks from sellers</h2></div>
+    <div>
+      <p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Featured products</p>
+      <h2 class="font-head text-xl md:text-2xl font-bold">Popular picks from sellers</h2>
+    </div>
     <a href="/products" class="text-sm font-semibold text-brand-600 hover:underline">See all products</a>
   </div>
   {% if products|default([]) %}
@@ -184,29 +255,35 @@
     {% set price = p.discount_price if p.discount_price else p.price %}
     {% set has_discount = p.discount_price and p.discount_price < p.price %}
     {% set primary_image=(p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
-    <article class="group border border-slate-200 rounded-lg overflow-hidden bg-white hover:border-brand-500 hover:shadow-md transition-all">
+    {% set latest_review = latest_reviews.get(p.id) if latest_reviews is defined else none %}
+    <article data-product-card data-product-url="/product/{{ p.id }}" tabindex="0" role="link" aria-label="View {{ p.name }}" class="group border border-slate-200 rounded-lg overflow-hidden bg-white hover:border-brand-500 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1">
       <div class="relative aspect-square bg-slate-100 lazy-img">
         {% if has_discount %}<span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">-{{ ((1 - (price / p.price)) * 100) | round | int }}%</span>{% endif %}
         <div class="card-quick-actions">
           <button type="button" data-home-wishlist="{{ p.id }}" class="card-quick-btn wishlist-btn" aria-label="Add {{ p.name }} to wishlist"><i class="far fa-heart"></i></button>
-          <a href="/product/{{ p.id }}" class="card-quick-btn quick-view-btn" aria-label="Quick view {{ p.name }}"><i class="fas fa-eye"></i></a>
+          <a href="/product/{{ p.id }}" data-card-action class="card-quick-btn quick-view-btn" aria-label="Quick view {{ p.name }}"><i class="fas fa-eye"></i></a>
           <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}" data-image="{{ primary_image.image_url if primary_image else '' }}" class="card-quick-btn" aria-label="Add to cart"><i class="fas fa-cart-plus"></i></button>
         </div>
         {% if primary_image %}<img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">{% else %}<div class="w-full h-full flex items-center justify-center text-3xl text-slate-300">🛍️</div>{% endif %}
       </div>
       <div class="p-3">
-        <a href="/product/{{ p.id }}" class="text-sm font-medium text-slate-700 line-clamp-2 min-h-[2.5em] hover:text-brand-600">{{ p.name }}
+        <div class="text-sm font-medium text-slate-700 line-clamp-2 min-h-[2.5em] group-hover:text-brand-600">{{ p.name }}</div>
         <div class="text-xs text-brand-600 mt-1">{{ p.store.store_name }}</div>
         <div class="mt-1 font-bold">₵{{ "%.2f"|format(price) }}{% if has_discount %}<span class="text-xs text-slate-400 line-through font-normal ml-1">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}</div>
-        <div class="text-xs text-accent-600 mt-1">★ {{ "%.1f"|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>
+        <div class="mt-2 flex items-center gap-2" aria-label="{{ "%.1f"|format(p.average_rating) }} out of 5 stars from {{ p.review_count }} reviews">
+          <span class="text-sm tracking-tight text-accent-600">{% for star in range(1, 6) %}{{ '★' if star <= (p.average_rating|round|int) else '☆' }}{% endfor %}</span>
+          <span class="text-xs font-semibold text-slate-600">{{ "%.1f"|format(p.average_rating) }}</span>
+          <span class="text-xs text-slate-400">({{ p.review_count }})</span>
+        </div>
+        {% if latest_review and latest_review.comment %}<div class="mt-2 rounded-md bg-slate-50 border border-slate-100 px-2.5 py-2"><div class="text-[11px] text-accent-600 tracking-tight">{{ '★' * latest_review.rating }}{{ '☆' * (5 - latest_review.rating) }}</div><p class="mt-0.5 text-xs text-slate-500 line-clamp-2">“{{ latest_review.comment }}”</p></div>{% endif %}
         <div class="mt-2"><button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}" data-image="{{ primary_image.image_url if primary_image else '' }}" class="w-full rounded bg-accent-500 hover:bg-accent-600 px-2 py-1.5 text-xs font-bold text-slate-900 transition-colors"><i class="fas fa-shopping-cart mr-1"></i>Add to cart</button></div>
-        </a>
       </div>
     </article>
     {% endfor %}
   </div>
   {% else %}
-  <div class="text-center py-16 text-slate-500 bg-white rounded-lg border border-slate-200">No products yet. Check back soon.</div>
+  <div class="text-center py-16 text-slate-500 bg-white rounded-lg border border-slate-200">No products yet. Check back
+    soon.</div>
   {% endif %}
 </section>
 
@@ -216,13 +293,18 @@
 {% if featured_stores|default([]) %}
 <section class="max-w-7xl mx-auto px-4 pb-10">
   <div class="flex items-end justify-between mb-5">
-    <div><p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Our sellers</p><h2 class="font-head text-xl md:text-2xl font-bold">Featured stores</h2></div>
+    <div>
+      <p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Our sellers</p>
+      <h2 class="font-head text-xl md:text-2xl font-bold">Featured stores</h2>
+    </div>
     <a href="/products" class="text-sm font-semibold text-brand-600 hover:underline">Browse all products</a>
   </div>
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
     {% for store in featured_stores %}
-    <a href="/store/{{ store.id }}" class="group border border-slate-200 rounded-lg p-4 text-center bg-white hover:border-brand-500 hover:shadow-sm transition-all">
-      <div class="w-12 h-12 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center mx-auto mb-2 text-lg font-bold">
+    <a href="/store/{{ store.id }}"
+      class="group border border-slate-200 rounded-lg p-4 text-center bg-white hover:border-brand-500 hover:shadow-sm transition-all">
+      <div
+        class="w-12 h-12 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center mx-auto mb-2 text-lg font-bold">
         {{ store.store_name[0]|upper if store.store_name else '?' }}
       </div>
       <div class="text-sm font-semibold text-slate-700 truncate group-hover:text-brand-600">{{ store.store_name }}</div>
@@ -235,48 +317,57 @@
 
 
 
-
-
 <!-- ============================================================
      SERVICES CTA — professional services showcase
      ============================================================ -->
 
-     <!-- Seller CTA & Professional CTA -->
+<!-- Seller CTA & Professional CTA -->
 <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row gap-4">
-     <!-- Seller CTA -->
-<section class="flex-1">
-  <div class="relative overflow-hidden rounded-lg bg-[var(--bg-secondary)] text-slate-900 p-5 md:p-6 min-h-[180px] flex flex-col justify-between h-full">
-    <div class="absolute -right-16 -top-16 w-48 h-48 rounded-full border-[30px] border-white/5"></div>
-    <div class="absolute -left-10 -bottom-10 w-36 h-36 rounded-full border-[24px] border-white/[0.03]"></div>
-    <div class="relative">
-      <span class="inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-accent-400 uppercase"><i data-lucide="store" class="w-4 h-4"></i> Sell on EraVenda</span>
-      <h2 class="font-head text-2xl md:text-3xl font-bold mt-3 leading-tight">Your products deserve a bigger audience.</h2>
-      <p class="mt-3 text-slate-500 leading-relaxed max-w-lg">
-        Customers are already looking for what you sell. Open your store in minutes and start growing.
-      </p>
+  <!-- Seller CTA -->
+  <section class="flex-1">
+    <div
+      class="relative overflow-hidden rounded-lg bg-[var(--bg-secondary)] text-slate-900 p-5 md:p-6 min-h-[180px] flex flex-col justify-between h-full">
+      <div class="absolute -right-16 -top-16 w-48 h-48 rounded-full border-[30px] border-white/5"></div>
+      <div class="absolute -left-10 -bottom-10 w-36 h-36 rounded-full border-[24px] border-white/[0.03]"></div>
+      <div class="relative">
+        <span class="inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-accent-400 uppercase"><i
+            data-lucide="store" class="w-4 h-4"></i> Sell on EraVenda</span>
+        <h2 class="font-head text-2xl md:text-3xl font-bold mt-3 leading-tight">Your products deserve a bigger audience.
+        </h2>
+        <p class="mt-3 text-slate-500 leading-relaxed max-w-lg">
+          Customers are already looking for what you sell. Open your store in minutes and start growing.
+        </p>
+      </div>
+      <a href="/seller/dashboard.html"
+        class="relative mt-4 inline-flex w-fit items-center gap-2 bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold px-5 py-2.5 rounded-lg transition-colors">Start
+        selling today <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
     </div>
-    <a href="/seller/dashboard.html" class="relative mt-4 inline-flex w-fit items-center gap-2 bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold px-5 py-2.5 rounded-lg transition-colors">Start selling today <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
-  </div>
-</section>
+  </section>
 
- <!-- professional CTA -->
-<section class="flex-1">
-  <div class="relative overflow-hidden rounded-lg bg-teal-800 text-white p-5 md:p-6 min-h-[180px] flex flex-col justify-between h-full">
-    <div class="absolute -right-16 -top-16 w-48 h-48 rounded-full border-[30px] border-white/5"></div>
-    <div class="absolute -left-10 -bottom-10 w-36 h-36 rounded-full border-[24px] border-white/[0.03]"></div>
-    <div class="relative">
-      <span class="inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-teal-200 uppercase"><i class="fas fa-screwdriver-wrench"></i> Handyman Hub</span>
-      <h2 class="font-head text-2xl md:text-3xl font-bold mt-3 leading-tight">Don't just shop — get it done.</h2>
-      <p class="mt-3 text-teal-100 leading-relaxed max-w-lg">
-        Book verified professionals online. Pay securely. Rate your experience.
-      </p>
+  <!-- professional CTA -->
+  <section class="flex-1">
+    <div
+      class="relative overflow-hidden rounded-lg bg-teal-800 text-white p-5 md:p-6 min-h-[180px] flex flex-col justify-between h-full">
+      <div class="absolute -right-16 -top-16 w-48 h-48 rounded-full border-[30px] border-white/5"></div>
+      <div class="absolute -left-10 -bottom-10 w-36 h-36 rounded-full border-[24px] border-white/[0.03]"></div>
+      <div class="relative">
+        <span class="inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-teal-200 uppercase"><i
+            class="fas fa-screwdriver-wrench"></i> Handyman Hub</span>
+        <h2 class="font-head text-2xl md:text-3xl font-bold mt-3 leading-tight">Don't just shop — get it done.</h2>
+        <p class="mt-3 text-teal-100 leading-relaxed max-w-lg">
+          Book verified professionals online. Pay securely. Rate your experience.
+        </p>
+      </div>
+      <div class="relative mt-4 flex flex-wrap gap-3">
+        <a href="/services"
+          class="inline-flex items-center gap-2 bg-white hover:bg-teal-50 text-teal-800 font-bold px-5 py-2.5 rounded-lg transition-colors text-sm">Hire
+          a Handyman <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+        <a href="/services/register"
+          class="inline-flex items-center gap-2 border border-white/40 text-white hover:bg-white/10 font-bold px-5 py-2.5 rounded-lg transition-colors text-sm">Join
+          as a Handyman <i data-lucide="user-plus" class="w-4 h-4"></i></a>
+      </div>
     </div>
-    <div class="relative mt-4 flex flex-wrap gap-3">
-      <a href="/services" class="inline-flex items-center gap-2 bg-white hover:bg-teal-50 text-teal-800 font-bold px-5 py-2.5 rounded-lg transition-colors text-sm">Hire a Handyman <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
-      <a href="/services/register" class="inline-flex items-center gap-2 border border-white/40 text-white hover:bg-white/10 font-bold px-5 py-2.5 rounded-lg transition-colors text-sm">Join as a Handyman <i data-lucide="user-plus" class="w-4 h-4"></i></a>
-    </div>
-  </div>
-</section>
+  </section>
 </div>
 
 
@@ -288,7 +379,8 @@
   <div class="max-w-7xl mx-auto px-4">
     <div class="text-center max-w-2xl mx-auto mb-5">
       <p class="text-xs font-bold tracking-[0.22em] text-brand-600 uppercase mb-2">The EraVenda Difference</p>
-      <h2 class="font-head text-2xl md:text-3xl font-bold leading-tight text-slate-900">More than a marketplace — a promise.</h2>
+      <h2 class="font-head text-2xl md:text-3xl font-bold leading-tight text-slate-900">More than a marketplace — a
+        promise.</h2>
       <p class="mt-2 text-slate-600 leading-relaxed">
         We stand behind every transaction so you never have to worry.
       </p>
@@ -299,28 +391,32 @@
           <i class="fas fa-shield-halved text-accent-500 text-xl"></i>
         </div>
         <h3 class="font-head font-bold text-sm mb-1 text-slate-900">Verified Sellers</h3>
-        <p class="text-xs text-slate-600 leading-relaxed">Every seller is vetted before they list. No anonymous vendors — real people, real accountability.</p>
+        <p class="text-xs text-slate-600 leading-relaxed">Every seller is vetted before they list. No anonymous vendors
+          — real people, real accountability.</p>
       </div>
       <div class="text-center p-3">
         <div class="w-12 h-12 rounded-full bg-brand-600/10 flex items-center justify-center mx-auto mb-2">
           <i class="fas fa-lock text-accent-500 text-xl"></i>
         </div>
         <h3 class="font-head font-bold text-sm mb-1 text-slate-900">Secure Payments</h3>
-        <p class="text-xs text-slate-600 leading-relaxed">Pay with card, mobile money or cash on delivery — every method is encrypted and protected.</p>
+        <p class="text-xs text-slate-600 leading-relaxed">Pay with card, mobile money or cash on delivery — every method
+          is encrypted and protected.</p>
       </div>
       <div class="text-center p-3">
         <div class="w-12 h-12 rounded-full bg-brand-600/10 flex items-center justify-center mx-auto mb-2">
           <i class="fas fa-truck-fast text-accent-500 text-xl"></i>
         </div>
         <h3 class="font-head font-bold text-sm mb-1 text-slate-900">Tracked Delivery</h3>
-        <p class="text-xs text-slate-600 leading-relaxed">Follow your order from purchase to doorstep. Real-time updates so you're never left guessing.</p>
+        <p class="text-xs text-slate-600 leading-relaxed">Follow your order from purchase to doorstep. Real-time updates
+          so you're never left guessing.</p>
       </div>
       <div class="text-center p-3">
         <div class="w-12 h-12 rounded-full bg-brand-600/10 flex items-center justify-center mx-auto mb-2">
           <i class="fas fa-star text-accent-500 text-xl"></i>
         </div>
         <h3 class="font-head font-bold text-sm mb-1 text-slate-900">Real Reviews</h3>
-        <p class="text-xs text-slate-600 leading-relaxed">Ratings and reviews from verified buyers only. See what real customers think before you buy.</p>
+        <p class="text-xs text-slate-600 leading-relaxed">Ratings and reviews from verified buyers only. See what real
+          customers think before you buy.</p>
       </div>
     </div>
   </div>
@@ -365,6 +461,21 @@
     document.querySelector("[data-promo-next]")?.addEventListener("click", () => { move(1); resetTimer(); });
     carousel.addEventListener("mouseenter", () => clearInterval(timer));
     carousel.addEventListener("mouseleave", resetTimer);
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("[data-product-card]").forEach((card) => {
+      const go = () => window.location.href = card.dataset.productUrl;
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("button, a, input, select, textarea")) return;
+        go();
+      });
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
+      });
+    });
   });
 </script>
 

@@ -136,6 +136,17 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         .limit(30)
         .all()
     )
+    product_ids = [p.id for p in products_list]
+    latest_reviews = {}
+    if product_ids:
+        review_rows = (
+            db.query(models.Review)
+            .filter(models.Review.product_id.in_(product_ids))
+            .order_by(models.Review.created_at.desc())
+            .all()
+        )
+        for review in review_rows:
+            latest_reviews.setdefault(review.product_id, review)
     flash_deals = (
         db.query(models.Product)
         .filter(
@@ -155,7 +166,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
     )
     return templates.TemplateResponse(
         "index.html",
-        page_context(request, db, products=products_list, flash_deals=flash_deals, featured_stores=featured_stores),
+        page_context(request, db, products=products_list, latest_reviews=latest_reviews, flash_deals=flash_deals, featured_stores=featured_stores),
     )
 
 

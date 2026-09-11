@@ -272,6 +272,8 @@ def payment_tracking(db: Session = Depends(get_db)):
         "buyer_email": buyer.email, "store_name": store.store_name, "provider": payment.provider,
         "reference": payment.provider_reference, "amount": float(payment.amount), "currency": payment.currency,
         "status": payment.status.value, "paid_at": payment.paid_at, "created_at": payment.created_at,
+        "payment_method": order.payment_method.value, "commission_amount": float(order.commission_amount),
+        "delivery_fee": float(order.delivery_fee),
     } for payment, order, buyer, store in rows]
 
 

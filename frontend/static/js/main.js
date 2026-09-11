@@ -793,6 +793,195 @@ function initNewsletterForm() {
 }
 
 // ------------------------------------------------------------------
+// Module: Password visibility toggle
+// Wraps every password input with an eye icon button that flips the
+// field between hidden and plain text. Runs globally so login,
+// register, reset-password and account forms all get it for free.
+// ------------------------------------------------------------------
+function initPasswordToggles() {
+  document.querySelectorAll('input[type="password"]').forEach((input) => {
+    if (input.dataset.toggleWrapped) return;
+    input.dataset.toggleWrapped = "true";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "relative";
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+    input.classList.add("pr-10");
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("aria-label", "Show password");
+    button.tabIndex = -1;
+    button.className = "absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600";
+    button.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>';
+
+    button.addEventListener("click", () => {
+      const nowShowing = input.type === "password";
+      input.type = nowShowing ? "text" : "password";
+      button.setAttribute("aria-label", nowShowing ? "Hide password" : "Show password");
+      button.innerHTML = `<i data-lucide="${nowShowing ? "eye-off" : "eye"}" class="w-4 h-4"></i>`;
+      if (window.lucide) lucide.createIcons();
+    });
+
+    wrapper.appendChild(button);
+  });
+  if (window.lucide) lucide.createIcons();
+}
+
+// ------------------------------------------------------------------
+// Module: Category strip slider
+// The category bar scrolls horizontally instead of wrapping. This wires
+// the prev/next arrow buttons to page it, and shows/hides each arrow
+// depending on whether there's more to scroll in that direction.
+// ------------------------------------------------------------------
+function initCategoryStrip() {
+  const strip = document.getElementById("categoryStrip");
+  const prevBtn = document.getElementById("categoryStripPrev");
+  const nextBtn = document.getElementById("categoryStripNext");
+  if (!strip || !prevBtn || !nextBtn) return;
+
+  const updateArrows = () => {
+    const maxScroll = strip.scrollWidth - strip.clientWidth;
+    const atStart = strip.scrollLeft <= 4;
+    const atEnd = strip.scrollLeft >= maxScroll - 4;
+    prevBtn.classList.toggle("hidden", atStart);
+    prevBtn.classList.toggle("flex", !atStart);
+    nextBtn.classList.toggle("hidden", maxScroll <= 4 || atEnd);
+    nextBtn.classList.toggle("flex", maxScroll > 4 && !atEnd);
+  };
+
+  const page = (direction) => {
+    strip.scrollBy({ left: direction * strip.clientWidth * 0.8, behavior: "smooth" });
+  };
+
+  prevBtn.addEventListener("click", () => page(-1));
+  nextBtn.addEventListener("click", () => page(1));
+  strip.addEventListener("scroll", updateArrows);
+  window.addEventListener("resize", updateArrows);
+  updateArrows();
+}
+
+// ------------------------------------------------------------------
+// Module: Category subcategory dropdowns
+// Each parent category's subcategories live in a <template>, kept
+// outside the horizontally-scrolling strip. Clicking a parent's chevron
+// clones its template into the single shared panel and positions the
+// panel with the clicked button's own coordinates — that's what keeps
+// it visible instead of being clipped by the strip's overflow-x-auto.
+// ------------------------------------------------------------------
+function initCategoryDropdowns() {
+  const panel = document.getElementById("categoryDropdownPanel");
+  const strip = document.getElementById("categoryStrip");
+  if (!panel || !strip) return;
+
+  let openToggle = null;
+  let closeTimer = null;
+
+  const cancelClose = () => {
+    if (closeTimer) {
+      clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+  };
+
+  const closeDropdown = () => {
+    cancelClose();
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
+    if (openToggle) {
+      openToggle.setAttribute("aria-expanded", "false");
+      openToggle.querySelector("i")?.classList.remove("rotate-180");
+    }
+    openToggle = null;
+  };
+
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer = setTimeout(closeDropdown, 120);
+  };
+
+  const positionPanel = (toggle) => {
+    const rect = toggle.getBoundingClientRect();
+    panel.style.top = `${rect.bottom}px`;
+
+    // Position from the category, then keep the menu inside the viewport.
+    panel.style.left = `${Math.max(8, rect.left)}px`;
+    panel.style.right = "auto";
+
+    requestAnimationFrame(() => {
+      const panelRect = panel.getBoundingClientRect();
+      const rightOverflow = panelRect.right - window.innerWidth + 8;
+      if (rightOverflow > 0) {
+        panel.style.left = `${Math.max(8, rect.left - rightOverflow)}px`;
+      }
+    });
+  };
+
+  const openDropdown = (toggle) => {
+    cancelClose();
+    const wasOpen = toggle === openToggle;
+
+    if (wasOpen && !panel.classList.contains("hidden")) return;
+
+    closeDropdown();
+
+    const template = document.getElementById(`cat-children-${toggle.dataset.catId}`);
+    if (!template) return;
+
+    panel.innerHTML = "";
+    panel.appendChild(template.content.cloneNode(true));
+    panel.classList.remove("hidden");
+    positionPanel(toggle);
+
+    toggle.setAttribute("aria-expanded", "true");
+    toggle.querySelector("i")?.classList.add("rotate-180");
+    openToggle = toggle;
+
+    if (window.lucide) lucide.createIcons();
+  };
+
+  strip.querySelectorAll(".cat-dropdown-toggle").forEach((toggle) => {
+    const item = toggle.closest(".shrink-0");
+    if (!item) return;
+
+    // Hovering anywhere over the category opens its subcategory menu.
+    item.addEventListener("mouseenter", () => openDropdown(toggle));
+    item.addEventListener("mouseleave", scheduleClose);
+
+    // Keep click support for touch devices and keyboard users.
+    toggle.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (toggle === openToggle && !panel.classList.contains("hidden")) {
+        closeDropdown();
+      } else {
+        openDropdown(toggle);
+      }
+    });
+
+    toggle.addEventListener("focus", () => openDropdown(toggle));
+    toggle.addEventListener("blur", scheduleClose);
+  });
+
+  // Moving from a category into its dropdown should not close the menu.
+  panel.addEventListener("mouseenter", cancelClose);
+  panel.addEventListener("mouseleave", scheduleClose);
+
+  document.addEventListener("click", (e) => {
+    if (openToggle && !panel.contains(e.target) && !strip.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  strip.addEventListener("scroll", closeDropdown);
+  window.addEventListener("resize", closeDropdown);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDropdown();
+  });
+}
+// ------------------------------------------------------------------
 // Module: Icons
 // Lucide ships as raw <i data-lucide="..."> placeholders; this call is
 // what actually turns them into visible SVGs. Runs globally since the
@@ -815,6 +1004,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initNewsletterForm();
   initLocationSelects();
   initIcons();
+  initPasswordToggles();
+  initCategoryStrip();
+  initCategoryDropdowns();
   initCardActions();
   hydrateWishlistHearts();
   ThemeSwitcher.init();

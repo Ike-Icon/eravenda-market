@@ -7,6 +7,7 @@
        selected_category_id  current category filter, for re-selecting the dropdown
      ============================================================ -->
 {% set is_services_page = request.url.path.startswith('/services') %}
+{% set is_admin_page = request.url.path.startswith('/admin') %}
 <header id="siteHeader" data-services-page="{{ 'true' if is_services_page else 'false' }}" class="sticky top-0 z-40 bg-white border-b border-slate-200">
 
   <div class="max-w-7xl mx-auto w-full px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 lg:gap-4">
@@ -60,7 +61,7 @@
 </a>
 
     <!-- Live search with category dropdown -->
-    {% if not is_services_page %}<form action="/products" method="get" class="hidden lg:flex flex-1 min-w-0 max-w-2xl">
+    {% if not is_services_page and not is_admin_page %}<form action="/products" method="get" class="hidden lg:flex flex-1 min-w-0 max-w-2xl">
       <select name="category_id"
         class="border border-slate-300 border-r-0 rounded-l-md bg-slate-50 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-brand-500 max-w-[9rem] truncate">
         <option value="">All</option>
@@ -126,10 +127,10 @@
           {% if not is_services_page %}
           <a href="/orders.html" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-blue fas fa-box w-4 text-center"></i>Orders</a>
           {% endif %}
-          <a href="/wishlist" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-red fas fa-heart w-4 text-center"></i>Wishlist</a>
+          {# <a href="/wishlist" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-red fas fa-heart w-4 text-center"></i>Wishlist</a> #}
           <a href="/account" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="fas fa-user w-4 text-center text-slate-400"></i>Account</a>
           <a href="/settings" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-teal fas fa-gear w-4 text-center"></i>Settings</a>
-          <a href="/products" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-blue fas fa-store w-4 text-center"></i>Products</a>
+          {# <a href="/products" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-blue fas fa-store w-4 text-center"></i>Products</a> #}
           <a href="/faq" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="fas fa-circle-question w-4 text-center text-slate-400"></i>Help &amp; FAQ</a>
           <div class="border-t border-slate-100 mt-1 pt-1">
             <button id="logoutBtn" type="button" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-orange fas fa-right-from-bracket w-4 text-center"></i>Log Out</button>
@@ -153,39 +154,57 @@
     </nav>
   </div>
 
-  <!-- Category strip — desktop only. Each parent is a hover target;
-       children reveal in a dropdown below on hover, not shown by default. -->
-  {% if not is_services_page %}<div class="hidden lg:block bg-slate-50 border-t border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 flex flex-wrap gap-1 text-sm text-slate-600">
-      {% for c in category_tree|default([]) %}
-      <div class="relative group">
-        <a href="/products?category_id={{ c.id }}"
-           class="flex items-center gap-1.5 py-2 px-3 hover:text-brand-600 hover:bg-white rounded-t-md whitespace-nowrap">
-          <i data-lucide="{{ c.icon_url or 'shopping-bag' }}" class="w-3.5 h-3.5"></i>
-          {{ c.name }}
-          {% if c.children %}<i data-lucide="chevron-down" class="w-3 h-3 text-slate-400"></i>{% endif %}
-        </a>
-        {% if c.children %}
-        <div class="absolute left-0 top-full hidden group-hover:block bg-white border border-slate-200 rounded-md shadow-lg py-2 min-w-[210px] z-50">
-          {% for child in c.children %}
-          <a href="/products?category_id={{ child.id }}"
-             class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 hover:text-brand-600 whitespace-nowrap">
-            <i data-lucide="{{ child.icon_url or 'shopping-bag' }}" class="w-3.5 h-3.5 text-slate-400"></i>
-            {{ child.name }}
-          </a>
-          {% endfor %}
+  <!-- Category strip — full-width desktop navigation. Categories stay on one row and
+       scroll only when necessary. Parents with subcategories open their dropdown
+       on hover (and remain keyboard/click accessible). The dropdown panel lives
+       outside the scrolling strip so it is never clipped by overflow-x-auto. -->
+  {% if not is_services_page and not is_admin_page %}<div class="hidden lg:block bg-slate-50 border-t border-slate-200">
+    <div class="w-full max-w-none px-4 relative flex items-center">
+      <button type="button" id="categoryStripPrev" aria-label="Scroll categories left"
+        class="hidden shrink-0 z-10 mr-1 w-7 h-7 items-center justify-center rounded-full bg-white border border-slate-200 shadow-sm text-slate-500 hover:text-brand-600 hover:border-brand-300">
+        <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+      </button>
+      <div id="categoryStrip" class="flex-1 min-w-0 max-w-none flex flex-nowrap overflow-x-auto gap-1 text-sm text-slate-600 scroll-px-1">
+        {% for c in category_tree|default([]) %}
+        <div class="shrink-0">
+          <div class="flex items-center rounded-t-md hover:bg-white">
+            <a href="/products?category_id={{ c.id }}"
+               class="flex items-center gap-1.5 py-2 pl-3 {{ 'pr-1' if c.children else 'pr-3' }} hover:text-brand-600 whitespace-nowrap">
+              <i data-lucide="{{ c.icon_url or 'shopping-bag' }}" class="w-3.5 h-3.5"></i>
+              {{ c.name }}
+            </a>
+            {% if c.children %}
+            <button type="button" class="cat-dropdown-toggle pr-2.5 py-2 text-slate-400 hover:text-brand-600"
+              data-cat-id="{{ c.id }}" aria-label="Show {{ c.name }} subcategories" aria-expanded="false">
+              <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
+            </button>
+            <template id="cat-children-{{ c.id }}">
+              {% for child in c.children %}
+              <a href="/products?category_id={{ child.id }}"
+                 class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 hover:text-brand-600 whitespace-nowrap">
+                <i data-lucide="{{ child.icon_url or 'shopping-bag' }}" class="w-3.5 h-3.5 text-slate-400"></i>
+                {{ child.name }}
+              </a>
+              {% endfor %}
+            </template>
+            {% endif %}
+          </div>
         </div>
-        {% endif %}
+        {% else %}
+        <span class="text-slate-400 py-2">Categories will appear here once an admin adds some.</span>
+        {% endfor %}
       </div>
-      {% else %}
-      <span class="text-slate-400 py-2">Categories will appear here once an admin adds some.</span>
-      {% endfor %}
+      <button type="button" id="categoryStripNext" aria-label="Scroll categories right"
+        class="hidden shrink-0 z-10 ml-1 w-7 h-7 items-center justify-center rounded-full bg-white border border-slate-200 shadow-sm text-slate-500 hover:text-brand-600 hover:border-brand-300">
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+      </button>
     </div>
+    <div id="categoryDropdownPanel" class="hidden fixed bg-white border border-slate-200 rounded-md shadow-lg py-2 min-w-[210px] z-50"></div>
   </div>{% endif %}
 
   <!-- Mobile nav drawer -->
   <div id="mobileDrawer" class="hidden lg:hidden border-t border-slate-200 bg-white px-3 sm:px-4 py-3 sm:py-4 space-y-4 max-h-[calc(100dvh-64px)] overflow-y-auto">
-    {% if not is_services_page %}<form action="/products" method="get" class="flex">
+    {% if not is_services_page and not is_admin_page %}<form action="/products" method="get" class="flex">
       <input type="search" name="q" value="{{ search_query|default('') }}" placeholder="Search products"
         class="flex-1 border border-slate-300 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
       <button type="submit" class="bg-brand-500 text-white px-4 rounded-r-md">Go</button>
