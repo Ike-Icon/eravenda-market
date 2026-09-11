@@ -576,3 +576,74 @@ th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; colo
   .promo-strip .container { flex-direction: column; align-items: flex-start; gap: 6px; }
   .summary-row { font-size: 0.85rem; }
 }
+
+/* =====================================================
+   MOBILE HEADER / NAVBAR POLISH
+   Keeps the logo and hamburger comfortably spaced on very
+   small screens without changing the desktop navigation.
+   ===================================================== */
+@media (max-width: 640px) {
+  #siteHeader > div:first-child {
+    padding-left: 10px;
+    padding-right: 10px;
+    gap: 6px;
+  }
+
+  #siteHeader .ev-logo-svg {
+    width: 190px;
+    height: 44px;
+  }
+
+  #mobileMenuBtn {
+    margin-left: auto;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #mobileMenuBtn svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (max-width: 420px) {
+  #siteHeader > div:first-child {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 4px;
+  }
+
+  #siteHeader .ev-logo-svg {
+    width: 170px;
+    height: 40px;
+  }
+
+  #mobileMenuBtn {
+    width: 38px;
+    height: 38px;
+    padding: 7px;
+  }
+
+  #mobileMenuBtn svg {
+    width: 21px;
+    height: 21px;
+  }
+}
+
+@media (max-width: 360px) {
+  #siteHeader .ev-logo-svg {
+    width: 150px;
+    height: 36px;
+  }
+
+  #mobileMenuBtn {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+  }
+}
