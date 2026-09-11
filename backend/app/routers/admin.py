@@ -254,7 +254,7 @@ def product_tracking(db: Session = Depends(get_db)):
     return [{
         "id": p.id, "name": p.name, "sku": p.sku, "store_name": p.store.store_name if p.store else "",
         "price": float(p.discount_price if p.discount_price is not None else p.price),
-        "stock_quantity": p.stock_quantity, "status": p.status.value,
+        "stock_quantity": p.stock_quantity, "status": p.status.value, "badge_keys": p.badge_keys or [],
         "updated_at": p.updated_at,
     } for p in products]
 
@@ -418,3 +418,49 @@ def platform_stats(db: Session = Depends(get_db)):
         "service_reviews": service_reviews_count,
         "service_average_rating": float(service_average),
     }
+
+# -------------------- Publicity badges --------------------
+BADGE_CATALOG = {
+    "verified": {"label": "Verified", "icon": "badge-check", "tone": "brand"},
+    "top-rated": {"label": "Top Rated", "icon": "star", "tone": "amber"},
+    "award-winner": {"label": "Award Winner", "icon": "trophy", "tone": "violet"},
+    "customer-choice": {"label": "Customer Choice", "icon": "heart", "tone": "rose"},
+    "trusted": {"label": "Trusted Seller", "icon": "shield-check", "tone": "blue"},
+    "safety-checked": {"label": "Safety Checked", "icon": "shield", "tone": "emerald"},
+    "best-value": {"label": "Best Value", "icon": "badge-dollar-sign", "tone": "green"},
+    "new-and-rising": {"label": "New & Rising", "icon": "trending-up", "tone": "indigo"},
+    "community-favorite": {"label": "Community Favorite", "icon": "users", "tone": "orange"},
+    "quality-pick": {"label": "Quality Pick", "icon": "gem", "tone": "purple"},
+}
+
+@router.get("/badges/catalog")
+def badge_catalog(current_user: models.User = Depends(auth.require_role(models.UserRole.admin))):
+    return BADGE_CATALOG
+
+@router.patch("/products/{product_id}/badges")
+def set_product_badges(product_id: str, payload: dict, db: Session = Depends(get_db), current_user: models.User = Depends(auth.require_role(models.UserRole.admin))):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not product: raise HTTPException(status_code=404, detail="Product not found")
+    keys = [k for k in (payload.get("badge_keys") or []) if k in BADGE_CATALOG]
+    product.badge_keys = keys
+    db.commit(); db.refresh(product)
+    return {"badge_keys": keys}
+
+@router.patch("/professionals/{handyman_id}/badges")
+def set_professional_badges(handyman_id: str, payload: dict, db: Session = Depends(get_db), current_user: models.User = Depends(auth.require_role(models.UserRole.admin))):
+    worker = db.query(models.HandymanProfile).filter(models.HandymanProfile.id == handyman_id).first()
+    if not worker: raise HTTPException(status_code=404, detail="Professional not found")
+    keys = [k for k in (payload.get("badge_keys") or []) if k in BADGE_CATALOG]
+    worker.badge_keys = keys
+    db.commit(); db.refresh(worker)
+    return {"badge_keys": keys}
+
+@router.patch("/professionals/{handyman_id}/safety-rating")
+def set_professional_safety_rating(handyman_id: str, payload: dict, db: Session = Depends(get_db)):
+    worker = db.query(models.HandymanProfile).filter(models.HandymanProfile.id == handyman_id).first()
+    if not worker: raise HTTPException(status_code=404, detail="Professional not found")
+    try: value = float(payload.get("safety_rating"))
+    except (TypeError, ValueError): raise HTTPException(status_code=400, detail="Safety rating must be a number")
+    if not 0 <= value <= 5: raise HTTPException(status_code=400, detail="Safety rating must be between 0 and 5")
+    worker.safety_rating = value
+    db.commit(); return {"safety_rating": value}

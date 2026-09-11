@@ -144,7 +144,7 @@ const GuestCart = {
   },
   addItem(product) {
     const items = this.getItems();
-    const existing = items.find(i => i.product_id === product.product_id);
+    const existing = items.find(i => i.product_id === product.product_id && i.color === (product.color || null));
     if (existing) {
       existing.quantity += product.quantity || 1;
     } else {
@@ -154,6 +154,7 @@ const GuestCart = {
         price: product.price,
         image_url: product.image_url || "",
         quantity: product.quantity || 1,
+        color: product.color || null,
       });
     }
     this._save(items);
@@ -337,7 +338,7 @@ async function mergeGuestData() {
   const localCart = GuestCart.getItems();
   for (const item of localCart) {
     try {
-      await apiFetch("/cart/items", { method: "POST", body: { product_id: item.product_id, quantity: item.quantity } });
+      await apiFetch("/cart/items", { method: "POST", body: { product_id: item.product_id, quantity: item.quantity, color: item.color || null } });
     } catch (_) { /* individual item failures shouldn't block the rest */ }
   }
   GuestCart.clear();
@@ -992,6 +993,35 @@ function initIcons() {
 }
 
 // ------------------------------------------------------------------
+// Module: Product cards
+// Make product cards keyboard/click navigable while preserving buttons
+// and links used for wishlist, cart, and quick actions.
+// ------------------------------------------------------------------
+function initProductCards() {
+  document.querySelectorAll('[data-product-card]').forEach(card => {
+    if (card.dataset.productCardBound === '1') return;
+    card.dataset.productCardBound = '1';
+    const url = card.dataset.productUrl;
+    if (!url) return;
+    card.setAttribute('role', 'link');
+    card.setAttribute('tabindex', '0');
+    card.addEventListener('click', e => {
+      if (e.defaultPrevented) return;
+      const interactive = e.target.closest('a, button, input, select, textarea, label');
+      if (interactive && interactive !== card) return;
+      window.location.href = url;
+    });
+    card.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const interactive = e.target.closest('a, button, input, select, textarea, label');
+      if (interactive && interactive !== card) return;
+      e.preventDefault();
+      window.location.href = url;
+    });
+  });
+}
+
+// ------------------------------------------------------------------
 // Boot
 // ------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
@@ -1008,6 +1038,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initCategoryStrip();
   initCategoryDropdowns();
   initCardActions();
+  initProductCards();
   hydrateWishlistHearts();
   ThemeSwitcher.init();
   UserSettings.init();

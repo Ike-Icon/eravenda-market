@@ -78,6 +78,21 @@ def delivery_quote(
     )
 
 
+def _variant_stock(product: models.Product, color: str | None):
+    if not product.colors:
+        return None
+    if not color:
+        raise HTTPException(status_code=400, detail=f"Please select a color for {product.name}")
+    for variant in product.colors:
+        if isinstance(variant, dict) and str(variant.get("name", "")).strip() == color.strip():
+            try:
+                stock = max(0, int(variant.get("stock", 0)))
+            except (TypeError, ValueError):
+                stock = 0
+            return variant, stock if bool(variant.get("available", stock > 0)) else 0
+    raise HTTPException(status_code=400, detail=f"Selected color is unavailable for {product.name}")
+
+
 @router.post("/checkout", response_model=list[schemas.OrderOut], status_code=201)
 def checkout(
     payload: schemas.CheckoutRequest,
@@ -97,10 +112,13 @@ def checkout(
     # Group items by store, since each seller gets a separate order
     items_by_store = defaultdict(list)
     for item in cart.items:
-        if item.product.stock_quantity < item.quantity:
-            raise HTTPException(
-                status_code=400, detail=f"{item.product.name} no longer has enough stock"
-            )
+        variant_info = _variant_stock(item.product, item.color)
+        if variant_info is not None:
+            _, variant_stock = variant_info
+            if variant_stock < item.quantity:
+                raise HTTPException(status_code=400, detail=f"{item.product.name} no longer has enough stock in {item.color}")
+        elif item.product.stock_quantity < item.quantity:
+            raise HTTPException(status_code=400, detail=f"{item.product.name} no longer has enough stock")
         items_by_store[item.product.store_id].append(item)
 
     created_orders = []
@@ -144,8 +162,18 @@ def checkout(
                 line_total=line_total,
                 commission_rate=rate,
                 commission_amount=round(line_total * rate / 100, 2),
+                color=item.color,
             ))
-            item.product.stock_quantity -= item.quantity
+            variant_info = _variant_stock(item.product, item.color)
+            if variant_info is not None:
+                variant, _ = variant_info
+                variant["stock"] = max(0, int(variant.get("stock", 0)) - item.quantity)
+                variant["available"] = variant["stock"] > 0
+                # Keep the legacy aggregate stock field in sync with variant inventory.
+                item.product.colors = list(item.product.colors)
+                item.product.stock_quantity = sum(max(0, int(v.get("stock", 0))) for v in item.product.colors if isinstance(v, dict))
+            else:
+                item.product.stock_quantity -= item.quantity
             db.delete(item)
 
         created_orders.append(order)
@@ -199,7 +227,15 @@ def cancel_pending_order(
     for item in order.items:
         product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if product:
-            product.stock_quantity += item.quantity
+            variant_info = _variant_stock(product, item.color) if product.colors else None
+            if variant_info is not None:
+                variant, _ = variant_info
+                variant["stock"] = max(0, int(variant.get("stock", 0))) + item.quantity
+                variant["available"] = variant["stock"] > 0
+                product.colors = list(product.colors)
+                product.stock_quantity = sum(max(0, int(v.get("stock", 0))) for v in product.colors if isinstance(v, dict))
+            else:
+                product.stock_quantity += item.quantity
 
     order.status = models.OrderStatus.cancelled
     db.commit()

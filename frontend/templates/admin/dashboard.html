@@ -25,6 +25,7 @@
         ('overview', 'gauge', 'Overview'),
         ('stores', 'store', 'Stores'),
         ('products', 'package', 'Products'),
+        ('badges', 'badge-check', 'Badges'),
         ('categories', 'layout-grid', 'Categories'),
         ('professionals', 'user-check', 'Professionals'),
         ('requests', 'clipboard-list', 'Service requests'),
@@ -88,6 +89,14 @@
             </div>
           </div>
           <div id="productTracking" class="space-y-2 max-h-[560px] overflow-y-auto"></div>
+        </section>
+      </section>
+
+      <!-- Publicity badges -->
+      <section data-panel="badges" class="admin-panel hidden space-y-6">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 class="font-head text-xl font-bold">Publicity & trust badges</h2><p class="text-sm text-slate-500 mt-1 mb-5">Apply social-proof badges to products and professionals. These appear publicly on their listings.</p>
+          <div id="badgeManager" class="space-y-5"></div>
         </section>
       </section>
 
@@ -196,7 +205,7 @@ function initTabs() {
     panels.forEach(p => p.classList.toggle('hidden', p.dataset.panel !== tab));
     location.hash = tab;
   }
-  buttons.forEach(b => b.addEventListener('click', () => activate(b.dataset.tab)));
+  buttons.forEach(b => b.addEventListener('click', () => { activate(b.dataset.tab); if(b.dataset.tab==='badges') loadBadgeManager(); }));
   activate(location.hash.replace('#', '') || 'overview');
 }
 
@@ -205,6 +214,31 @@ function setBadge(id, count) {
   if (!el) return;
   if (count > 0) { el.textContent = count; el.classList.remove('hidden'); }
   else { el.classList.add('hidden'); }
+}
+
+
+async function loadBadgeManager(){
+  const el=document.getElementById('badgeManager'); if(!el)return;
+  const catalog=await apiFetch('/admin/badges/catalog');
+  const badgeIcons={
+    verified:'badge-check',
+    'top-rated':'star',
+    'award-winner':'trophy',
+    'customer-choice':'heart',
+    trusted:'shield-check',
+    'safety-checked':'shield-check',
+    'best-value':'badge-dollar-sign',
+    'new-and-rising':'trending-up',
+    'community-favorite':'users',
+    'quality-pick':'sparkles'
+  };
+  const options=Object.entries(catalog).map(([k,v])=>`<label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer hover:border-brand-300 hover:bg-brand-50/40"><input type="checkbox" value="${k}" class="badge-key h-4 w-4 rounded border-slate-300"><i data-lucide="${badgeIcons[k]||'badge-check'}" class="w-4 h-4 text-brand-600 shrink-0" aria-hidden="true"></i><span>${esc(v.label)}</span></label>`).join('');
+  const products=allProductsCache.length?allProductsCache:await apiFetch('/admin/products/tracking');
+  const workers=await apiFetch('/admin/services/workers');
+  el.innerHTML=`<div><h3 class="font-semibold mb-2">Product badges</h3><div class="grid md:grid-cols-[1fr_2fr_auto] gap-3 items-start"><select id="badgeProduct" class="border border-slate-300 rounded-lg px-3 py-2"><option value="">Choose product</option>${products.map(p=>`<option value="${p.id}">${esc(p.name)} — ${esc(p.store_name)}</option>`).join('')}</select><div id="badgeProductKeys" class="grid sm:grid-cols-2 gap-2" role="group" aria-label="Product trust badges">${options}</div><button id="saveProductBadges" class="bg-brand-500 text-white rounded-lg px-4 py-2 font-semibold">Apply</button></div></div><div><h3 class="font-semibold mb-2">Professional badges & safety rating</h3><div class="grid md:grid-cols-[1fr_2fr_120px_auto] gap-3 items-start"><select id="badgeWorker" class="border border-slate-300 rounded-lg px-3 py-2"><option value="">Choose professional</option>${workers.map(w=>`<option value="${w.id}">${esc(w.professional_name||w.job_title)}</option>`).join('')}</select><div id="badgeWorkerKeys" class="grid sm:grid-cols-2 gap-2" role="group" aria-label="Professional trust badges">${options}</div><input id="workerSafety" type="number" min="0" max="5" step="0.1" placeholder="Safety /5" class="border border-slate-300 rounded-lg px-3 py-2"><button id="saveWorkerBadges" class="bg-brand-500 text-white rounded-lg px-4 py-2 font-semibold">Apply</button></div></div>`;
+  if(window.lucide) lucide.createIcons();
+  document.getElementById('saveProductBadges').onclick=async()=>{const id=document.getElementById('badgeProduct').value;if(!id)return;const keys=[...document.querySelectorAll('#badgeProductKeys input.badge-key:checked')].map(o=>o.value);await apiFetch(`/admin/products/${id}/badges`,{method:'PATCH',body:{badge_keys:keys}});alert('Product badges updated.');};
+  document.getElementById('saveWorkerBadges').onclick=async()=>{const id=document.getElementById('badgeWorker').value;if(!id)return;const keys=[...document.querySelectorAll('#badgeWorkerKeys input.badge-key:checked')].map(o=>o.value);await apiFetch(`/admin/professionals/${id}/badges`,{method:'PATCH',body:{badge_keys:keys}});const safety=document.getElementById('workerSafety').value;if(safety)await apiFetch(`/admin/professionals/${id}/safety-rating`,{method:'PATCH',body:{safety_rating:parseFloat(safety)}});alert('Professional badges updated.');};
 }
 
 // -------------------- Overview --------------------
@@ -325,7 +359,7 @@ async function loadPending() {
 async function loadWorkers() {
   const el = document.getElementById('allWorkers');
   const rows = await apiFetch('/admin/services/workers');
-  el.innerHTML = rows.length ? rows.map(w => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex items-start justify-between gap-3"><div><h3 class="font-semibold">${esc(w.professional_name || w.job_title)}</h3><p class="text-sm text-brand-700">${esc(w.custom_job_title || w.job_title)}</p></div><span class="text-xs px-2 py-1 rounded-full capitalize ${statusPillClass(w.status)}">${esc(w.status)}</span></div><p class="text-xs text-slate-500 mt-3">${esc(w.company_name || 'Independent professional')}</p><p class="text-sm text-amber-600 mt-2">★ ${Number(w.average_rating).toFixed(1)} · ${w.review_count} review${w.review_count === 1 ? '' : 's'}</p><p class="text-sm text-slate-600 mt-2">${esc(w.qualifications)}</p><div class="flex flex-wrap items-center gap-2 mt-3">${w.verified_pro ? '<span class="text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded-full">Verified</span>' : ''}${w.background_checked ? '<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Background checked</span>' : ''}<div class="ml-auto flex gap-3">${w.status === 'approved' ? `<button data-worker-suspend="${w.id}" class="text-xs text-amber-700 font-semibold">Suspend</button>` : w.status === 'suspended' ? `<button data-worker-reinstate="${w.id}" class="text-xs text-brand-700 font-semibold">Reinstate</button>` : ''}<button data-worker-delete="${w.id}" class="text-xs text-red-600 font-semibold">Delete</button></div></div></article>`).join('') : '<p class="text-sm text-slate-500">No professional profiles found.</p>';
+  el.innerHTML = rows.length ? rows.map(w => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex items-start justify-between gap-3"><div><h3 class="font-semibold">${esc(w.professional_name || w.job_title)}</h3><p class="text-sm text-brand-700">${esc(w.custom_job_title || w.job_title)}</p></div><span class="text-xs px-2 py-1 rounded-full capitalize ${statusPillClass(w.status)}">${esc(w.status)}</span></div><p class="text-xs text-slate-500 mt-3">${esc(w.company_name || 'Independent professional')}</p><p class="text-sm text-amber-600 mt-2">★ ${Number(w.average_rating).toFixed(1)} · ${w.review_count} review${w.review_count === 1 ? '' : 's'}</p><p class="text-sm text-slate-600 mt-2">${esc(w.qualifications)}</p><p class="text-xs text-emerald-700 mt-2">Safety rating: ${Number(w.safety_rating||0).toFixed(1)}/5</p><div class="flex flex-wrap items-center gap-2 mt-3">${w.verified_pro ? '<span class="text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded-full">Verified</span>' : ''}${w.background_checked ? '<span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">Background checked</span>' : ''}<div class="ml-auto flex gap-3">${w.status === 'approved' ? `<button data-worker-suspend="${w.id}" class="text-xs text-amber-700 font-semibold">Suspend</button>` : w.status === 'suspended' ? `<button data-worker-reinstate="${w.id}" class="text-xs text-brand-700 font-semibold">Reinstate</button>` : ''}<button data-worker-delete="${w.id}" class="text-xs text-red-600 font-semibold">Delete</button></div></div></article>`).join('') : '<p class="text-sm text-slate-500">No professional profiles found.</p>';
   el.querySelectorAll('[data-worker-suspend]').forEach(b => b.onclick = async () => { if (!confirm('Suspend this professional? Their profile will be hidden from service seekers.')) return; await apiFetch(`/admin/services/${b.dataset.workerSuspend}/suspend`, { method: 'PUT' }); await loadWorkers(); });
   el.querySelectorAll('[data-worker-reinstate]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/services/${b.dataset.workerReinstate}/reinstate`, { method: 'PUT' }); await loadWorkers(); });
   el.querySelectorAll('[data-worker-delete]').forEach(b => b.onclick = async () => { if (!confirm('Permanently delete this professional profile? This cannot be undone.')) return; try { await apiFetch(`/admin/services/${b.dataset.workerDelete}`, { method: 'DELETE' }); await loadWorkers(); } catch (e) { alert(e.message); } });

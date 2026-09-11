@@ -51,12 +51,15 @@ async function loadWishlist() {
     }
     el.innerHTML = items.map(({product: p}) => {
       const img = (p.images || [])[0];
-      return `<article class="border rounded-md overflow-hidden">
-        <a href="/product/${p.id}"><div class="aspect-square bg-slate-100">${img ? `<img class="w-full h-full object-cover" src="${img.image_url}" alt="">` : '<div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>'}</div>
-        <div class="p-3 text-sm font-semibold">${p.name}<br>${money(p.discount_price || p.price)}</div></a>
+      const badges = (p.badge_keys || []).slice(0, 2).map(b => `<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>${String(b).replaceAll('-', ' ')}</span>`).join('');
+      return `<article data-product-card data-product-url="/product/${p.id}" tabindex="0" role="link" class="border rounded-md overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <div class="aspect-square bg-slate-100">${img ? `<img class="w-full h-full object-cover" src="${img.image_url}" alt="">` : '<div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>'}</div>
+        <div class="p-3 text-sm font-semibold">${p.name}<div class="text-xs text-amber-600 mt-1">★ ${Number(p.average_rating || 0).toFixed(1)} <span class="text-slate-400">(${p.review_count || 0})</span></div><div class="flex flex-wrap gap-1 mt-1">${badges}</div><div class="mt-1">${money(p.discount_price || p.price)}</div></div>
         <button class="w-full p-2 text-sm text-red-600" data-id="${p.id}">Remove</button>
       </article>`;
     }).join("");
+    if (window.lucide) lucide.createIcons();
+    if (typeof initProductCards === "function") initProductCards();
     el.querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
       await apiFetch(`/wishlist/${b.dataset.id}`, {method: "DELETE"});
       location.reload();

@@ -204,3 +204,11 @@ def rate_completed_service(booking_id: str, payload: schemas.ServiceReviewCreate
     worker.average_rating = db.query(func.avg(models.ServiceReview.rating)).filter(models.ServiceReview.handyman_id == worker.id).scalar() or 0
     db.commit(); db.refresh(review)
     return review
+
+@router.get("/workers/{handyman_id}/review-eligibility")
+def worker_review_eligibility(handyman_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    bookings = (db.query(models.ServiceBooking).filter(models.ServiceBooking.handyman_id == handyman_id, models.ServiceBooking.client_id == current_user.id, models.ServiceBooking.status.in_([models.ServiceBookingStatus.completed, models.ServiceBookingStatus.released])).all())
+    for booking in bookings:
+        if not db.query(models.ServiceReview).filter(models.ServiceReview.booking_id == booking.id).first():
+            return {"eligible": True, "booking_id": str(booking.id)}
+    return {"eligible": False, "booking_id": None}

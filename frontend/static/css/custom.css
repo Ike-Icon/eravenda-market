@@ -994,3 +994,14 @@ html[data-theme="dark"] .toggle-slider {
   display: none;
 }
 
+
+
+/* Seller-defined product color swatches */
+.color-preview-choice:focus-visible, .color-choice:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.color-preview-swatch { flex: 0 0 auto; }
+@media (max-width: 640px) { .color-row { grid-template-columns: 1fr 1fr; } .color-row .remove-color { grid-column: 1 / -1; } }
+
+/* Seller color editor: make the native picker and exact HEX field feel like one control. */
+.color-row:focus-within { border-color: currentColor; }
+.color-preview-choice:hover { transform: translateY(-1px); }
+.color-preview-choice[aria-pressed="true"] { box-shadow: 0 0 0 2px currentColor; }

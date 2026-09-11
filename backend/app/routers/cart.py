@@ -19,6 +19,32 @@ def _get_or_create_cart(db: Session, user: models.User) -> models.Cart:
     return cart
 
 
+def _color_stock(product: models.Product, color: str | None):
+    if not color:
+        return None
+    for item in (product.colors or []):
+        if isinstance(item, dict) and str(item.get("name", "")).strip() == color.strip():
+            try:
+                stock = max(0, int(item.get("stock", 0)))
+            except (TypeError, ValueError):
+                stock = 0
+            return stock if bool(item.get("available", stock > 0)) else 0
+    return None
+
+
+def _validate_item_stock(product: models.Product, quantity: int, color: str | None):
+    variant_stock = _color_stock(product, color)
+    if product.colors and color:
+        if variant_stock is None:
+            raise HTTPException(status_code=400, detail="Please select an available product color")
+        if variant_stock < quantity:
+            raise HTTPException(status_code=400, detail="Not enough stock for the selected color")
+    elif product.colors and not color:
+        raise HTTPException(status_code=400, detail="Please select a color before adding this product")
+    elif product.stock_quantity < quantity:
+        raise HTTPException(status_code=400, detail="Not enough stock for the requested quantity")
+
+
 def _serialize(cart: models.Cart) -> schemas.CartOut:
     subtotal = sum(
         float(item.product.discount_price or item.product.price) * item.quantity for item in cart.items
@@ -43,17 +69,16 @@ def add_item(
     product = db.query(models.Product).filter(models.Product.id == payload.product_id).first()
     if not product or product.status != models.ProductStatus.approved:
         raise HTTPException(status_code=404, detail="Product not available")
-    if product.stock_quantity < payload.quantity:
-        raise HTTPException(status_code=400, detail="Not enough stock for the requested quantity")
+    _validate_item_stock(product, payload.quantity, payload.color)
 
     existing = db.query(models.CartItem).filter(
-        models.CartItem.cart_id == cart.id, models.CartItem.product_id == payload.product_id
+        models.CartItem.cart_id == cart.id, models.CartItem.product_id == payload.product_id, models.CartItem.color == payload.color
     ).first()
 
     if existing:
         existing.quantity += payload.quantity
     else:
-        db.add(models.CartItem(cart_id=cart.id, product_id=payload.product_id, quantity=payload.quantity))
+        db.add(models.CartItem(cart_id=cart.id, product_id=payload.product_id, quantity=payload.quantity, color=payload.color))
 
     db.commit()
     db.refresh(cart)
@@ -74,6 +99,7 @@ def update_item(
     if not item:
         raise HTTPException(status_code=404, detail="Cart item not found")
 
+    _validate_item_stock(item.product, payload.quantity, item.color)
     item.quantity = payload.quantity
     db.commit()
     db.refresh(cart)

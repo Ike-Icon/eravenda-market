@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator  # pyright: ignore[reportMissingImports]
 
 from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus, PaymentMethod, ServiceStatus, ServiceBookingStatus
@@ -153,6 +153,28 @@ class ProductImageOut(BaseModel):
     is_primary: bool
 
 
+def _normalize_product_colors(value):
+    if value is None:
+        return None
+    normalized = []
+    for item in value:
+        if isinstance(item, str):
+            name = item.strip()
+            if name:
+                normalized.append({"name": name, "hex": ""})
+        elif isinstance(item, dict):
+            name = str(item.get("name", "")).strip()
+            hex_value = str(item.get("hex", "")).strip().upper()
+            try:
+                stock = max(0, int(item.get("stock", 0)))
+            except (TypeError, ValueError):
+                stock = 0
+            available = bool(item.get("available", stock > 0)) and stock > 0
+            if name:
+                normalized.append({"name": name, "hex": hex_value, "available": available, "stock": stock})
+    return normalized
+
+
 class ProductCreate(BaseModel):
     name: str
     category_id: str
@@ -164,6 +186,12 @@ class ProductCreate(BaseModel):
     price: float
     discount_price: Optional[float] = None
     stock_quantity: int = 0
+    colors: Optional[List[Any]] = None
+
+    @field_validator("colors")
+    @classmethod
+    def normalize_colors(cls, value):
+        return _normalize_product_colors(value)
 
 
 class ProductUpdate(BaseModel):
@@ -177,6 +205,12 @@ class ProductUpdate(BaseModel):
     price: Optional[float] = None
     discount_price: Optional[float] = None
     stock_quantity: Optional[int] = None
+    colors: Optional[List[Any]] = None
+
+    @field_validator("colors")
+    @classmethod
+    def normalize_colors(cls, value):
+        return _normalize_product_colors(value)
 
 
 class ProductOut(BaseModel):
@@ -198,6 +232,8 @@ class ProductOut(BaseModel):
     rejection_reason: Optional[str] = None
     average_rating: float
     review_count: int
+    colors: Optional[List[Any]] = None
+    badge_keys: Optional[List[str]] = None
     images: List[ProductImageOut] = []
     created_at: datetime
 
@@ -214,6 +250,7 @@ class ProductListOut(BaseModel):
 class CartItemIn(BaseModel):
     product_id: str
     quantity: int = Field(gt=0)
+    color: Optional[str] = None
 
 
 class CartItemOut(BaseModel):
@@ -221,6 +258,7 @@ class CartItemOut(BaseModel):
     id: str
     product: ProductOut
     quantity: int
+    color: Optional[str] = None
 
 
 class CartOut(BaseModel):
@@ -253,6 +291,7 @@ class OrderItemOut(BaseModel):
     line_total: float
     commission_rate: float = 0
     commission_amount: float = 0
+    color: Optional[str] = None
 
 
 class OrderOut(BaseModel):
@@ -313,6 +352,8 @@ class HandymanOut(BaseModel):
     background_checked: bool
     average_rating: float
     review_count: int
+    badge_keys: Optional[List[str]] = None
+    safety_rating: float = 0
     portfolio: List[ServicePortfolioOut] = []
     created_at: datetime
 

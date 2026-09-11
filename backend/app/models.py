@@ -193,6 +193,8 @@ class Product(Base):
     rejection_reason = Column(Text)
     average_rating = Column(Numeric(3, 2), nullable=False, default=0)
     review_count = Column(Integer, nullable=False, default=0)
+    colors = Column(JSON, nullable=True)
+    badge_keys = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -228,12 +230,13 @@ class Cart(Base):
 
 class CartItem(Base):
     __tablename__ = "cart_items"
-    __table_args__ = (UniqueConstraint("cart_id", "product_id", name="uq_cart_product"),)
+    __table_args__ = (UniqueConstraint("cart_id", "product_id", "color", name="uq_cart_product_color"),)
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     cart_id = Column(UUID(as_uuid=False), ForeignKey("carts.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(UUID(as_uuid=False), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
     quantity = Column(Integer, nullable=False)
+    color = Column(String(60), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     cart = relationship("Cart", back_populates="items")
@@ -286,6 +289,7 @@ class OrderItem(Base):
     line_total = Column(Numeric(12, 2), nullable=False)
     commission_rate = Column(Numeric(5, 2), nullable=False, default=0)
     commission_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    color = Column(String(60), nullable=True)
 
     order = relationship("Order", back_populates="items")
 
@@ -361,6 +365,8 @@ class HandymanProfile(Base):
     background_checked = Column(Boolean, nullable=False, default=False)
     average_rating = Column(Numeric(3, 2), nullable=False, default=0)
     review_count = Column(Integer, nullable=False, default=0)
+    badge_keys = Column(JSON, nullable=True)
+    safety_rating = Column(Numeric(3, 2), nullable=False, default=0)
     terms_accepted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User")
