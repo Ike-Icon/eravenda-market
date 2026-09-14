@@ -8,8 +8,14 @@ from sqlalchemy import or_
 from .. import models, schemas, auth
 from ..database import get_db
 from ..utils import slugify, random_suffix
+from ..product_pricing import launch_policy_summary
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+
+@router.get("/commission-policy", response_model=schemas.ProductCommissionPolicyOut)
+def commission_policy():
+    return launch_policy_summary()
 
 
 @router.get("", response_model=schemas.ProductListOut)

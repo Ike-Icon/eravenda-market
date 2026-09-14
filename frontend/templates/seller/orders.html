@@ -71,7 +71,7 @@
             <span>Total</span><span>${money(o.total_amount)}</span>
           </div>
           <div class="text-xs text-slate-500 mt-1">
-            Platform commission: ${money(o.commission_amount)} · Your payout: ${money(o.subtotal - o.commission_amount)}
+            EraVenda commission: ${money(o.commission_amount)} · Estimated payout before Paystack/delivery split: ${money(o.subtotal - o.commission_amount)}
           </div>
         </div>
       `).join("");

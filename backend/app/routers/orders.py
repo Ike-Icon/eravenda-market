@@ -6,26 +6,12 @@ from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 from .. import models, schemas, auth
 from ..database import get_db
 from ..utils import generate_order_number
+from ..product_pricing import product_commission_rate
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
 # Commission is assessed per item, so an order can accurately preserve the
 # rate in effect for a mixed-price basket even if the policy changes later.
-COMMISSION_TIERS = (
-    (1000.00, 3.0),    # products under GHS 1,000
-    (10000.00, 4.0),   # products GHS 1,000 – 10,000
-    (float("inf"), 5.0),  # products above GHS 10,000
-)
-
-
-def commission_rate_for(unit_price: float) -> float:
-    """Return the platform commission percentage for one product unit."""
-    for upper_bound, rate in COMMISSION_TIERS:
-        if unit_price < upper_bound:
-            return rate
-    return COMMISSION_TIERS[-1][1]
-
-
 def _location(value: str | None) -> str:
     return (value or "").strip().casefold()
 
@@ -130,7 +116,7 @@ def checkout(
         delivery_fee = delivery_fee_for(address, store)
         commission_amount = round(sum(
             float(item.product.discount_price or item.product.price) * item.quantity
-            * commission_rate_for(float(item.product.discount_price or item.product.price)) / 100
+            * product_commission_rate(item.product, store, db) / 100
             for item in items
         ), 2)
         total_amount = subtotal + delivery_fee
@@ -152,7 +138,7 @@ def checkout(
 
         for item in items:
             unit_price = float(item.product.discount_price or item.product.price)
-            rate = commission_rate_for(unit_price)
+            rate = product_commission_rate(item.product, store, db)
             line_total = round(unit_price * item.quantity, 2)
             db.add(models.OrderItem(
                 order_id=order.id,

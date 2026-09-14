@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eravenda Market — How It Works</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eaf5f0', 100: '#cfe9dc', 300: '#5fa886',
+                            500: '#1c6b4f', 600: '#17573f', 700: '#12503a', 900: '#0b2d20',
+                        },
+                        accent: { 400: '#f4b85c', 500: '#f2a93b', 600: '#c98a22' },
+                        ink: { DEFAULT: '#14201b', soft: '#4b564f' },
+                        surface: '#f5f6f2', border: '#e3e1d8', danger: '#c1443a',
+                    },
+                    fontFamily: {
+                        heading: ['Space Grotesk', 'sans-serif'],
+                        body: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f5f6f2; color: #14201b; }
+        h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; }
+        .step-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .step-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -8px rgba(11,45,32,0.15); }
+        .connector { position: relative; }
+        .connector:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 28px;
+            left: 100%;
+            width: 24px;
+            height: 2px;
+            background: #cfe9dc;
+        }
+        @media (max-width: 1023px) {
+            .connector:not(:last-child)::after { display: none; }
+        }
+        .persona-btn.active { background: #0b2d20; color: white; }
+        .persona-btn:not(.active) { background: white; color: #4b564f; border: 1px solid #e3e1d8; }
+    </style>
+</head>
+<body class="max-w-6xl mx-auto p-4 md:p-10 space-y-16">
+
+    <!-- HERO -->
+    <header class="space-y-4">
+        <p class="text-sm font-semibold text-brand-600">Eravenda Market — Investor Overview</p>
+        <h1 class="text-4xl md:text-5xl font-bold text-brand-900 leading-tight max-w-3xl">
+            One platform, two ways for people in Ghana to spend money online.
+        </h1>
+        <p class="text-lg text-ink-soft max-w-2xl leading-relaxed">
+            Eravenda Market connects local sellers with buyers, and connects verified handymen with people who need a job done. Every transaction, product or service, runs through the same platform, the same payments, and the same trust system.
+        </p>
+    </header>
+
+    <!-- HOW IT WORKS -->
+    <section class="space-y-6">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-bold text-brand-900">How it works</h2>
+            <p class="text-ink-soft mt-1">Pick a person below to see their journey through the platform, from first visit to getting paid.</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2" id="persona-controls">
+            <button onclick="showPersona('buyer')" id="p-buyer" class="persona-btn active px-4 py-2 rounded-lg text-sm font-bold">A Buyer</button>
+            <button onclick="showPersona('seller')" id="p-seller" class="persona-btn px-4 py-2 rounded-lg text-sm font-bold">A Seller</button>
+            <button onclick="showPersona('handyman')" id="p-handyman" class="persona-btn px-4 py-2 rounded-lg text-sm font-bold">A Handyman Pro</button>
+        </div>
+
+        <div id="persona-steps" class="grid grid-cols-1 md:grid-cols-4 gap-4"></div>
+    </section>
+
+    <!-- REVENUE MODEL -->
+    <section class="space-y-6">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-bold text-brand-900">How Eravenda makes money</h2>
+            <p class="text-ink-soft mt-1 max-w-2xl">Sellers and handymen list for free. Eravenda earns a commission only when a sale or a job actually happens, so the platform's income grows directly with how much people buy and book.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Worked example -->
+            <div class="bg-white rounded-xl border border-border p-6 space-y-4">
+                <h3 class="font-bold text-lg text-brand-900">A ₵100 sale, step by step</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-lg">
+                        <span class="text-sm text-ink-soft">Buyer pays</span>
+                        <span class="font-bold font-heading">₵100.00</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-brand-50 rounded-lg border border-brand-100">
+                        <span class="text-sm text-brand-700 font-medium">Eravenda commission (8%)</span>
+                        <span class="font-bold font-heading text-brand-700">₵8.00</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-surface rounded-lg">
+                        <span class="text-sm text-ink-soft">Payment processing fee</span>
+                        <span class="font-bold font-heading">₵2.25</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-accent-400/20 rounded-lg border border-accent-500/40">
+                        <span class="text-sm font-medium text-ink">Seller receives</span>
+                        <span class="font-bold font-heading">₵89.75</span>
+                    </div>
+                </div>
+                <p class="text-xs text-ink-soft">Every sale that completes leaves Eravenda with a share, with no fee charged to sellers who don't sell anything.</p>
+            </div>
+
+            <!-- Commission by category -->
+            <div class="bg-white rounded-xl border border-border p-6 space-y-4">
+                <h3 class="font-bold text-lg text-brand-900">Commission by category</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-ink-soft w-40">Groceries</span>
+                        <div class="flex-1 bg-surface rounded-full h-3"><div class="bg-brand-300 h-3 rounded-full" style="width:20%"></div></div>
+                        <span class="text-sm font-bold w-10 text-right">5%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-ink-soft w-40">Electronics</span>
+                        <div class="flex-1 bg-surface rounded-full h-3"><div class="bg-brand-300 h-3 rounded-full" style="width:28%"></div></div>
+                        <span class="text-sm font-bold w-10 text-right">7%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-ink-soft w-40">Home &amp; kitchen</span>
+                        <div class="flex-1 bg-surface rounded-full h-3"><div class="bg-brand-500 h-3 rounded-full" style="width:40%"></div></div>
+                        <span class="text-sm font-bold w-10 text-right">10%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-ink-soft w-40">Fashion &amp; beauty</span>
+                        <div class="flex-1 bg-surface rounded-full h-3"><div class="bg-brand-700 h-3 rounded-full" style="width:52%"></div></div>
+                        <span class="text-sm font-bold w-10 text-right">13%</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-ink-soft w-40">Handyman jobs</span>
+                        <div class="flex-1 bg-surface rounded-full h-3"><div class="bg-accent-600 h-3 rounded-full" style="width:48%"></div></div>
+                        <span class="text-sm font-bold w-10 text-right">12%</span>
+                    </div>
+                </div>
+                <p class="text-xs text-ink-soft">Rates are lower for thin-margin categories like groceries and higher for categories with more room in the price, in line with what established marketplaces charge in Ghana today, priced to undercut them.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- TRUST & SAFETY -->
+    <section class="space-y-6">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-bold text-brand-900">Why buyers and sellers trust the platform</h2>
+            <p class="text-ink-soft mt-1 max-w-2xl">Online buying and hiring both carry risk when money changes hands before anyone has confirmed the product arrived or the job is done. Eravenda is built to remove that risk on both sides.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-xl border-l-4 border-brand-500 p-5 space-y-2">
+                <div class="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17573f" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+                </div>
+                <h4 class="font-bold text-sm">Verified sellers &amp; pros</h4>
+                <p class="text-xs text-ink-soft leading-relaxed">Every seller and handyman goes through an identity check before their listings go live.</p>
+            </div>
+            <div class="bg-white rounded-xl border-l-4 border-brand-500 p-5 space-y-2">
+                <div class="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17573f" stroke-width="2"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M7 8V6a5 5 0 0110 0v2"/></svg>
+                </div>
+                <h4 class="font-bold text-sm">Payment held until confirmed</h4>
+                <p class="text-xs text-ink-soft leading-relaxed">For handyman jobs, payment is held by the platform and only released once the customer confirms the work is done.</p>
+            </div>
+            <div class="bg-white rounded-xl border-l-4 border-brand-500 p-5 space-y-2">
+                <div class="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17573f" stroke-width="2"><path d="M12 20l-7-4V8l7-4 7 4v8l-7 4z"/><path d="M12 12v8"/><path d="M5 8l7 4 7-4"/></svg>
+                </div>
+                <h4 class="font-bold text-sm">Cash on delivery, too</h4>
+                <p class="text-xs text-ink-soft leading-relaxed">Buyers who don't trust paying upfront can choose to pay when the order physically arrives.</p>
+            </div>
+            <div class="bg-white rounded-xl border-l-4 border-brand-500 p-5 space-y-2">
+                <div class="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#17573f" stroke-width="2"><path d="M12 3v18M3 12h18" stroke-linecap="round"/><circle cx="12" cy="12" r="9"/></svg>
+                </div>
+                <h4 class="font-bold text-sm">Admin oversight on every payout</h4>
+                <p class="text-xs text-ink-soft leading-relaxed">Every seller and handyman payout is visible to Eravenda's admin team before funds move, catching problems before money leaves the platform.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- BRAND -->
+    <section class="space-y-4">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-bold text-brand-900">A brand built to look established from day one</h2>
+            <p class="text-ink-soft mt-1 max-w-2xl">Trust in Ghanaian e-commerce is earned partly through how a platform looks and feels. Eravenda's colors and type were chosen to read as a serious, permanent business, not a side project.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <div class="w-24 h-16 rounded-lg bg-[#0b2d20] flex items-end p-2"><span class="text-[10px] text-white font-mono">Deep Green</span></div>
+            <div class="w-24 h-16 rounded-lg bg-[#1c6b4f] flex items-end p-2"><span class="text-[10px] text-white font-mono">Brand Green</span></div>
+            <div class="w-24 h-16 rounded-lg bg-[#5fa886] flex items-end p-2"><span class="text-[10px] text-white font-mono">Soft Green</span></div>
+            <div class="w-24 h-16 rounded-lg bg-[#f2a93b] flex items-end p-2"><span class="text-[10px] text-ink font-mono">Accent Gold</span></div>
+            <div class="w-24 h-16 rounded-lg bg-[#f5f6f2] border border-border flex items-end p-2"><span class="text-[10px] text-ink font-mono">Surface</span></div>
+        </div>
+    </section>
+
+    <script>
+        const personas = {
+            buyer: [
+                { title: "Browse and search", detail: "Find products from verified local sellers by category or by searching directly.", icon: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/>' },
+                { title: "Pay your way", detail: "Checkout with Mobile Money, card, or cash when the order arrives, whichever feels safest.", icon: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/>' },
+                { title: "Track the order", detail: "Watch delivery progress in real time from the moment the seller confirms it.", icon: '<path d="M3 12h13l4 4V8h-4l-4-4H3z"/>' },
+                { title: "Rate the seller", detail: "Leave a star rating and review that helps other buyers and rewards good sellers.", icon: '<path d="M12 2l3 6 6 1-4.5 4 1 6L12 16l-5.5 3 1-6L3 9l6-1z"/>' },
+            ],
+            seller: [
+                { title: "Register and get verified", detail: "Sign up, complete an identity check, and start listing products for free.", icon: '<path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/>' },
+                { title: "Receive orders instantly", detail: "Get notified the moment a buyer places an order for one of your products.", icon: '<path d="M12 2v13" stroke-linecap="round"/><path d="M6 15l6 6 6-6"/>' },
+                { title: "Prepare and hand off", detail: "Pack the order for pickup, or arrange delivery through the platform's logistics.", icon: '<rect x="3" y="8" width="13" height="9" rx="1"/><path d="M16 11h3l2 3v3h-5z"/><circle cx="7" cy="19" r="1.5"/><circle cx="18" cy="19" r="1.5"/>' },
+                { title: "Get paid automatically", detail: "Eravenda deducts a small commission and settles the rest straight to your account.", icon: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5" stroke-linecap="round"/><circle cx="12" cy="16.5" r=".5" fill="#17573f"/>' },
+            ],
+            handyman: [
+                { title: "Get verified", detail: "Register as a professional and pass Eravenda's background and skill check.", icon: '<path d="M20 7l-9 9-5-5" stroke-linecap="round"/><circle cx="12" cy="12" r="10"/>' },
+                { title: "Accept a booking", detail: "Receive job requests nearby, plumbing, electrical, repairs, and choose which to accept.", icon: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>' },
+                { title: "Do the job, show the proof", detail: "Complete the work and upload before and after photos as proof of completion.", icon: '<rect x="4" y="4" width="16" height="14" rx="2"/><circle cx="12" cy="11" r="3"/><path d="M8 4l1.5-2h5L16 4"/>' },
+                { title: "Get paid securely", detail: "Payment is held by Eravenda and released to you once the customer confirms the job is done.", icon: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><circle cx="7" cy="15" r="1"/>' },
+            ],
+        };
+
+        function iconSvg(path) {
+            return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17573f" stroke-width="2">${path}</svg>`;
+        }
+
+        function showPersona(key) {
+            ['buyer', 'seller', 'handyman'].forEach(k => {
+                document.getElementById('p-' + k).classList.toggle('active', k === key);
+            });
+            const container = document.getElementById('persona-steps');
+            container.innerHTML = personas[key].map((step, i) => `
+                <div class="connector">
+                    <div class="step-card bg-white rounded-xl border border-border p-5 space-y-3 h-full">
+                        <div class="flex items-center justify-between">
+                            <div class="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center">${iconSvg(step.icon)}</div>
+                            <span class="text-xs font-bold text-brand-300">${i + 1}</span>
+                        </div>
+                        <h4 class="font-bold text-sm text-ink">${step.title}</h4>
+                        <p class="text-xs text-ink-soft leading-relaxed">${step.detail}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        showPersona('buyer');
+    </script>
+</body>
+</html>

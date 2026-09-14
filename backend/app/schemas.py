@@ -334,6 +334,15 @@ class DeliveryQuoteOut(BaseModel):
     breakdown: List[dict]
 
 
+class ProductCommissionPolicyOut(BaseModel):
+    standard_rate: float
+    category_rates: dict[str, float]
+    launch_start_date: str
+    launch_end_date: str
+    launch_vendor_cap: int
+    discount: str
+
+
 class DeliveryRegistration(BaseModel):
     company_name: Optional[str] = Field(default=None, max_length=150)
     location: str = Field(min_length=1, max_length=255)
