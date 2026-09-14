@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}Booking tracker — Eravenda Handyman Hub{% endblock %}
+{% block content %}
+<section class="max-w-3xl mx-auto px-4 py-10">
+  <a href="/services/bookings" class="text-sm font-semibold text-brand-700">← Back to my bookings</a>
+
+  <div id="loadError" class="hidden mt-4 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700"></div>
+
+  <div id="trackerRoot" class="hidden">
+    <div class="mt-4">
+      <p class="text-xs text-slate-400" id="bookingMeta"></p>
+      <h1 class="font-head text-2xl font-bold mt-1">Job progress</h1>
+      <p id="bookingDetails" class="text-slate-600 mt-2"></p>
+      <p id="bookingLocation" class="text-xs text-slate-400 mt-1"></p>
+    </div>
+
+    <!-- Cancelled banner -->
+    <div id="cancelledBanner" class="hidden mt-6 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700 font-semibold">
+      This booking was cancelled.
+    </div>
+
+    <!-- Milestone stepper -->
+    <div id="stepperWrap" class="mt-6 border border-slate-200 rounded-2xl p-6">
+      <ol id="stepper" class="grid grid-cols-4 gap-2 text-center text-xs sm:text-sm"></ol>
+    </div>
+
+    <!-- Handyman/admin viewer notice -->
+    <div id="viewerNotice" class="hidden mt-6 rounded-lg bg-brand-50 border border-brand-100 p-4 text-sm text-brand-800"></div>
+
+    <!-- Payment section -->
+    <div id="paymentSection" class="hidden mt-6 border border-slate-200 rounded-2xl p-6">
+      <h2 class="font-head text-lg font-bold">Payment</h2>
+      <div id="paymentBody" class="mt-3 text-sm"></div>
+    </div>
+
+    <!-- Photo stream -->
+    <div class="mt-6 border border-slate-200 rounded-2xl p-6">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h2 class="font-head text-lg font-bold">Work photos</h2>
+          <p class="text-sm text-slate-500 mt-1">Progress shots and final work, uploaded by either side.</p>
+        </div>
+      </div>
+      <div id="photoGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4"></div>
+      <p id="noPhotos" class="hidden text-sm text-slate-500 mt-3">No photos have been added yet.</p>
+      <div id="photoUploadWrap" class="hidden mt-4 pt-4 border-t border-slate-100">
+        <label class="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 cursor-pointer">
+          <i class="fas fa-camera"></i> Add a photo
+          <input id="photoInput" type="file" accept="image/*" class="hidden">
+        </label>
+        <p id="photoUploadHint" class="text-xs text-slate-400 mt-1"></p>
+      </div>
+    </div>
+
+    <!-- Review section -->
+    <div id="reviewSection" class="hidden mt-6 border border-slate-200 rounded-2xl p-6">
+      <h2 class="font-head text-lg font-bold">Rate this job</h2>
+      <div id="reviewBody" class="mt-3"></div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+if (!Auth.isLoggedIn()) window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+
+const BOOKING_ID = "{{ booking_id }}";
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+function money(v) { return `₵${Number(v || 0).toFixed(2)}`; }
+
+const MILESTONES = [
+  { key: 'accepted', label: 'Accepted' },
+  { key: 'in_progress', label: 'In Progress' },
+  { key: 'completion_requested', label: 'Completion Requested' },
+  { key: 'verified_paid', label: 'Verified & Paid' },
+];
+
+function milestoneIndex(status) {
+  return {
+    requested: -1, assigned: 0, in_progress: 1, escrow_funded: 1,
+    completion_requested: 2, completed: 3, released: 3,
+  }[status] ?? -1;
+}
+
+function renderStepper(status) {
+  if (status === 'cancelled') {
+    document.getElementById('cancelledBanner').classList.remove('hidden');
+    document.getElementById('stepperWrap').classList.add('hidden');
+    return;
+  }
+  const current = milestoneIndex(status);
+  document.getElementById('stepper').innerHTML = MILESTONES.map((m, i) => {
+    const done = i <= current;
+    return `<li class="flex flex-col items-center gap-2">
+      <span class="w-8 h-8 rounded-full flex items-center justify-center font-bold ${done ? 'bg-brand-500 text-white' : 'bg-slate-100 text-slate-400'}">${done ? '<i class="fas fa-check text-xs"></i>' : i + 1}</span>
+      <span class="${done ? 'text-slate-800 font-semibold' : 'text-slate-400'}">${esc(m.label)}</span>
+    </li>`;
+  }).join('');
+}
+
+function renderPhotos(photos) {
+  const grid = document.getElementById('photoGrid');
+  const empty = document.getElementById('noPhotos');
+  if (!photos.length) { empty.classList.remove('hidden'); grid.innerHTML = ''; return; }
+  empty.classList.add('hidden');
+  grid.innerHTML = photos.map(p => `
+    <figure class="border border-slate-200 rounded-lg overflow-hidden">
+      <img src="${esc(p.image_url)}" alt="${esc(p.caption || 'Job photo')}" class="w-full aspect-square object-cover">
+      <figcaption class="p-2 text-xs text-slate-500">
+        <span class="capitalize font-semibold text-slate-600">${esc(p.uploader_role)}</span> · ${new Date(p.created_at).toLocaleDateString()}
+      </figcaption>
+    </figure>
+  `).join('');
+}
+
+function renderPayment(booking, viewerRole) {
+  const section = document.getElementById('paymentSection');
+  const body = document.getElementById('paymentBody');
+  if (viewerRole !== 'seeker') { section.classList.add('hidden'); return; }
+
+  const amount = Number(booking.escrow_amount || 0);
+  if (['requested', 'assigned', 'in_progress'].includes(booking.status)) {
+    section.classList.remove('hidden');
+    body.innerHTML = amount
+      ? `<p class="text-slate-600">Job amount set at ${money(amount)}. Payment opens once the professional marks the job complete.</p>`
+      : `<p class="text-slate-600">Waiting for the professional to accept the job and set a price.</p>`;
+    return;
+  }
+  if (booking.status === 'completion_requested') {
+    section.classList.remove('hidden');
+    const commission = Number(booking.commission_amount || 0);
+    const baseAmount = Number(booking.quoted_amount || amount - commission);
+    body.innerHTML = `
+      <p class="text-slate-600">The professional has marked this job complete. Review the work photos below, then pay to release the job to Eravenda.</p>
+      <div class="mt-3 bg-slate-50 rounded-lg p-3 space-y-2">
+        <div class="flex items-center justify-between"><span class="text-sm">Agreed job amount</span><span class="font-semibold">${money(baseAmount)}</span></div>
+        <div class="flex items-center justify-between"><span class="text-sm">EraVenda service commission (5%)</span><span class="font-semibold">${money(commission)}</span></div>
+        <div class="flex items-center justify-between border-t border-slate-200 pt-2"><span class="text-sm font-semibold">Total due</span><span class="font-head text-xl font-bold">${money(amount)}</span></div>
+      </div>
+      <p id="payError" class="hidden text-sm text-red-600 mt-2"></p>
+      <button id="payNowBtn" class="w-full bg-accent-500 hover:bg-accent-600 text-slate-900 px-5 py-3 rounded-md font-semibold mt-4">Pay ${money(amount)} with Mobile Money</button>
+    `;
+    document.getElementById('payNowBtn').addEventListener('click', async (event) => {
+      const btn = event.currentTarget, err = document.getElementById('payError');
+      btn.disabled = true; btn.textContent = 'Opening secure payment…'; err.classList.add('hidden');
+      try {
+        const payment = await apiFetch('/payments/service/initialize', { method: 'POST', body: { booking_id: BOOKING_ID } });
+        location.href = payment.authorization_url;
+      } catch (e) {
+        err.textContent = e.message; err.classList.remove('hidden');
+        btn.disabled = false; btn.textContent = `Pay ${money(amount)} with Mobile Money`;
+      }
+    });
+    return;
+  }
+  if (booking.status === 'completed' || booking.status === 'released') {
+    section.classList.remove('hidden');
+    body.innerHTML = `<p class="text-brand-700 bg-brand-50 border border-brand-100 rounded-lg p-3"><i class="fas fa-circle-check mr-1"></i> Paid ${money(amount)}${booking.paid_at ? ' on ' + new Date(booking.paid_at).toLocaleDateString() : ''}. Eravenda has released the job amount into escrow for the professional.</p>`;
+    return;
+  }
+  section.classList.add('hidden');
+}
+
+function renderReview(booking, viewerRole) {
+  const section = document.getElementById('reviewSection');
+  const body = document.getElementById('reviewBody');
+  if (viewerRole !== 'seeker') { section.classList.add('hidden'); return; }
+  const eligibleStatuses = ['completion_requested', 'completed', 'released'];
+  if (!eligibleStatuses.includes(booking.status)) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+
+  if (booking.review) {
+    const r = booking.review;
+    body.innerHTML = `
+      <div class="text-amber-500 text-xl">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+      <p class="text-sm text-slate-700 mt-2">${esc(r.comment || 'No written comment.')}</p>
+      <p class="text-xs text-slate-400 mt-2">Submitted ${new Date(r.created_at).toLocaleDateString()}</p>
+    `;
+    return;
+  }
+
+  body.innerHTML = `
+    <p class="text-sm text-slate-500 mb-3">How was the work? Your rating helps other seekers and stays visible on the professional's profile.</p>
+    <div id="starPicker" class="flex gap-1 text-2xl text-slate-300 mb-3">
+      ${[1, 2, 3, 4, 5].map(n => `<button type="button" data-rating="${n}" class="hover:text-amber-400">★</button>`).join('')}
+    </div>
+    <textarea id="reviewComment" rows="3" placeholder="Optional comment on the work quality…" class="w-full border border-slate-300 rounded-md p-3 text-sm"></textarea>
+    <p id="reviewError" class="hidden text-sm text-red-600 mt-2"></p>
+    <button id="submitReview" class="bg-brand-500 hover:bg-brand-600 text-white px-5 py-2.5 rounded-md font-semibold mt-3">Submit review</button>
+  `;
+  let rating = 0;
+  const stars = () => document.querySelectorAll('#starPicker button');
+  stars().forEach(b => b.addEventListener('click', () => {
+    rating = Number(b.dataset.rating);
+    stars().forEach(x => x.classList.toggle('text-amber-500', Number(x.dataset.rating) <= rating));
+  }));
+  document.getElementById('submitReview').addEventListener('click', async (event) => {
+    const err = document.getElementById('reviewError');
+    err.classList.add('hidden');
+    if (!rating) { err.textContent = 'Choose a star rating first.'; err.classList.remove('hidden'); return; }
+    const btn = event.currentTarget;
+    btn.disabled = true; btn.textContent = 'Submitting…';
+    try {
+      await apiFetch(`/services/bookings/${BOOKING_ID}/rating`, {
+        method: 'POST',
+        body: { rating, comment: document.getElementById('reviewComment').value.trim() || null },
+      });
+      await load();
+    } catch (e) {
+      err.textContent = e.message; err.classList.remove('hidden');
+      btn.disabled = false; btn.textContent = 'Submit review';
+    }
+  });
+}
+
+async function uploadPhoto(file) {
+  const hint = document.getElementById('photoUploadHint');
+  if (!window.CLOUDINARY_CLOUD_NAME || !window.CLOUDINARY_UPLOAD_PRESET) {
+    hint.textContent = 'Image uploads are not configured.';
+    return;
+  }
+  if (!file.type.startsWith('image/')) { hint.textContent = 'Please choose an image file.'; return; }
+  if (file.size > 8 * 1024 * 1024) { hint.textContent = 'Image must be 8 MB or smaller.'; return; }
+  hint.textContent = 'Uploading…';
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', window.CLOUDINARY_UPLOAD_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Image upload failed');
+    await apiFetch(`/services/bookings/${BOOKING_ID}/photos`, { method: 'POST', body: { image_url: data.secure_url, caption: file.name.replace(/\.[^.]+$/, '') } });
+    hint.textContent = 'Photo added.';
+    await load();
+  } catch (e) {
+    hint.textContent = e.message;
+  }
+}
+
+async function load() {
+  const root = document.getElementById('trackerRoot');
+  const errorBox = document.getElementById('loadError');
+  try {
+    const booking = await apiFetch(`/services/bookings/${BOOKING_ID}`);
+    root.classList.remove('hidden');
+    errorBox.classList.add('hidden');
+
+    document.getElementById('bookingMeta').textContent = `Booking ${booking.id.slice(0, 8)} · Requested ${new Date(booking.created_at).toLocaleDateString()}`;
+    document.getElementById('bookingDetails').textContent = booking.details;
+    document.getElementById('bookingLocation').textContent = booking.location ? `📍 ${booking.location}` : '';
+
+    // Work out whether the viewer is the seeker, the assigned handyman, or an admin.
+    let viewerRole = Auth.getUser()?.role === 'admin' ? 'admin' : 'seeker';
+    if (viewerRole !== 'admin') {
+      try {
+        const profile = await apiFetch('/services/me');
+        if (profile && profile.id === booking.handyman_id) viewerRole = 'handyman';
+      } catch (_) { /* no professional profile — viewer is the seeker */ }
+    }
+
+    const notice = document.getElementById('viewerNotice');
+    if (viewerRole === 'handyman') {
+      notice.classList.remove('hidden');
+      notice.innerHTML = 'You\'re viewing this as the assigned professional. Manage the job, upload photos, and view payout status from your <a href="/professional/dashboard.html" class="font-semibold underline">Pro Dashboard</a>.';
+    } else if (viewerRole === 'admin') {
+      notice.classList.remove('hidden');
+      notice.innerHTML = 'You\'re viewing this as an admin. Release or hold the payout from the <a href="/admin/dashboard.html#requests" class="font-semibold underline">Admin Dashboard</a>.';
+    } else {
+      notice.classList.add('hidden');
+    }
+
+    renderStepper(booking.status);
+    renderPayment(booking, viewerRole);
+    renderPhotos(booking.photos || []);
+    renderReview(booking, viewerRole);
+
+    const uploadWrap = document.getElementById('photoUploadWrap');
+    if (viewerRole === 'admin' || booking.status === 'cancelled') {
+      uploadWrap.classList.add('hidden');
+    } else {
+      uploadWrap.classList.remove('hidden');
+      document.getElementById('photoUploadHint').textContent = '';
+      const input = document.getElementById('photoInput');
+      input.value = '';
+      input.onchange = () => { if (input.files[0]) uploadPhoto(input.files[0]); };
+    }
+  } catch (e) {
+    errorBox.textContent = e.message;
+    errorBox.classList.remove('hidden');
+    root.classList.add('hidden');
+  }
+}
+
+load();
+</script>
+{% endblock %}

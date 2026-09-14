@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EraVenda Design System Architecture & API Interaction Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eaf5f0',
+                            100: '#cfe9dc',
+                            300: '#5fa886',
+                            500: '#1c6b4f',
+                            600: '#17573f',
+                            700: '#12503a',
+                            900: '#0b2d20',
+                        },
+                        accent: {
+                            400: '#f4b85c',
+                            500: '#f2a93b',
+                            600: '#c98a22',
+                        },
+                        ink: {
+                            DEFAULT: '#14201b',
+                            soft: '#4b564f',
+                        },
+                        surface: '#f5f6f2',
+                        border: '#e3e1d8',
+                        danger: '#c1443a',
+                    },
+                    fontFamily: {
+                        heading: ['Space Grotesk', 'sans-serif'],
+                        body: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f5f6f2; color: #14201b; }
+        h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; }
+        .node-card { transition: all 0.2s ease-in-out; }
+        .node-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -4px rgba(11, 45, 32, 0.1); }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-7xl mx-auto space-y-10">
+
+    <!-- Header Banner -->
+    <header class="bg-brand-900 text-white p-6 md:p-10 rounded-xl shadow-lg border-b-4 border-accent-500">
+        <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div>
+                <span class="inline-block px-3 py-1 bg-brand-700 text-brand-100 text-xs font-semibold rounded-md uppercase tracking-wider mb-2">Architectural & Interaction Blueprint</span>
+                <h1 class="text-3xl md:text-4xl font-bold tracking-tight">EraVenda Design System Architecture</h1>
+                <p class="text-brand-100 text-sm md:text-base mt-1">Unified visual system, runtime pipeline, and user-to-server API interaction map</p>
+            </div>
+            <div class="flex gap-2 text-xs font-mono">
+                <span class="bg-brand-700 px-3 py-2 rounded-lg border border-brand-500">FastAPI + Jinja + Tailwind</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex space-x-2 border-b border-border pb-2 overflow-x-auto" id="tab-nav">
+        <button onclick="switchTab('apimap')" id="tab-apimap" class="px-4 py-2 text-sm font-semibold rounded-lg bg-brand-500 text-white shadow">User Interaction & API Map</button>
+        <button onclick="switchTab('colors')" id="tab-colors" class="px-4 py-2 text-sm font-semibold rounded-lg text-ink-soft hover:bg-white">Color Palette</button>
+        <button onclick="switchTab('pipeline')" id="tab-pipeline" class="px-4 py-2 text-sm font-semibold rounded-lg text-ink-soft hover:bg-white">Execution Pipeline</button>
+        <button onclick="switchTab('taxonomy')" id="tab-taxonomy" class="px-4 py-2 text-sm font-semibold rounded-lg text-ink-soft hover:bg-white">Component Hierarchy</button>
+        <button onclick="switchTab('statemachine')" id="tab-statemachine" class="px-4 py-2 text-sm font-semibold rounded-lg text-ink-soft hover:bg-white">State Machine</button>
+        <button onclick="switchTab('matrix')" id="tab-matrix" class="px-4 py-2 text-sm font-semibold rounded-lg text-ink-soft hover:bg-white">Ownership Matrix</button>
+    </nav>
+
+    <!-- SECTION 1: USER INTERACTION & SERVER API MAP -->
+    <section id="sec-apimap" class="space-y-6">
+        <div>
+            <h2 class="text-2xl font-bold text-brand-900">User Interaction & API Flow Map</h2>
+            <p class="text-ink-soft text-sm">Select a user role workflow to inspect UI triggers, client API boundaries, backend router handling, and database updates.</p>
+        </div>
+
+        <!-- Role Selectors -->
+        <div class="flex space-x-2 border-b border-border pb-3">
+            <button onclick="showWorkflow('seeker')" id="wf-seeker" class="px-3 py-1.5 text-xs font-bold rounded-md bg-brand-900 text-white">1. Service Seeker Flow</button>
+            <button onclick="showWorkflow('handyman')" id="wf-handyman" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white border border-border text-ink-soft hover:bg-surface">2. Handyman Flow</button>
+            <button onclick="showWorkflow('admin')" id="wf-admin" class="px-3 py-1.5 text-xs font-bold rounded-md bg-white border border-border text-ink-soft hover:bg-surface">3. Administrator Flow</button>
+        </div>
+
+        <!-- Interactive Map Diagram -->
+        <div id="workflow-container" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Dynamic Content Injected via JS -->
+        </div>
+    </section>
+
+    <!-- SECTION 2: COLOR PALETTE -->
+    <section id="sec-colors" class="space-y-6 hidden">
+        <div>
+            <h2 class="text-2xl font-bold text-brand-900">Brand & System Color Tokens</h2>
+            <p class="text-ink-soft text-sm">Semantic roles applied across Marketplace, Handyman Hub, and Admin workspaces.</p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div class="p-3 rounded-lg bg-[#eaf5f0] border border-brand-100 text-ink">
+                <div class="text-xs font-bold">Brand 50</div>
+                <div class="text-xs font-mono mt-4">#eaf5f0</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#cfe9dc] text-ink">
+                <div class="text-xs font-bold">Brand 100</div>
+                <div class="text-xs font-mono mt-4">#cfe9dc</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#5fa886] text-white">
+                <div class="text-xs font-bold">Brand 300</div>
+                <div class="text-xs font-mono mt-4">#5fa886</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#1c6b4f] text-white">
+                <div class="text-xs font-bold">Brand 500</div>
+                <div class="text-xs font-mono mt-4">#1c6b4f</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#17573f] text-white">
+                <div class="text-xs font-bold">Brand 600</div>
+                <div class="text-xs font-mono mt-4">#17573f</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#12503a] text-white">
+                <div class="text-xs font-bold">Brand 700</div>
+                <div class="text-xs font-mono mt-4">#12503a</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#0b2d20] text-white">
+                <div class="text-xs font-bold">Brand 900</div>
+                <div class="text-xs font-mono mt-4">#0b2d20</div>
+            </div>
+        </div>
+
+        <!-- Accents & Semantics -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 pt-2">
+            <div class="p-3 rounded-lg bg-[#f4b85c] text-ink">
+                <div class="text-xs font-bold">Accent 400</div>
+                <div class="text-xs font-mono mt-4">#f4b85c</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#f2a93b] text-ink">
+                <div class="text-xs font-bold">Accent 500</div>
+                <div class="text-xs font-mono mt-4">#f2a93b</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#c98a22] text-white">
+                <div class="text-xs font-bold">Accent 600</div>
+                <div class="text-xs font-mono mt-4">#c98a22</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#14201b] text-white">
+                <div class="text-xs font-bold">Ink (Text)</div>
+                <div class="text-xs font-mono mt-4">#14201b</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#4b564f] text-white">
+                <div class="text-xs font-bold">Ink Soft</div>
+                <div class="text-xs font-mono mt-4">#4b564f</div>
+            </div>
+            <div class="p-3 rounded-lg bg-[#c1443a] text-white">
+                <div class="text-xs font-bold">Danger</div>
+                <div class="text-xs font-mono mt-4">#c1443a</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 3: EXECUTION PIPELINE -->
+    <section id="sec-pipeline" class="space-y-6 hidden">
+        <div>
+            <h2 class="text-2xl font-bold text-brand-900">System Execution & Runtime Pipeline</h2>
+            <p class="text-ink-soft text-sm">Data flow between browser client, FastAPI backend routers, Jinja templates, and static assets.</p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+            <div class="node-card bg-white p-4 rounded-lg border-l-4 border-brand-500 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-brand-600 uppercase tracking-wider">Step 1: Request Initialization</span>
+                    <span class="text-xs bg-slate-100 px-2 py-1 rounded font-mono">Browser</span>
+                </div>
+                <h4 class="font-bold text-base mt-1">Client Requests HTTP Route</h4>
+                <p class="text-xs text-ink-soft">Browser requests page route (e.g., <code>/services/professional</code> or <code>/admin/dashboard</code>).</p>
+            </div>
+
+            <div class="node-card bg-white p-4 rounded-lg border-l-4 border-brand-700 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-brand-700 uppercase tracking-wider">Step 2: API Routing & Validation</span>
+                    <span class="text-xs bg-slate-100 px-2 py-1 rounded font-mono">FastAPI</span>
+                </div>
+                <h4 class="font-bold text-base mt-1">FastAPI Backend Endpoint Processing</h4>
+                <p class="text-xs text-ink-soft"><code>backend/app/routers/*.py</code> processes request parameters using Pydantic schemas in <code>backend/app/schemas.py</code>.</p>
+            </div>
+
+            <div class="node-card bg-white p-4 rounded-lg border-l-4 border-accent-500 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-accent-600 uppercase tracking-wider">Step 3: Layout Composition</span>
+                    <span class="text-xs bg-slate-100 px-2 py-1 rounded font-mono">Jinja Engine</span>
+                </div>
+                <h4 class="font-bold text-base mt-1">Jinja Template Hydration</h4>
+                <p class="text-xs text-ink-soft">Template inherits from <code>frontend/templates/base.html</code>, loading headers, footers, and domain layout modules.</p>
+            </div>
+
+            <div class="node-card bg-white p-4 rounded-lg border-l-4 border-blue-500 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Step 4: Style & Dynamic Hydration</span>
+                    <span class="text-xs bg-slate-100 px-2 py-1 rounded font-mono">CSS / JS Engine</span>
+                </div>
+                <h4 class="font-bold text-base mt-1">Runtime Asset Rendering & API Fetching</h4>
+                <p class="text-xs text-ink-soft">Tailwind CDN and <code>custom.css</code> render component styles; <code>api.js</code> executes standard <code>apiFetch</code> operations.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 4: COMPONENT TAXONOMY -->
+    <section id="sec-taxonomy" class="space-y-6 hidden">
+        <div>
+            <h2 class="text-2xl font-bold text-brand-900">4-Tier Component Taxonomy</h2>
+            <p class="text-ink-soft text-sm">Layered breakdown from foundational tokens to full page compositions.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white p-5 rounded-lg border border-border shadow-sm">
+                <span class="text-xs font-bold text-brand-500 uppercase tracking-wider">Tier 1</span>
+                <h3 class="text-lg font-bold mt-1">Foundations</h3>
+                <ul class="text-xs space-y-2 mt-3 text-ink-soft">
+                    <li class="p-2 bg-surface rounded"><strong>Typography:</strong> Space Grotesk (Headings), Inter (Body)</li>
+                    <li class="p-2 bg-surface rounded"><strong>Design Tokens:</strong> Brand Colors (50-900), Accents (400-600)</li>
+                    <li class="p-2 bg-surface rounded"><strong>Layout Tokens:</strong> Radii (6px default), Breakpoints (480px to 1024px)</li>
+                </ul>
+            </div>
+
+            <div class="bg-white p-5 rounded-lg border border-border shadow-sm">
+                <span class="text-xs font-bold text-brand-500 uppercase tracking-wider">Tier 2</span>
+                <h3 class="text-lg font-bold mt-1">Shared Primitives</h3>
+                <ul class="text-xs space-y-2 mt-3 text-ink-soft">
+                    <li class="p-2 bg-surface rounded"><strong>Controls:</strong> Button, IconButton, SegmentedControl, Select</li>
+                    <li class="p-2 bg-surface rounded"><strong>Feedback:</strong> Badge, StatusPill, Alert, Modal, Drawer</li>
+                    <li class="p-2 bg-surface rounded"><strong>Data Presentation:</strong> Money Formatter, DataTable, Skeleton Loader</li>
+                </ul>
+            </div>
+
+            <div class="bg-white p-5 rounded-lg border border-border shadow-sm">
+                <span class="text-xs font-bold text-brand-500 uppercase tracking-wider">Tier 3</span>
+                <h3 class="text-lg font-bold mt-1">Domain Components</h3>
+                <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+                    <div class="p-2 bg-brand-50 rounded text-brand-900 border border-brand-100">
+                        <strong>Market Domain:</strong><br>
+                        ProductCard, PriceBlock, CartLineItem, CheckoutSummary
+                    </div>
+                    <div class="p-2 bg-amber-50 rounded text-amber-900 border border-amber-200">
+                        <strong>Handyman Hub:</strong><br>
+                        ProfessionalCard, BookingStepper, JobPhotoGrid, PayoutLedger
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-lg border border-border shadow-sm">
+                <span class="text-xs font-bold text-brand-500 uppercase tracking-wider">Tier 4</span>
+                <h3 class="text-lg font-bold mt-1">Page Compositions</h3>
+                <ul class="text-xs space-y-2 mt-3 text-ink-soft">
+                    <li class="p-2 bg-surface rounded"><strong>Public:</strong> Home, Product Listing, Handyman Directory</li>
+                    <li class="p-2 bg-surface rounded"><strong>Workspaces:</strong> Seller Workspace, Professional Dashboard</li>
+                    <li class="p-2 bg-surface rounded"><strong>Oversight:</strong> Admin Financial & Verification Dashboard</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 5: STATE MACHINE -->
+    <section id="sec-statemachine" class="space-y-6 hidden">
+        <div>
+            <h2 class="text-2xl font-bold text-brand-900">Async Component State Lifecycle</h2>
+            <p class="text-ink-soft text-sm">Interactive contract governing state transitions for forms, payouts, and progress tracking.</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg border border-border shadow-sm space-y-4">
+            <div class="flex flex-wrap gap-2" id="state-controls">
+                <button onclick="setState('skeleton')" class="state-btn px-3 py-1.5 text-xs font-bold rounded bg-slate-200">1. Skeleton / Loading</button>
+                <button onclick="setState('ready')" class="state-btn px-3 py-1.5 text-xs font-bold rounded bg-slate-100">2. Ready / Idle</button>
+                <button onclick="setState('validation')" class="state-btn px-3 py-1.5 text-xs font-bold rounded bg-slate-100">3. Inline Validation Error</button>
+                <button onclick="setState('error')" class="state-btn px-3 py-1.5 text-xs font-bold rounded bg-slate-100">4. Request Error</button>
+                <button onclick="setState('success')" class="state-btn px-3 py-1.5 text-xs font-bold rounded bg-slate-100">5. Success / Verified</button>
+            </div>
+
+            <div class="p-6 rounded-lg border border-border bg-surface" id="state-display">
+                <!-- Dynamic Content Rendered Here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 6: OWNERSHIP MATRIX -->
+    <section id="sec-matrix" class="space-y-6 hidden">
+        <div>
+            <h2 class="text-2xl font-bold text-brand-900">File Ownership & Responsibility Matrix</h2>
+            <p class="text-ink-soft text-sm">Strict boundary map separating backend logic, frontend layout, and styling assets.</p>
+        </div>
+
+        <div class="overflow-x-auto bg-white rounded-lg border border-border shadow-sm">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-brand-900 text-white font-heading uppercase tracking-wider">
+                        <th class="p-3">Architecture Layer</th>
+                        <th class="p-3">File Path</th>
+                        <th class="p-3">Strict Ownership Scope</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border text-ink">
+                    <tr>
+                        <td class="p-3 font-bold">Global Shell</td>
+                        <td class="p-3 font-mono text-brand-700">frontend/templates/base.html</td>
+                        <td class="p-3">Root HTML wrapper, CSS tokens, Tailwind CDN, core script bindings.</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 font-bold">Navigation Component</td>
+                        <td class="p-3 font-mono text-brand-700">frontend/templates/components/header.html</td>
+                        <td class="p-3">Global branding header, search inputs, account links, mobile navigation drawer.</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 font-bold">Legacy Token CSS</td>
+                        <td class="p-3 font-mono text-brand-700">frontend/css/style.css</td>
+                        <td class="p-3">Legacy token definitions, structural button variants (<code>.btn</code>), reset rules.</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 font-bold">Design Token Overrides</td>
+                        <td class="p-3 font-mono text-brand-700">frontend/static/css/custom.css</td>
+                        <td class="p-3">Active token definitions, component overrides, focus ring defaults, status colors.</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 font-bold">Client JavaScript API</td>
+                        <td class="p-3 font-mono text-brand-700">frontend/js/api.js</td>
+                        <td class="p-3"><code>apiFetch</code> wrapper, standard headers, auth token parsing, global error interception.</td>
+                    </tr>
+                    <tr>
+                        <td class="p-3 font-bold">Backend Service API</td>
+                        <td class="p-3 font-mono text-brand-700">backend/app/routers/*.py</td>
+                        <td class="p-3">Business logic, payment calculations, verification rules, database query execution.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- JavaScript Controllers -->
+    <script>
+        function switchTab(tabId) {
+            const tabs = ['apimap', 'colors', 'pipeline', 'taxonomy', 'statemachine', 'matrix'];
+            tabs.forEach(t => {
+                document.getElementById('sec-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).className = "px-4 py-2 text-sm font-semibold rounded-lg text-ink-soft hover:bg-white";
+            });
+            document.getElementById('sec-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + tabId).className = "px-4 py-2 text-sm font-semibold rounded-lg bg-brand-500 text-white shadow";
+        }
+
+        const workflows = {
+            seeker: [
+                { stage: "1. UI Trigger & Form", view: "pay-order.html", details: "Seeker uploads verification photo, submits 5-star rating, and clicks 'Pay & Complete'." },
+                { stage: "2. Client API Call", view: "frontend/js/api.js", details: "Executes POST via apiFetch() with FormData (image blob, rating score, review comment)." },
+                { stage: "3. Backend Router", view: "payments.py / services.py", details: "Validates request payload, uploads progress image, and updates booking status to 'Completion Requested'." },
+                { stage: "4. DB & Ledger Model", view: "SQLAlchemy Models", details: "Updates ServiceRequest table; creates dual-sided entry in Ledger (Seeker Paid vs. Pending Handyman Payout)." }
+            ],
+            handyman: [
+                { stage: "1. UI Trigger & Form", view: "services-professional.html", details: "Handyman submits job completion status or views customer star rating & payout breakdown." },
+                { stage: "2. Client API Call", view: "frontend/js/api.js", details: "Executes GET /api/v1/handyman/payouts to fetch net earnings and commission deductions." },
+                { stage: "3. Backend Router", view: "services.py", details: "Processes handyman job status updates and returns dual ledger summary (Gross vs. Net payout)." },
+                { stage: "4. DB & Ledger Model", view: "SQLAlchemy Models", details: "Reads ServiceRequest & PayoutLedger tables to reflect verified job completion." }
+            ],
+            admin: [
+                { stage: "1. UI Trigger & Form", view: "admin/dashboard.html", details: "Admin inspects work verification photos, rating, and clicks 'Release Payout' or 'Hold Funds'." },
+                { stage: "2. Client API Call", view: "frontend/js/api.js", details: "Executes POST /api/v1/admin/payouts/{id}/release with authorization headers." },
+                { stage: "3. Backend Router", view: "admin.py", details: "Verifies admin permissions, releases platform escrow, and updates payout ledger status to 'Released'." },
+                { stage: "4. DB & Ledger Model", view: "SQLAlchemy Models", details: "Sets transaction state to Released in PayoutLedger and updates Handyman earnings balance." }
+            ]
+        };
+
+        function showWorkflow(role) {
+            const container = document.getElementById('workflow-container');
+            const data = workflows[role];
+            
+            ['seeker', 'handyman', 'admin'].forEach(r => {
+                const btn = document.getElementById('wf-' + r);
+                if (r === role) {
+                    btn.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-brand-900 text-white";
+                } else {
+                    btn.className = "px-3 py-1.5 text-xs font-bold rounded-md bg-white border border-border text-ink-soft hover:bg-surface";
+                }
+            });
+
+            container.innerHTML = data.map((step, idx) => `
+                <div class="node-card bg-white p-4 rounded-lg border-t-4 border-brand-500 shadow-sm space-y-2">
+                    <span class="text-xs font-bold text-brand-600 uppercase tracking-wider">${step.stage}</span>
+                    <h4 class="font-bold text-sm text-ink">${step.view}</h4>
+                    <p class="text-xs text-ink-soft leading-relaxed">${step.details}</p>
+                </div>
+            `).join('');
+        }
+
+        function setState(state) {
+            const display = document.getElementById('state-display');
+            if (state === 'skeleton') {
+                display.innerHTML = `
+                    <div class="animate-pulse space-y-3">
+                        <div class="h-4 bg-slate-300 rounded w-1/4"></div>
+                        <div class="h-10 bg-slate-200 rounded"></div>
+                        <div class="h-4 bg-slate-300 rounded w-1/2"></div>
+                    </div>
+                `;
+            } else if (state === 'ready') {
+                display.innerHTML = `
+                    <div class="space-y-3">
+                        <label class="text-xs font-bold text-ink">Service Verification Upload</label>
+                        <input type="file" class="block w-full text-xs text-ink border border-border rounded p-2 bg-white">
+                        <button class="px-4 py-2 bg-brand-500 text-white rounded text-xs font-bold">Submit Completion Photo</button>
+                    </div>
+                `;
+            } else if (state === 'validation') {
+                display.innerHTML = `
+                    <div class="space-y-3">
+                        <label class="text-xs font-bold text-danger">Service Verification Upload *</label>
+                        <input type="file" class="block w-full text-xs border border-danger rounded p-2 bg-white">
+                        <p class="text-xs text-danger font-medium">Please upload a valid JPEG or PNG image before confirming completion.</p>
+                    </div>
+                `;
+            } else if (state === 'error') {
+                display.innerHTML = `
+                    <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-900 space-y-2">
+                        <h4 class="font-bold text-xs uppercase tracking-wider">Network Request Failed</h4>
+                        <p class="text-xs">Unable to reach <code>/api/v1/services/verify</code>. Please check your network connection and retry.</p>
+                    </div>
+                `;
+            } else if (state === 'success') {
+                display.innerHTML = `
+                    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 space-y-2">
+                        <h4 class="font-bold text-xs uppercase tracking-wider">Completion Verified & Funds Payout Released</h4>
+                        <p class="text-xs">Work progress photo approved. Net payout has been released to handyman ledger.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize defaults
+        showWorkflow('seeker');
+        setState('ready');
+    </script>
+</body>
+</html>

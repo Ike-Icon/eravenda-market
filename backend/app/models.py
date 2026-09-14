@@ -20,6 +20,7 @@ class UserRole(str, enum.Enum):
     buyer = "buyer"
     seller = "seller"
     admin = "admin"
+    delivery = "delivery"
 
 
 class StoreStatus(str, enum.Enum):
@@ -65,10 +66,19 @@ class ServiceStatus(str, enum.Enum):
     suspended = "suspended"
 
 
+class DeliveryStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+    suspended = "suspended"
+
+
 class ServiceBookingStatus(str, enum.Enum):
     requested = "requested"
     assigned = "assigned"
+    in_progress = "in_progress"
     escrow_funded = "escrow_funded"
+    completion_requested = "completion_requested"
     completed = "completed"
     released = "released"
     cancelled = "cancelled"
@@ -269,12 +279,37 @@ class Order(Base):
     commission_amount = Column(Numeric(12, 2), nullable=False, default=0)
     total_amount = Column(Numeric(12, 2), nullable=False)
     payment_method = Column(Enum(PaymentMethod), nullable=False, default=PaymentMethod.mobile_money)
+    seller_note = Column(Text, nullable=True)
+    shipping_carrier = Column(String(100), nullable=True)
+    tracking_number = Column(String(150), nullable=True)
+    estimated_delivery = Column(DateTime, nullable=True)
+    shipped_at = Column(DateTime, nullable=True)
+    delivered_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     address = relationship("Address")
     store = relationship("Store")
+    delivery_assignment = relationship("OrderDeliveryAssignment", back_populates="order", uselist=False, cascade="all, delete-orphan")
+
+    @property
+    def delivery_person(self):
+        assignment = self.delivery_assignment
+        profile = assignment.delivery_person if assignment else None
+        if not profile or not profile.user:
+            return None
+        return {
+            "name": profile.user.full_name,
+            "company_name": profile.company_name,
+            "location": profile.location,
+            "phone": profile.user.phone,
+            "email": profile.user.email,
+            "vehicle_type": profile.vehicle_type,
+            "license_number": profile.license_number,
+            "availability": profile.availability,
+            "status": profile.status,
+        }
 
 
 class OrderItem(Base):
@@ -292,6 +327,50 @@ class OrderItem(Base):
     color = Column(String(60), nullable=True)
 
     order = relationship("Order", back_populates="items")
+
+
+class DeliveryProfile(Base):
+    __tablename__ = "delivery_profiles"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    company_name = Column(String(150), nullable=True)
+    location = Column(String(255), nullable=False)
+    vehicle_type = Column(String(80), nullable=False)
+    license_number = Column(String(100), nullable=True)
+    availability = Column(String(50), nullable=False, default="available")
+    status = Column(Enum(DeliveryStatus), nullable=False, default=DeliveryStatus.pending)
+    terms_accepted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User")
+    assignments = relationship("OrderDeliveryAssignment", back_populates="delivery_person")
+
+    @property
+    def name(self):
+        return self.user.full_name if self.user else ""
+
+    @property
+    def email(self):
+        return self.user.email if self.user else ""
+
+    @property
+    def phone(self):
+        return self.user.phone if self.user else None
+
+
+class OrderDeliveryAssignment(Base):
+    __tablename__ = "order_delivery_assignments"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    order_id = Column(UUID(as_uuid=False), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, unique=True)
+    delivery_person_id = Column(UUID(as_uuid=False), ForeignKey("delivery_profiles.id"), nullable=False)
+    assigned_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    assignment_note = Column(Text, nullable=True)
+
+    order = relationship("Order", back_populates="delivery_assignment")
+    delivery_person = relationship("DeliveryProfile", back_populates="assignments")
 
 
 class Payment(Base):
@@ -396,8 +475,21 @@ class ServiceBooking(Base):
     commission_amount = Column(Numeric(12, 2), nullable=False, default=0)
     status = Column(Enum(ServiceBookingStatus), nullable=False, default=ServiceBookingStatus.requested)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # --- Dual-sided payment ledger & completion workflow ---
+    # payout_amount: net amount owed to the handyman after commission.
+    payout_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    payout_status = Column(Enum(PayoutStatus), nullable=False, default=PayoutStatus.pending)
+    payout_held = Column(Boolean, nullable=False, default=False)
+    payout_note = Column(Text, nullable=True)
+    completion_requested_at = Column(DateTime, nullable=True)
+    paid_at = Column(DateTime, nullable=True)
+    payout_released_at = Column(DateTime, nullable=True)
+
     handyman = relationship("HandymanProfile")
     client = relationship("User")
+    photos = relationship("ServiceJobPhoto", back_populates="booking", cascade="all, delete-orphan", order_by="ServiceJobPhoto.created_at")
+    review = relationship("ServiceReview", uselist=False, cascade="all, delete-orphan")
 
 
 class ServiceReview(Base):
@@ -410,3 +502,38 @@ class ServiceReview(Base):
     rating = Column(SmallInteger, nullable=False)
     comment = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ServiceJobPhoto(Base):
+    """Work-in-progress / completion-verification photos for a service
+    booking. Either the handyman or the seeker can upload; uploader_role
+    records which side added it so the tracker/admin can tell them apart."""
+    __tablename__ = "service_job_photos"
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    booking_id = Column(UUID(as_uuid=False), ForeignKey("service_bookings.id", ondelete="CASCADE"), nullable=False)
+    uploaded_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    uploader_role = Column(String(20), nullable=False, default="handyman")  # "handyman" | "seeker"
+    image_url = Column(Text, nullable=False)
+    caption = Column(String(200), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    booking = relationship("ServiceBooking", back_populates="photos")
+    uploader = relationship("User")
+
+
+class ServicePayment(Base):
+    """Mirrors Payment, but for service bookings paid through Paystack
+    (kept separate from Payment since bookings aren't product orders)."""
+    __tablename__ = "service_payments"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    booking_id = Column(UUID(as_uuid=False), ForeignKey("service_bookings.id", ondelete="CASCADE"), nullable=False)
+    provider = Column(String(30), nullable=False)
+    provider_reference = Column(String(150), unique=True, nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    currency = Column(String(10), nullable=False, default="GHS")
+    status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.pending)
+    paid_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    booking = relationship("ServiceBooking")

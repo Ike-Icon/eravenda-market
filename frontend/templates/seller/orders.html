@@ -47,6 +47,16 @@
               ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}
             </select>
           </div>
+          <details class="border border-slate-200 rounded-lg p-3 mb-4 bg-slate-50">
+            <summary class="cursor-pointer text-sm font-semibold text-slate-700">Add processing and delivery information</summary>
+            <div class="grid sm:grid-cols-2 gap-3 mt-3">
+              <label class="text-xs text-slate-600">Shipping carrier<input data-carrier="${o.id}" value="${escapeHtml(o.shipping_carrier || "")}" placeholder="e.g. DHL, Ghana Post, local delivery" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-1"></label>
+              <label class="text-xs text-slate-600">Tracking number<input data-tracking="${o.id}" value="${escapeHtml(o.tracking_number || "")}" placeholder="Enter tracking or delivery reference" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-1"></label>
+              <label class="text-xs text-slate-600">Estimated delivery<input type="datetime-local" data-estimated="${o.id}" value="${o.estimated_delivery ? new Date(o.estimated_delivery).toISOString().slice(0, 16) : ""}" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-1"></label>
+              <label class="text-xs text-slate-600 sm:col-span-2">Customer update<textarea data-note="${o.id}" rows="3" maxlength="2000" placeholder="Tell the customer what is happening with this order..." class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm mt-1">${escapeHtml(o.seller_note || "")}</textarea></label>
+            </div>
+            <button type="button" data-update-order="${o.id}" class="mt-3 bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-md text-sm font-semibold">Save order update</button>
+          </details>
           <table class="w-full text-sm">
             <tbody>
               ${o.items.map(i => `
@@ -66,13 +76,25 @@
         </div>
       `).join("");
 
-      el.querySelectorAll(".status-select").forEach(select => {
-        select.addEventListener("change", async () => {
+      el.querySelectorAll("[data-update-order]").forEach(button => {
+        button.addEventListener("click", async () => {
+          const id = button.dataset.updateOrder;
+          button.disabled = true;
+          button.textContent = "Saving…";
           try {
-            await apiFetch(`/orders/${select.dataset.order}/status`, { method: "PUT", body: { status: select.value } });
+            await apiFetch(`/orders/${id}/status`, { method: "PUT", body: {
+              status: el.querySelector(`[data-order="${id}"]`).value,
+              shipping_carrier: el.querySelector(`[data-carrier="${id}"]`).value.trim() || null,
+              tracking_number: el.querySelector(`[data-tracking="${id}"]`).value.trim() || null,
+              estimated_delivery: el.querySelector(`[data-estimated="${id}"]`).value || null,
+              seller_note: el.querySelector(`[data-note="${id}"]`).value.trim() || null,
+            } });
+            button.textContent = "Saved";
+            setTimeout(() => { button.disabled = false; button.textContent = "Save order update"; }, 1200);
           } catch (err) {
             alert(err.message);
-            load();
+            button.disabled = false;
+            button.textContent = "Save order update";
           }
         });
       });

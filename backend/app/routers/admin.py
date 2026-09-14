@@ -1,14 +1,103 @@
+from datetime import datetime
+from calendar import monthrange
 from fastapi import APIRouter, Depends, HTTPException  # pyright: ignore[reportMissingImports]
 from fastapi.responses import FileResponse  # pyright: ignore[reportMissingImports]
 from pathlib import Path
-from sqlalchemy.orm import Session  # pyright: ignore[reportMissingImports]
+from sqlalchemy.orm import Session, selectinload  # pyright: ignore[reportMissingImports]
 from sqlalchemy import func  # pyright: ignore[reportMissingImports]
 from sqlalchemy.exc import IntegrityError  # pyright: ignore[reportMissingImports]
 
 from .. import models, schemas, auth
 from ..database import get_db
+from ..service_pricing import service_charge_for, service_commission_for
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(auth.require_role(models.UserRole.admin))])
+
+
+@router.get("/delivery-people", response_model=list[schemas.DeliveryProfileOut])
+def delivery_people(db: Session = Depends(get_db)):
+    return db.query(models.DeliveryProfile).order_by(models.DeliveryProfile.created_at.desc()).all()
+
+
+@router.put("/delivery-people/{profile_id}/approve", response_model=schemas.DeliveryProfileOut)
+def approve_delivery_person(profile_id: str, db: Session = Depends(get_db)):
+    profile = db.query(models.DeliveryProfile).filter(models.DeliveryProfile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Delivery profile not found")
+    profile.status = models.DeliveryStatus.approved
+    profile.user.role = models.UserRole.delivery
+    db.commit(); db.refresh(profile)
+    return profile
+
+
+@router.put("/delivery-people/{profile_id}/reject", response_model=schemas.DeliveryProfileOut)
+def reject_delivery_person(profile_id: str, db: Session = Depends(get_db)):
+    profile = db.query(models.DeliveryProfile).filter(models.DeliveryProfile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Delivery profile not found")
+    profile.status = models.DeliveryStatus.rejected
+    db.commit(); db.refresh(profile)
+    return profile
+
+
+@router.put("/delivery-people/{profile_id}/suspend", response_model=schemas.DeliveryProfileOut)
+def suspend_delivery_person(profile_id: str, db: Session = Depends(get_db)):
+    profile = db.query(models.DeliveryProfile).filter(models.DeliveryProfile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Delivery profile not found")
+    profile.status = models.DeliveryStatus.suspended
+    db.commit(); db.refresh(profile)
+    return profile
+
+
+@router.put("/delivery-people/{profile_id}/reinstate", response_model=schemas.DeliveryProfileOut)
+def reinstate_delivery_person(profile_id: str, db: Session = Depends(get_db)):
+    profile = db.query(models.DeliveryProfile).filter(models.DeliveryProfile.id == profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Delivery profile not found")
+    profile.status = models.DeliveryStatus.approved
+    profile.user.role = models.UserRole.delivery
+    db.commit(); db.refresh(profile)
+    return profile
+
+
+@router.get("/delivery-orders")
+def delivery_orders(db: Session = Depends(get_db)):
+    rows = (db.query(models.Order, models.User, models.Store, models.OrderDeliveryAssignment)
+            .join(models.User, models.Order.buyer_id == models.User.id)
+            .join(models.Store, models.Order.store_id == models.Store.id)
+            .outerjoin(models.OrderDeliveryAssignment, models.Order.id == models.OrderDeliveryAssignment.order_id)
+            .filter(models.Order.status.notin_([models.OrderStatus.delivered, models.OrderStatus.cancelled, models.OrderStatus.refunded]))
+            .order_by(models.Order.created_at.desc()).limit(300).all())
+    return [{
+        "id": order.id, "order_number": order.order_number, "buyer_name": buyer.full_name,
+        "buyer_phone": buyer.phone, "buyer_email": buyer.email, "store_name": store.store_name,
+        "status": order.status.value, "total_amount": float(order.total_amount),
+        "created_at": order.created_at,
+        "delivery_person_id": assignment.delivery_person_id if assignment else None,
+    } for order, buyer, store, assignment in rows]
+
+
+@router.put("/orders/{order_id}/delivery-assignment")
+def assign_delivery_person(order_id: str, payload: schemas.DeliveryAssignmentRequest, db: Session = Depends(get_db)):
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    profile = (db.query(models.DeliveryProfile)
+               .filter(models.DeliveryProfile.id == payload.delivery_person_id,
+                       models.DeliveryProfile.status == models.DeliveryStatus.approved).first())
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if not profile:
+        raise HTTPException(status_code=400, detail="Choose an approved delivery person")
+    assignment = db.query(models.OrderDeliveryAssignment).filter(models.OrderDeliveryAssignment.order_id == order.id).first()
+    if assignment:
+        assignment.delivery_person_id = profile.id
+        assignment.assignment_note = payload.assignment_note
+    else:
+        assignment = models.OrderDeliveryAssignment(order_id=order.id, delivery_person_id=profile.id, assignment_note=payload.assignment_note)
+        db.add(assignment)
+    db.commit()
+    db.refresh(order)
+    return schemas.OrderOut.model_validate(order)
 
 
 @router.get("/stores/pending", response_model=list[schemas.StoreOut])
@@ -78,11 +167,12 @@ def update_service_booking(booking_id: str, payload: schemas.ServiceBookingUpdat
     booking = db.query(models.ServiceBooking).filter(models.ServiceBooking.id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Service booking not found")
-    if payload.quoted_amount is not None:
-        booking.quoted_amount = payload.quoted_amount
-    if payload.escrow_amount is not None:
-        booking.escrow_amount = payload.escrow_amount
-        booking.commission_amount = round(payload.escrow_amount * 0.02, 2)
+    if payload.quoted_amount is not None or payload.escrow_amount is not None:
+        base_amount = float(payload.escrow_amount if payload.escrow_amount is not None else payload.quoted_amount)
+        booking.quoted_amount = base_amount
+        booking.escrow_amount = service_charge_for(base_amount)
+        booking.commission_amount = service_commission_for(base_amount)
+        booking.payout_amount = base_amount
     booking.status = payload.status
     db.commit(); db.refresh(booking)
     return booking
@@ -111,10 +201,12 @@ def service_requests(db: Session = Depends(get_db)):
     rows = (db.query(models.ServiceBooking, models.HandymanProfile, models.User)
             .join(models.HandymanProfile, models.ServiceBooking.handyman_id == models.HandymanProfile.id)
             .join(models.User, models.ServiceBooking.client_id == models.User.id)
+            .options(selectinload(models.ServiceBooking.photos), selectinload(models.ServiceBooking.review))
             .order_by(models.ServiceBooking.created_at.desc()).all())
     result = []
     for booking, worker, client in rows:
         professional = worker.user
+        review = booking.review
         result.append(schemas.AdminServiceBookingOut(
             id=booking.id, handyman_id=worker.id, professional_name=worker.professional_name,
             company_name=worker.company_name, professional_email=professional.email,
@@ -122,9 +214,67 @@ def service_requests(db: Session = Depends(get_db)):
             client_email=client.email, client_phone=client.phone, details=booking.details,
             location=booking.location, preferred_contact=booking.preferred_contact,
             contact_details=booking.contact_details, quoted_amount=booking.quoted_amount,
+            escrow_amount=booking.escrow_amount, commission_amount=booking.commission_amount,
+            payout_amount=booking.payout_amount, payout_status=booking.payout_status,
+            payout_held=booking.payout_held, payout_note=booking.payout_note,
+            paid_at=booking.paid_at, payout_released_at=booking.payout_released_at,
+            photo_count=len(booking.photos), rating=review.rating if review else None,
+            review_comment=review.comment if review else None,
             status=booking.status, created_at=booking.created_at
         ))
     return result
+
+
+@router.get("/services/bookings/{booking_id}/photos", response_model=list[schemas.ServiceJobPhotoOut])
+def admin_booking_photos(booking_id: str, db: Session = Depends(get_db)):
+    """Work-verification photos for an admin to audit before releasing a payout."""
+    booking = (db.query(models.ServiceBooking).options(selectinload(models.ServiceBooking.photos))
+               .filter(models.ServiceBooking.id == booking_id).first())
+    if not booking:
+        raise HTTPException(status_code=404, detail="Service booking not found")
+    return sorted(booking.photos, key=lambda p: p.created_at)
+
+
+@router.put("/services/bookings/{booking_id}/payout", response_model=schemas.AdminServiceBookingOut)
+def set_booking_payout(booking_id: str, payload: schemas.ServicePayoutAction, db: Session = Depends(get_db)):
+    """Manually release or hold a handyman's payout — the audit control for
+    disputed or unverified work. Release requires the seeker to have paid."""
+    booking = (db.query(models.ServiceBooking).options(selectinload(models.ServiceBooking.photos), selectinload(models.ServiceBooking.review))
+               .filter(models.ServiceBooking.id == booking_id).first())
+    if not booking:
+        raise HTTPException(status_code=404, detail="Service booking not found")
+
+    if payload.action == "release":
+        if booking.status != models.ServiceBookingStatus.completed:
+            raise HTTPException(status_code=400, detail="Payout can only be released after the seeker has paid")
+        booking.payout_status = models.PayoutStatus.paid
+        booking.payout_held = False
+        booking.status = models.ServiceBookingStatus.released
+        booking.payout_released_at = datetime.utcnow()
+        booking.payout_note = payload.note
+    else:  # hold
+        booking.payout_held = True
+        booking.payout_note = payload.note or "Payout held for review"
+
+    db.commit(); db.refresh(booking)
+    worker = db.query(models.HandymanProfile).filter(models.HandymanProfile.id == booking.handyman_id).first()
+    professional = worker.user if worker else None
+    review = booking.review
+    return schemas.AdminServiceBookingOut(
+        id=booking.id, handyman_id=booking.handyman_id, professional_name=worker.professional_name if worker else None,
+        company_name=worker.company_name if worker else None, professional_email=professional.email if professional else None,
+        professional_phone=professional.phone if professional else None, client_name=booking.client.full_name,
+        client_email=booking.client.email, client_phone=booking.client.phone, details=booking.details,
+        location=booking.location, preferred_contact=booking.preferred_contact,
+        contact_details=booking.contact_details, quoted_amount=booking.quoted_amount,
+        escrow_amount=booking.escrow_amount, commission_amount=booking.commission_amount,
+        payout_amount=booking.payout_amount, payout_status=booking.payout_status,
+        payout_held=booking.payout_held, payout_note=booking.payout_note,
+        paid_at=booking.paid_at, payout_released_at=booking.payout_released_at,
+        photo_count=len(booking.photos), rating=review.rating if review else None,
+        review_comment=review.comment if review else None,
+        status=booking.status, created_at=booking.created_at,
+    )
 
 
 @router.get("/services/reviews", response_model=list[schemas.AdminServiceReviewOut])
@@ -380,9 +530,56 @@ def delete_user(user_id: str, current_admin: models.User = Depends(auth.require_
 @router.get("/stats")
 def platform_stats(db: Session = Depends(get_db)):
     total_orders = db.query(func.count(models.Order.id)).scalar() or 0
-    total_revenue = db.query(func.coalesce(func.sum(models.Order.commission_amount), 0)).filter(
-        models.Order.status != models.OrderStatus.cancelled
-    ).scalar()
+    paid_product_rows = (db.query(models.Payment, models.Order)
+                         .join(models.Order, models.Payment.order_id == models.Order.id)
+                         .filter(models.Payment.status == models.PaymentStatus.success)
+                         .all())
+    paid_service_rows = (db.query(models.ServiceBooking)
+                         .filter(models.ServiceBooking.status.in_([
+                             models.ServiceBookingStatus.completed,
+                             models.ServiceBookingStatus.released,
+                         ]))
+                         .filter(models.ServiceBooking.paid_at.isnot(None))
+                         .all())
+    product_income = sum(float(payment.amount or 0) for payment, _order in paid_product_rows)
+    product_commissions = sum(float(order.commission_amount or 0) for _payment, order in paid_product_rows)
+    service_income = sum(float(booking.escrow_amount or 0) for booking in paid_service_rows)
+    service_commissions = sum(float(booking.commission_amount or 0) for booking in paid_service_rows)
+    total_commissions = product_commissions + service_commissions
+
+    current_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly = []
+    for month_offset in range(11, -1, -1):
+        year, month = current_month.year, current_month.month - month_offset
+        while month <= 0:
+            year -= 1
+            month += 12
+        month_start = current_month.replace(year=year, month=month)
+        last_day = monthrange(year, month)[1]
+        month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+        month_products = [
+            (payment, order) for payment, order in paid_product_rows
+            if payment.paid_at and month_start <= payment.paid_at <= month_end
+        ]
+        month_services = [
+            booking for booking in paid_service_rows
+            if booking.paid_at and month_start <= booking.paid_at <= month_end
+        ]
+        month_product_income = sum(float(payment.amount or 0) for payment, _order in month_products)
+        month_product_commission = sum(float(order.commission_amount or 0) for _payment, order in month_products)
+        month_service_income = sum(float(booking.escrow_amount or 0) for booking in month_services)
+        month_service_commission = sum(float(booking.commission_amount or 0) for booking in month_services)
+        monthly.append({
+            "month": month_start.strftime("%Y-%m"),
+            "product_income": month_product_income,
+            "product_commissions": month_product_commission,
+            "service_income": month_service_income,
+            "service_commissions": month_service_commission,
+            "total_income": month_product_income + month_service_income,
+            "total_commissions": month_product_commission + month_service_commission,
+            "orders": len(month_products),
+            "bookings": len(month_services),
+        })
     total_sellers = db.query(func.count(models.Store.id)).filter(
         models.Store.status == models.StoreStatus.approved
     ).scalar() or 0
@@ -405,7 +602,18 @@ def platform_stats(db: Session = Depends(get_db)):
 
     return {
         "total_orders": total_orders,
-        "platform_revenue": float(total_revenue or 0),
+        "platform_revenue": float(total_commissions),
+        "overall": {
+            "product_income": product_income,
+            "product_commissions": product_commissions,
+            "service_income": service_income,
+            "service_commissions": service_commissions,
+            "total_income": product_income + service_income,
+            "total_commissions": total_commissions,
+            "paid_orders": len(paid_product_rows),
+            "paid_bookings": len(paid_service_rows),
+        },
+        "monthly": monthly,
         "active_sellers": total_sellers,
         "active_products": total_products,
         "pending_store_approvals": pending_stores_count,

@@ -26,7 +26,32 @@
       return;
     }
 
+    // Service-booking payments use a distinct reference prefix (see
+    // payments.py's initialize_service_payment) so this page can route them
+    // to the booking tracker instead of the product-order history.
+    const isServicePayment = reference.startsWith("ERVSVC-");
+
     try {
+      if (isServicePayment) {
+        const result = await apiFetch(`/payments/service/verify/${encodeURIComponent(reference)}`);
+        if (result.status === "success") {
+          box.innerHTML = `
+            <div class="text-3xl mb-3">✅</div>
+            <h1 class="font-head text-xl font-semibold mb-2">Payment successful</h1>
+            <p class="text-slate-500 mb-4">Your payment has been received. Eravenda will release it to the professional once the work is verified.</p>
+            <a href="/services/bookings/${result.booking_id}" class="inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">View booking</a>
+          `;
+        } else {
+          box.innerHTML = `
+            <div class="text-3xl mb-3">⚠️</div>
+            <h1 class="font-head text-xl font-semibold mb-2">Payment not confirmed</h1>
+            <p class="text-slate-500 mb-4">Paystack didn't confirm this payment as successful. No charge should have gone through — you can try again from the booking page.</p>
+            <a href="/services/bookings/${result.booking_id}" class="inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Back to booking</a>
+          `;
+        }
+        return;
+      }
+
       const result = await apiFetch(`/payments/verify/${encodeURIComponent(reference)}`);
       if (result.status === "success") {
         box.innerHTML = `
@@ -44,7 +69,8 @@
         `;
       }
     } catch (err) {
-      box.innerHTML = `<p class="text-red-600">${err.message}</p><a href="/orders.html" class="text-brand-600 font-semibold hover:underline mt-3 inline-block">Back to orders</a>`;
+      const backHref = isServicePayment ? "/services/bookings" : "/orders.html";
+      box.innerHTML = `<p class="text-red-600">${err.message}</p><a href="${backHref}" class="text-brand-600 font-semibold hover:underline mt-3 inline-block">Go back</a>`;
     }
   }
 

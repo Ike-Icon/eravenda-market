@@ -561,6 +561,7 @@ async function renderAuthState() {
 
     const dashboardLink = document.getElementById("dashboardLink");
     const professionalDashboardLink = document.getElementById("professionalDashboardLink");
+    const deliveryDashboardLink = document.getElementById("deliveryDashboardLink");
     const hasDashboard = user.role === "admin" || user.role === "seller";
     if (dashboardLink) {
       if (hasDashboard) {
@@ -591,6 +592,21 @@ async function renderAuthState() {
       professionalDashboardLink.style.display = hasProfessionalProfile ? "" : "none";
     }
 
+    let hasDeliveryProfile = user.role === "delivery";
+    try {
+      const profile = await apiFetch('/delivery/me');
+      hasDeliveryProfile = !!profile;
+    } catch (_) {
+      hasDeliveryProfile = false;
+    }
+    if (deliveryDashboardLink) {
+      deliveryDashboardLink.style.display = hasDeliveryProfile ? "" : "none";
+    }
+    const deliveryFooterDashboard = document.getElementById("deliveryFooterDashboard");
+    if (deliveryFooterDashboard) {
+      deliveryFooterDashboard.style.display = hasDeliveryProfile ? "" : "none";
+    }
+
     if (mobileAuthLinks) {
       const roleLink = hasDashboard
         ? `<a href="${dashboardLink.href}" class="py-2 px-2 hover:bg-brand-50 rounded-lg">${dashboardLink.querySelector("span")?.textContent || "Dashboard"}</a>`
@@ -598,12 +614,20 @@ async function renderAuthState() {
       const professionalLink = hasProfessionalProfile
         ? `<a href="/professional/dashboard.html" class="py-2 px-2 hover:bg-brand-50 rounded-lg"><i class="fas fa-briefcase text-accent-600 mr-2"></i>Pro Dashboard</a>`
         : `<a href="/services/register" class="py-2 px-2 hover:bg-brand-50 rounded-lg"><i class="fas fa-user-plus text-accent-600 mr-2"></i>Join as a Handyman</a>`;
+      const deliveryLink = hasDeliveryProfile
+        ? `<a href="/delivery/dashboard" class="py-2 px-2 hover:bg-brand-50 rounded-lg"><i class="fas fa-truck text-teal-600 mr-2"></i>Delivery Dashboard</a>`
+        : "";
       mobileAuthLinks.innerHTML = `
         ${roleLink}
+        ${deliveryLink}
         <a href="/orders.html" class="py-1 hover:text-brand-600">Orders</a>
-        <a href="/services" class="py-1 text-brand-700"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
+        <div class="border-t border-slate-100 pt-3 mt-1 flex flex-col gap-2">
+          <a href="/products" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-store text-brand-500 mr-2"></i>Products</a>
+          <a href="/services" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
+        </div>
         <a href="/services" class="pl-6 py-1 hover:text-brand-600">Hire a Handyman</a>
         <a href="/services/register" class="pl-6 py-1 hover:text-brand-600">Join as a Handyman</a>
+        <a href="/services/bookings" class="pl-6 py-1 hover:text-brand-600">My Handyman Bookings</a>
         <a href="/account" class="py-1 hover:text-brand-600">Account</a>
         <button id="mobileLogoutBtn" type="button" class="py-1 text-left hover:text-brand-600">Log out</button>
       `;

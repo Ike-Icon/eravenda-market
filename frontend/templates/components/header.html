@@ -14,7 +14,7 @@
 
     <!-- Logo  -->
     <a href="/" class="group inline-flex items-center shrink-0 transition-transform duration-300 ease-in-out hover:scale-[1.02]">
-  <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="EraVenda Logo" class="overflow-visible ev-logo-svg">
+  <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="EraVenda Logo" class="w-[180px] sm:w-[210px] lg:w-[240px] h-auto overflow-visible ev-logo-svg">
     <defs>
       <!-- Brand Gradients -->
       <linearGradient id="ev-green-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -105,6 +105,11 @@
         </div>
       </div>
 
+      <a href="/products" class="ev-nav-item inline-flex items-center gap-1 px-2 py-2 text-slate-700 hover:text-brand-700">
+        <i class="ev-nav-icon ev-nav-icon-blue fas fa-store"></i>
+        <span>Products</span>
+      </a>
+
       <div id="guestLinks" class="flex items-center gap-1 sm:gap-2">
         <a href="/login" class="ev-nav-item inline-flex items-center px-2 py-2 text-slate-700 hover:text-brand-700"><i class="ev-nav-icon ev-nav-icon-green fas fa-right-to-bracket mr-1"></i>Log In</a>
         <a href="/register" class="ev-nav-item hidden sm:inline-flex items-center px-2 py-2 text-slate-700 hover:text-brand-700"><i class="ev-nav-icon ev-nav-icon-gold fas fa-user-plus mr-1"></i>Sign Up</a>
@@ -124,9 +129,11 @@
           </div>
           <a id="dashboardLink" href="/seller/dashboard.html" class="hidden sm:flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-green fas fa-store w-4 text-center"></i><span>My Store</span></a>
           <a id="professionalDashboardLink" href="/professional/dashboard.html" class="hidden sm:flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700" style="display:none"><i class="ev-nav-icon-purple fas fa-briefcase w-4 text-center"></i><span>Pro Dashboard</span></a>
+          <a id="deliveryDashboardLink" href="/delivery/dashboard" class="hidden sm:flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700" style="display:none"><i class="ev-nav-icon-teal fas fa-truck w-4 text-center"></i><span>Delivery Dashboard</span></a>
           {% if not is_services_page %}
           <a href="/orders.html" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-blue fas fa-box w-4 text-center"></i>Orders</a>
           {% endif %}
+          <a href="/services/bookings" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-purple fas fa-clipboard-list w-4 text-center"></i>Handyman Bookings</a>
           {# <a href="/wishlist" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-red fas fa-heart w-4 text-center"></i>Wishlist</a> #}
           <a href="/account" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="fas fa-user w-4 text-center text-slate-400"></i>Account</a>
           <a href="/settings" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-teal fas fa-gear w-4 text-center"></i>Settings</a>
@@ -247,9 +254,13 @@
     <div class="border-t border-slate-200 pt-4 flex flex-col gap-2 text-sm font-medium" id="mobileAuthLinks">
       <a href="/login" class="py-1 hover:text-brand-600">Log In</a>
       <a href="/register" class="py-1 hover:text-brand-600">Sign Up</a>
-      <a href="/services" class="py-1 text-brand-700"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
+      <div class="border-t border-slate-100 pt-3 mt-1 flex flex-col gap-2">
+        <a href="/products" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-store text-brand-500 mr-2"></i>Products</a>
+        <a href="/services" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
+      </div>
       <a href="/services" class="pl-6 py-1 hover:text-brand-600">Hire a Handyman</a>
       <a href="/services/register" class="pl-6 py-1 hover:text-brand-600">Join as a Handyman</a>
+      <a href="/services/bookings" class="pl-6 py-1 hover:text-brand-600">My Handyman Bookings</a>
     </div>
   </div>
 </header>

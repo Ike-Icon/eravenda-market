@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Join the Delivery Network — EraVenda{% endblock %}
+{% block content %}
+<section class="max-w-3xl mx-auto px-4 py-10">
+  <p class="text-brand-700 font-semibold text-sm tracking-wider">ERAVENDA DELIVERY NETWORK</p>
+  <h1 class="font-head text-4xl font-bold mt-2">Become a delivery partner</h1>
+  <p class="text-slate-500 mt-2 mb-8">Share your availability and service area so EraVenda can match you with orders that need a reliable local delivery.</p>
+  <div id="status" class="hidden mb-5 rounded-lg p-3 text-sm"></div>
+  <form id="deliveryForm" class="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 space-y-6">
+    <div class="grid sm:grid-cols-2 gap-5">
+      <div><label class="block text-sm font-semibold mb-1">Company name <span class="font-normal text-slate-400">optional</span></label><input name="company_name" maxlength="150" class="w-full border border-slate-300 rounded-lg px-3 py-2.5" placeholder="e.g. Sunyani Swift Couriers"></div>
+      <div><label class="block text-sm font-semibold mb-1">Service location</label><input name="location" required maxlength="255" class="w-full border border-slate-300 rounded-lg px-3 py-2.5" placeholder="City, region or delivery area"></div>
+      <div><label class="block text-sm font-semibold mb-1">Vehicle / transport type</label><input name="vehicle_type" required maxlength="80" class="w-full border border-slate-300 rounded-lg px-3 py-2.5" placeholder="Motorbike, car, van, bicycle"></div>
+      <div><label class="block text-sm font-semibold mb-1">Licence or registration number <span class="font-normal text-slate-400">optional</span></label><input name="license_number" maxlength="100" class="w-full border border-slate-300 rounded-lg px-3 py-2.5" placeholder="Add your identifier"></div>
+      <div><label class="block text-sm font-semibold mb-1">Availability</label><select name="availability" class="w-full border border-slate-300 rounded-lg px-3 py-2.5"><option>available</option><option>weekdays</option><option>weekends</option><option>limited</option></select></div>
+    </div>
+    <div class="border-t border-slate-100 pt-5 text-sm text-slate-600"><p>Review the <a href="/delivery/terms" target="_blank" class="text-brand-700 font-semibold hover:underline">Delivery Partner Terms &amp; Conditions</a> before applying.</p><label class="flex gap-3 mt-4"><input name="terms_accepted" type="checkbox" required class="mt-1"><span>I have read and agree to the EraVenda Delivery Partner Terms &amp; Conditions.</span></label></div>
+    <p id="error" class="hidden text-red-600 text-sm"></p><button id="submit" class="bg-brand-500 hover:bg-brand-600 text-white px-5 py-3 rounded-lg font-semibold">Submit for review</button>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+if(!Auth.isLoggedIn()) location.href='/login?next=/delivery/register';
+const form=document.getElementById('deliveryForm'), statusBox=document.getElementById('status'), errorBox=document.getElementById('error');
+function showStatus(message, good){statusBox.textContent=message;statusBox.className=`mb-5 rounded-lg p-3 text-sm ${good?'bg-green-50 border border-green-200 text-green-700':'bg-red-50 border border-red-200 text-red-700'}`;}
+async function loadProfile(){try{await apiFetch('/delivery/me');location.href='/delivery/dashboard';}catch(e){}}
+form.onsubmit=async event=>{event.preventDefault();errorBox.classList.add('hidden');const button=document.getElementById('submit');button.disabled=true;button.textContent='Submitting…';try{const payload=Object.fromEntries(new FormData(form));payload.terms_accepted=form.elements.terms_accepted.checked;await apiFetch('/delivery/register',{method:'POST',body:payload});location.href='/delivery/dashboard';}catch(e){errorBox.textContent=e.message;errorBox.classList.remove('hidden');button.disabled=false;button.textContent='Submit for review';}};
+loadProfile();
+</script>
+{% endblock %}

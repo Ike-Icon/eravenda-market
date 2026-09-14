@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Literal
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator  # pyright: ignore[reportMissingImports]
 
-from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus, PaymentMethod, ServiceStatus, ServiceBookingStatus
+from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus, PaymentMethod, ServiceStatus, ServiceBookingStatus, DeliveryStatus
 
 AVATAR_KEYS = {"Avery", "Bailey", "Charlie", "Dakota", "Emery", "Finley", "Harper", "Jordan"}
 
@@ -13,7 +13,7 @@ class UserCreate(BaseModel):
     full_name: str
     email: EmailStr
     phone: Optional[str] = None
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=8)
     avatar_key: str = "Avery"
     region: Optional[str] = None
     city: Optional[str] = None
@@ -72,12 +72,12 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: str = Field(min_length=6)
+    new_password: str = Field(min_length=8)
 
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
-    new_password: str = Field(min_length=6)
+    new_password: str = Field(min_length=8)
 
 
 # ---------- ADDRESSES ----------
@@ -305,12 +305,23 @@ class OrderOut(BaseModel):
     commission_amount: float
     total_amount: float
     payment_method: PaymentMethod
+    seller_note: Optional[str] = None
+    shipping_carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+    estimated_delivery: Optional[datetime] = None
+    shipped_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
     items: List[OrderItemOut] = []
+    delivery_person: Optional["DeliveryPersonOut"] = None
     created_at: datetime
 
 
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
+    seller_note: Optional[str] = Field(default=None, max_length=2000)
+    shipping_carrier: Optional[str] = Field(default=None, max_length=100)
+    tracking_number: Optional[str] = Field(default=None, max_length=150)
+    estimated_delivery: Optional[datetime] = None
 
 
 class DeliveryQuoteRequest(BaseModel):
@@ -321,6 +332,70 @@ class DeliveryQuoteOut(BaseModel):
     delivery_fee: float
     store_count: int
     breakdown: List[dict]
+
+
+class DeliveryRegistration(BaseModel):
+    company_name: Optional[str] = Field(default=None, max_length=150)
+    location: str = Field(min_length=1, max_length=255)
+    vehicle_type: str = Field(min_length=1, max_length=80)
+    license_number: Optional[str] = Field(default=None, max_length=100)
+    availability: str = Field(default="available", max_length=50)
+    terms_accepted: bool = False
+
+
+class DeliveryPersonOut(BaseModel):
+    name: str
+    company_name: Optional[str] = None
+    location: str
+    phone: Optional[str] = None
+    email: EmailStr
+    vehicle_type: str
+    license_number: Optional[str] = None
+    availability: str
+    status: DeliveryStatus
+
+
+class DeliveryProfileOut(DeliveryPersonOut):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    user_id: str
+    created_at: datetime
+
+
+class DeliveryAssignmentRequest(BaseModel):
+    delivery_person_id: str
+    assignment_note: Optional[str] = Field(default=None, max_length=1000)
+
+
+class DeliveryOrderStatusUpdate(BaseModel):
+    status: OrderStatus
+
+
+class DeliveryOrderOut(BaseModel):
+    id: str
+    order_number: str
+    status: OrderStatus
+    buyer_name: str
+    buyer_phone: Optional[str] = None
+    buyer_email: EmailStr
+    delivery_location: Optional[str] = None
+    store_name: str
+    total_amount: float
+    delivery_fee: float
+    assignment_note: Optional[str] = None
+    assigned_at: datetime
+    created_at: datetime
+    shipped_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
+
+
+class DeliveryDashboardOut(BaseModel):
+    profile: DeliveryProfileOut
+    active_orders: List[DeliveryOrderOut]
+    completed_orders: List[DeliveryOrderOut]
+    total_deliveries: int
+    active_delivery_count: int
+    amount_received: float
 
 
 # ---------- SERVICES ----------
@@ -366,6 +441,30 @@ class ServiceBookingCreate(BaseModel):
     contact_details: Optional[str] = Field(default=None, max_length=150)
 
 
+class ServiceJobPhotoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    booking_id: str
+    uploaded_by: str
+    uploader_role: str
+    image_url: str
+    caption: Optional[str] = None
+    created_at: datetime
+
+
+class ServiceJobPhotoCreate(BaseModel):
+    image_url: str = Field(min_length=1, max_length=2000)
+    caption: Optional[str] = Field(default=None, max_length=200)
+
+
+class ServiceReviewOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    rating: int
+    comment: Optional[str]
+    created_at: datetime
+
+
 class ServiceBookingOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
@@ -377,8 +476,39 @@ class ServiceBookingOut(BaseModel):
     quoted_amount: Optional[float]
     escrow_amount: float
     commission_amount: float
+    payout_amount: float = 0
+    payout_status: PayoutStatus = PayoutStatus.pending
+    payout_held: bool = False
+    completion_requested_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+    payout_released_at: Optional[datetime] = None
     status: ServiceBookingStatus
     created_at: datetime
+    photos: List[ServiceJobPhotoOut] = []
+    review: Optional[ServiceReviewOut] = None
+
+
+class HandymanBookingOut(BaseModel):
+    """A booking as seen from the handyman's own dashboard: client contact
+    info plus the dual-sided payment ledger and any review received."""
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    client_name: str
+    client_phone: Optional[str] = None
+    details: str
+    location: Optional[str] = None
+    status: ServiceBookingStatus
+    quoted_amount: Optional[float] = None
+    escrow_amount: float
+    commission_amount: float
+    payout_amount: float
+    payout_status: PayoutStatus
+    payout_held: bool
+    paid_at: Optional[datetime] = None
+    payout_released_at: Optional[datetime] = None
+    created_at: datetime
+    photos: List[ServiceJobPhotoOut] = []
+    review: Optional[ServiceReviewOut] = None
 
 
 class AdminServiceBookingOut(BaseModel):
@@ -396,6 +526,17 @@ class AdminServiceBookingOut(BaseModel):
     preferred_contact: Optional[str]
     contact_details: Optional[str]
     quoted_amount: Optional[float]
+    escrow_amount: float = 0
+    commission_amount: float = 0
+    payout_amount: float = 0
+    payout_status: PayoutStatus = PayoutStatus.pending
+    payout_held: bool = False
+    payout_note: Optional[str] = None
+    paid_at: Optional[datetime] = None
+    payout_released_at: Optional[datetime] = None
+    photo_count: int = 0
+    rating: Optional[int] = None
+    review_comment: Optional[str] = None
     status: ServiceBookingStatus
     created_at: datetime
 
@@ -417,17 +558,35 @@ class ServiceBookingUpdate(BaseModel):
     escrow_amount: Optional[float] = Field(default=None, ge=0)
 
 
+class ServiceBookingAccept(BaseModel):
+    quoted_amount: Optional[float] = Field(default=None, gt=0)
+
+
+class ServiceCompletionRequest(BaseModel):
+    escrow_amount: Optional[float] = Field(default=None, gt=0)
+    note: Optional[str] = Field(default=None, max_length=1000)
+
+
+class ServicePayoutAction(BaseModel):
+    action: Literal["release", "hold"]
+    note: Optional[str] = Field(default=None, max_length=1000)
+
+
 class ServiceReviewCreate(BaseModel):
     rating: int = Field(ge=1, le=5)
     comment: Optional[str] = Field(default=None, max_length=1000)
 
 
-class ServiceReviewOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: str
-    rating: int
-    comment: Optional[str]
-    created_at: datetime
+class ServicePaymentInitRequest(BaseModel):
+    booking_id: str
+
+
+class ServicePaymentVerifyOut(BaseModel):
+    status: PaymentStatus
+    booking_id: str
+    booking_status: ServiceBookingStatus
+    amount: float
+    reference: str
 
 
 # ---------- REVIEWS ----------

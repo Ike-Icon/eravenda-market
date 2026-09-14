@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}My Handyman Bookings — Eravenda{% endblock %}
+{% block content %}
+<section class="max-w-4xl mx-auto px-4 py-10">
+  <a href="/services" class="text-sm font-semibold text-brand-700">← Back to Handyman Hub</a>
+  <div class="flex items-end justify-between gap-4 mt-3 mb-6">
+    <div>
+      <p class="text-brand-700 font-semibold text-sm tracking-wider">ERAVENDA HANDYMAN HUB</p>
+      <h1 class="font-head text-3xl font-bold mt-1">My bookings</h1>
+      <p class="text-slate-500 mt-2">Track job progress, pay once work is verified, and rate the professional.</p>
+    </div>
+  </div>
+  <div id="bookingsError" class="hidden mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700"></div>
+  <div id="bookingsList" class="space-y-4"></div>
+  <div id="noBookings" class="hidden border border-dashed border-slate-300 rounded-xl p-10 text-center text-slate-500">
+    You haven't requested a service professional yet. <a href="/services" class="text-brand-700 font-semibold">Browse professionals</a>.
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+if (!Auth.isLoggedIn()) window.location.href = `/login?next=${encodeURIComponent('/services/bookings')}`;
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+function money(v) { return `₵${Number(v || 0).toFixed(2)}`; }
+
+const STEPS = ['requested', 'assigned', 'in_progress', 'completion_requested', 'completed', 'released'];
+function statusLabel(status) {
+  return {
+    requested: 'Requested', assigned: 'Assigned', in_progress: 'In progress',
+    completion_requested: 'Awaiting your review & payment', completed: 'Paid — payout pending',
+    released: 'Complete', cancelled: 'Cancelled',
+  }[status] || status;
+}
+function statusPill(status) {
+  const cls = {
+    requested: 'bg-slate-100 text-slate-600', assigned: 'bg-blue-50 text-blue-700',
+    in_progress: 'bg-blue-50 text-blue-700', completion_requested: 'bg-amber-50 text-amber-700',
+    completed: 'bg-brand-50 text-brand-700', released: 'bg-brand-50 text-brand-700',
+    cancelled: 'bg-red-50 text-red-700',
+  }[status] || 'bg-slate-100 text-slate-600';
+  return `<span class="text-xs font-semibold px-2.5 py-1 rounded-full ${cls}">${esc(statusLabel(status))}</span>`;
+}
+
+(async () => {
+  const list = document.getElementById('bookingsList');
+  const errorBox = document.getElementById('bookingsError');
+  try {
+    const bookings = await apiFetch('/services/bookings/mine');
+    if (!bookings.length) { document.getElementById('noBookings').classList.remove('hidden'); return; }
+    list.innerHTML = bookings.map(b => `
+      <a href="/services/bookings/${b.id}" class="block border border-slate-200 rounded-xl p-5 hover:border-brand-300 hover:shadow-sm transition">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-xs text-slate-400">Booking ${esc(b.id.slice(0, 8))} · ${new Date(b.created_at).toLocaleDateString()}</p>
+            <p class="text-sm text-slate-700 mt-1 line-clamp-2">${esc(b.details)}</p>
+            ${b.location ? `<p class="text-xs text-slate-400 mt-1"><i class="fas fa-location-dot mr-1"></i>${esc(b.location)}</p>` : ''}
+          </div>
+          <div class="text-right shrink-0">
+            ${statusPill(b.status)}
+            ${b.escrow_amount ? `<p class="text-sm font-semibold mt-2">${money(b.escrow_amount)}</p>` : ''}
+          </div>
+        </div>
+      </a>
+    `).join('');
+  } catch (e) {
+    errorBox.textContent = e.message;
+    errorBox.classList.remove('hidden');
+  }
+})();
+</script>
+{% endblock %}

@@ -40,7 +40,8 @@ def _validate_item_stock(product: models.Product, quantity: int, color: str | No
         if variant_stock < quantity:
             raise HTTPException(status_code=400, detail="Not enough stock for the selected color")
     elif product.colors and not color:
-        raise HTTPException(status_code=400, detail="Please select a color before adding this product")
+        if product.stock_quantity < quantity:
+            raise HTTPException(status_code=400, detail="Not enough stock for the requested quantity")
     elif product.stock_quantity < quantity:
         raise HTTPException(status_code=400, detail="Not enough stock for the requested quantity")
 

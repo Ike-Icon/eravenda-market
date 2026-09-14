@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
@@ -82,7 +83,7 @@ def _variant_stock(product: models.Product, color: str | None):
     if not product.colors:
         return None
     if not color:
-        raise HTTPException(status_code=400, detail=f"Please select a color for {product.name}")
+        return None
     for variant in product.colors:
         if isinstance(variant, dict) and str(variant.get("name", "")).strip() == color.strip():
             try:
@@ -307,6 +308,18 @@ def update_order_status(
         raise HTTPException(status_code=400, detail="An order cannot be moved back to pending once processing has started")
 
     order.status = payload.status
+    if payload.seller_note is not None:
+        order.seller_note = payload.seller_note.strip() or None
+    if payload.shipping_carrier is not None:
+        order.shipping_carrier = payload.shipping_carrier.strip() or None
+    if payload.tracking_number is not None:
+        order.tracking_number = payload.tracking_number.strip() or None
+    if payload.estimated_delivery is not None:
+        order.estimated_delivery = payload.estimated_delivery
+    if payload.status == models.OrderStatus.shipped and not order.shipped_at:
+        order.shipped_at = datetime.utcnow()
+    if payload.status == models.OrderStatus.delivered and not order.delivered_at:
+        order.delivered_at = datetime.utcnow()
     db.commit()
     db.refresh(order)
     return order

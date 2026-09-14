@@ -1,6 +1,9 @@
 import os
+import logging
+import time
+from collections import defaultdict, deque
 
-from fastapi import APIRouter, Depends, HTTPException, status  # type: ignore[reportMissingImports]
+from fastapi import APIRouter, Depends, HTTPException, Request, status  # type: ignore[reportMissingImports]
 from fastapi.security import OAuth2PasswordRequestForm  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
@@ -10,6 +13,18 @@ from ..email_utils import send_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
+logger = logging.getLogger("eravenda.auth")
+_attempts: dict[str, deque[float]] = defaultdict(deque)
+
+
+def _check_rate_limit(key: str, limit: int, window_seconds: int) -> None:
+    now = time.monotonic()
+    attempts = _attempts[key]
+    while attempts and now - attempts[0] > window_seconds:
+        attempts.popleft()
+    if len(attempts) >= limit:
+        raise HTTPException(status_code=429, detail="Too many attempts. Please try again later.")
+    attempts.append(now)
 
 
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
@@ -31,19 +46,19 @@ def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
         role=role,
     )
     db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    # Every buyer gets an empty cart right away
+    db.flush()
+    # Keep account creation atomic: a user should never exist without its cart.
     db.add(models.Cart(user_id=user.id))
     db.commit()
+    db.refresh(user)
 
     token = auth.create_access_token({"sub": user.id, "role": user.role.value})
     return schemas.Token(access_token=token, user=schemas.UserOut.model_validate(user))
 
 
 @router.post("/login", response_model=schemas.Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    _check_rate_limit(f"login:{request.client.host if request.client else 'unknown'}", 10, 300)
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
     if not user or not auth.verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
@@ -81,7 +96,8 @@ def list_addresses(
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
-def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(payload: schemas.ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    _check_rate_limit(f"reset:{request.client.host if request.client else 'unknown'}", 5, 3600)
     # Always return the same generic message whether or not the email
     # exists — confirming which emails are registered is its own leak.
     generic_response = {"message": "If an account exists for that email, a reset link has been sent."}
@@ -93,16 +109,21 @@ def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depend
     token = auth.create_password_reset_token(user.id)
     reset_link = f"{SITE_URL}/reset-password?token={token}"
 
-    send_email(
-        to=user.email,
-        subject="Reset your Eravenda Market password",
-        body=(
-            f"Hi {user.full_name},\n\n"
-            f"Click the link below to reset your password. It expires in "
-            f"{auth.PASSWORD_RESET_EXPIRE_MINUTES} minutes:\n\n{reset_link}\n\n"
-            "If you didn't request this, you can safely ignore this email."
-        ),
-    )
+    try:
+        send_email(
+            to=user.email,
+            subject="Reset your Eravenda Market password",
+            body=(
+                f"Hi {user.full_name},\n\n"
+                f"Click the link below to reset your password. It expires in "
+                f"{auth.PASSWORD_RESET_EXPIRE_MINUTES} minutes:\n\n{reset_link}\n\n"
+                "If you didn't request this, you can safely ignore this email."
+            ),
+        )
+    except Exception:
+        # Do not expose SMTP/provider details or turn a password recovery
+        # request into a 500; the generic response is intentional.
+        logger.exception("Could not send password reset email for user %s", user.id)
     return generic_response
 
 

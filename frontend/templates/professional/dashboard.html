@@ -45,6 +45,19 @@
       <a href="/services/register" class="inline-flex items-center gap-2 mt-5 text-sm font-bold text-brand-700 hover:text-brand-900">Update professional details <i class="fas fa-arrow-right"></i></a>
     </div>
   </div>
+
+  <!-- My Jobs: earnings, progress photos, ratings and dual payment ledger -->
+  <div class="mt-8">
+    <div class="flex items-end justify-between gap-4 mb-4">
+      <div>
+        <h2 class="font-head text-2xl font-bold">My Jobs</h2>
+        <p class="text-sm text-slate-500 mt-1">Accept requests, mark work complete, and track what Eravenda has received and paid out.</p>
+      </div>
+    </div>
+    <div id="jobsError" class="hidden mb-4 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700"></div>
+    <div id="jobsList" class="space-y-4"></div>
+    <p id="noJobs" class="hidden text-sm text-slate-500 border border-dashed border-slate-300 rounded-xl p-8 text-center">No job requests yet. Once a seeker requests you from your public profile, jobs will appear here.</p>
+  </div>
 </section>
 {% endblock %}
 {% block scripts %}
@@ -71,6 +84,142 @@
     status.classList.remove('hidden');
     document.getElementById('professionalName').textContent='No professional profile yet';
   }
+  loadJobs();
 })();
+
+function money(v){ return `₵${Number(v||0).toFixed(2)}`; }
+function statusLabel(s){ return String(s||'').replaceAll('_',' '); }
+function statusPillClass(s){
+  return {
+    requested:'bg-slate-100 text-slate-600', assigned:'bg-blue-50 text-blue-700', in_progress:'bg-blue-50 text-blue-700',
+    completion_requested:'bg-amber-50 text-amber-700', completed:'bg-brand-50 text-brand-700', released:'bg-brand-50 text-brand-700',
+    cancelled:'bg-red-50 text-red-700',
+  }[s] || 'bg-slate-100 text-slate-600';
+}
+function payoutPillClass(s){
+  return { pending:'bg-amber-50 text-amber-700', processing:'bg-blue-50 text-blue-700', paid:'bg-brand-50 text-brand-700', failed:'bg-red-50 text-red-700' }[s] || 'bg-slate-100 text-slate-600';
+}
+const esc2=s=>{const d=document.createElement('div');d.textContent=s??'';return d.innerHTML;};
+
+function jobActionsHtml(job){
+  if (job.status==='requested' || job.status==='assigned') {
+    return `<div class="flex flex-wrap items-end gap-2 mt-3">
+      <div><label class="block text-xs text-slate-500 mb-1">Agreed job amount (₵)</label><input type="number" min="1" step="0.01" data-quote="${job.id}" value="${job.quoted_amount||''}" placeholder="e.g. 250" class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-32"></div>
+      <button data-accept="${job.id}" class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Accept job</button>
+    </div>`;
+  }
+  if (job.status==='in_progress') {
+    return `<div class="flex flex-wrap items-end gap-2 mt-3">
+      <div><label class="block text-xs text-slate-500 mb-1">Agreed job amount (₵)</label><input type="number" min="1" step="0.01" data-quote="${job.id}" value="${job.quoted_amount||job.escrow_amount||''}" placeholder="e.g. 250" class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-32"></div>
+      <button data-request-completion="${job.id}" class="bg-accent-500 hover:bg-accent-600 text-slate-900 px-4 py-2 rounded-lg text-sm font-semibold">Mark complete &amp; request payment</button>
+    </div>`;
+  }
+  if (job.status==='completion_requested') {
+    return `<p class="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 mt-3">Waiting on the seeker to review the work and pay.</p>`;
+  }
+  return '';
+}
+
+function jobLedgerHtml(job){
+  const received = (job.status==='completed' || job.status==='released') ? Number(job.escrow_amount||0) : 0;
+  return `<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 text-sm">
+    <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Payment received</p><p class="font-semibold mt-1">${received ? money(received) : '—'}</p></div>
+    <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">EraVenda commission</p><p class="font-semibold mt-1">${money(job.commission_amount)}</p></div>
+    <div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">Payout sent to you</p><p class="font-semibold mt-1 flex items-center gap-2">${money(job.payout_amount)} <span class="text-[10px] px-1.5 py-0.5 rounded-full capitalize ${payoutPillClass(job.payout_status)}">${esc2(job.payout_status)}</span></p></div>
+  </div>${job.payout_held ? `<p class="text-xs text-red-600 mt-2"><i class="fas fa-triangle-exclamation mr-1"></i>Payout held by Eravenda${job.payout_note ? ': ' + esc2(job.payout_note) : '.'}</p>` : ''}`;
+}
+
+function jobPhotosHtml(job){
+  const photos = job.photos || [];
+  if (!photos.length) return '<p class="text-xs text-slate-400 mt-3">No photos added yet.</p>';
+  return `<div class="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-3">${photos.map(p=>`<img src="${esc2(p.image_url)}" alt="${esc2(p.caption||'Job photo')}" class="w-full aspect-square object-cover rounded-md">`).join('')}</div>`;
+}
+
+function jobReviewHtml(job){
+  if (!job.review) return '';
+  const r = job.review;
+  return `<div class="mt-3 border-t border-slate-100 pt-3"><div class="text-amber-500">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><p class="text-sm text-slate-700 mt-1">${esc2(r.comment || 'No written comment.')}</p></div>`;
+}
+
+async function loadJobs(){
+  const list = document.getElementById('jobsList');
+  const errorBox = document.getElementById('jobsError');
+  try {
+    const jobs = await apiFetch('/services/professional/bookings');
+    if (!jobs.length) { document.getElementById('noJobs').classList.remove('hidden'); list.innerHTML=''; return; }
+    document.getElementById('noJobs').classList.add('hidden');
+    list.innerHTML = jobs.map(job => `
+      <article class="bg-white border border-slate-200 rounded-2xl p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-xs text-slate-400">Job ${esc2(job.id.slice(0,8))} · ${new Date(job.created_at).toLocaleDateString()}</p>
+            <p class="font-semibold mt-1">${esc2(job.client_name)}${job.client_phone ? ' · ' + esc2(job.client_phone) : ''}</p>
+            <p class="text-sm text-slate-600 mt-1">${esc2(job.details)}</p>
+            ${job.location ? `<p class="text-xs text-slate-400 mt-1"><i class="fas fa-location-dot mr-1"></i>${esc2(job.location)}</p>` : ''}
+          </div>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full capitalize shrink-0 ${statusPillClass(job.status)}">${esc2(statusLabel(job.status))}</span>
+        </div>
+        ${jobLedgerHtml(job)}
+        ${jobActionsHtml(job)}
+        ${jobReviewHtml(job)}
+        <div class="mt-3 border-t border-slate-100 pt-3">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Progress photos</p>
+            <label class="text-xs font-semibold text-brand-700 cursor-pointer"><i class="fas fa-camera mr-1"></i>Add photo<input type="file" accept="image/*" data-photo-input="${job.id}" class="hidden"></label>
+          </div>
+          ${jobPhotosHtml(job)}
+          <p data-photo-hint="${job.id}" class="text-xs text-slate-400 mt-2"></p>
+        </div>
+        <a href="/services/bookings/${job.id}" class="inline-block text-xs font-semibold text-brand-700 mt-3 hover:underline">View full tracker →</a>
+      </article>
+    `).join('');
+
+    list.querySelectorAll('[data-accept]').forEach(btn => btn.onclick = async () => {
+      const id = btn.dataset.accept;
+      const amountInput = list.querySelector(`[data-quote="${id}"]`);
+      const amount = amountInput?.value ? parseFloat(amountInput.value) : null;
+      btn.disabled = true; btn.textContent = 'Accepting…';
+      try {
+        await apiFetch(`/services/bookings/${id}/accept`, { method: 'PUT', body: { quoted_amount: amount } });
+        await loadJobs();
+      } catch (e) { alert(e.message); btn.disabled = false; btn.textContent = 'Accept job'; }
+    });
+
+    list.querySelectorAll('[data-request-completion]').forEach(btn => btn.onclick = async () => {
+      const id = btn.dataset.requestCompletion;
+      const amountInput = list.querySelector(`[data-quote="${id}"]`);
+      const amount = amountInput?.value ? parseFloat(amountInput.value) : null;
+      if (!amount) { alert('Enter the job amount before requesting completion.'); return; }
+      if (!confirm(`Request payment of ${money(amount)} from the seeker?`)) return;
+      btn.disabled = true; btn.textContent = 'Requesting…';
+      try {
+        await apiFetch(`/services/bookings/${id}/request-completion`, { method: 'PUT', body: { escrow_amount: amount } });
+        await loadJobs();
+      } catch (e) { alert(e.message); btn.disabled = false; btn.textContent = 'Mark complete & request payment'; }
+    });
+
+    list.querySelectorAll('[data-photo-input]').forEach(input => input.onchange = async () => {
+      const id = input.dataset.photoInput;
+      const hint = list.querySelector(`[data-photo-hint="${id}"]`);
+      const file = input.files[0];
+      if (!file) return;
+      if (!window.CLOUDINARY_CLOUD_NAME || !window.CLOUDINARY_UPLOAD_PRESET) { hint.textContent = 'Image uploads are not configured.'; return; }
+      if (!file.type.startsWith('image/')) { hint.textContent = 'Please choose an image file.'; return; }
+      if (file.size > 8*1024*1024) { hint.textContent = 'Image must be 8 MB or smaller.'; return; }
+      hint.textContent = 'Uploading…';
+      try {
+        const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', window.CLOUDINARY_UPLOAD_PRESET);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || 'Image upload failed');
+        await apiFetch(`/services/bookings/${id}/photos`, { method: 'POST', body: { image_url: data.secure_url, caption: file.name.replace(/\.[^.]+$/,'') } });
+        await loadJobs();
+      } catch (e) { hint.textContent = e.message; }
+    });
+  } catch (e) {
+    errorBox.textContent = e.message;
+    errorBox.classList.remove('hidden');
+  }
+}
 </script>
 {% endblock %}

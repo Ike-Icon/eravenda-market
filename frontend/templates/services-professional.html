@@ -16,13 +16,39 @@
     <main class="lg:col-span-2 space-y-6">
       <section class="border border-slate-200 rounded-2xl p-6"><h2 class="font-head text-xl font-bold">Professional information</h2><dl class="grid sm:grid-cols-2 gap-5 mt-5"><div><dt class="text-xs uppercase tracking-wide text-slate-400">Experience</dt><dd class="text-slate-700 mt-1">{{ worker.work_experience or 'Not provided' }}</dd></div><div><dt class="text-xs uppercase tracking-wide text-slate-400">Education / training</dt><dd class="text-slate-700 mt-1">{{ worker.education or 'Not provided' }}</dd></div><div class="sm:col-span-2"><dt class="text-xs uppercase tracking-wide text-slate-400">Qualifications</dt><dd class="text-slate-700 mt-1 whitespace-pre-line">{{ worker.qualifications }}</dd></div></dl></section>
       <section class="border border-slate-200 rounded-2xl p-6"><div class="flex items-center justify-between"><div><h2 class="font-head text-xl font-bold">Work profile</h2><p class="text-sm text-slate-500 mt-1">Examples of work submitted by this professional.</p></div></div><div class="grid sm:grid-cols-2 gap-4 mt-5">{% for item in worker.portfolio %}<figure class="border border-slate-200 rounded-xl overflow-hidden"><img src="{{ item.image_url }}" alt="{{ item.caption or 'Professional work' }}" class="w-full aspect-video object-cover"><figcaption class="p-3 text-sm text-slate-600">{{ item.caption or 'Professional work' }}</figcaption></figure>{% else %}<p class="text-sm text-slate-500 sm:col-span-2">No work images have been added yet.</p>{% endfor %}</div></section>
-      <section class="border border-slate-200 rounded-2xl p-6"><h2 class="font-head text-xl font-bold">Reviews</h2><div id="reviews" class="mt-4 space-y-4"><p class="text-sm text-slate-500">Loading reviews…</p></div></section>
+      <section class="border border-slate-200 rounded-2xl p-6">
+        <h2 class="font-head text-xl font-bold">Reviews</h2>
+        <div id="reviewPrompt" class="hidden mt-4 rounded-lg bg-brand-50 border border-brand-100 p-4 text-sm text-brand-800"></div>
+        <div id="reviews" class="mt-4 space-y-4"><p class="text-sm text-slate-500">Loading reviews…</p></div>
+      </section>
     </main>
   </div>
 </section>
 {% endblock %}
 {% block scripts %}
 <script>
-(async()=>{if(Auth.isLoggedIn()){try{const e=await apiFetch('/services/workers/{{ worker.id }}/review-eligibility');if(e.eligible){document.getElementById('reviewFormWrap').classList.remove('hidden');let rating=0;document.querySelectorAll('#workerStarPicker button').forEach(b=>b.onclick=()=>{rating=+b.dataset.rating;document.querySelectorAll('#workerStarPicker button').forEach(x=>x.classList.toggle('text-amber-500',+x.dataset.rating<=rating));});document.getElementById('submitWorkerReview').onclick=async()=>{if(!rating)return;try{await apiFetch('/services/bookings/'+e.booking_id+'/rating',{method:'POST',body:{rating,comment:document.getElementById('workerReviewComment').value||null}});location.reload();}catch(err){document.getElementById('workerReviewMessage').textContent=err.message;}};}}catch(e){}}const el=document.getElementById('reviews');try{const reviews=await apiFetch('/services/workers/{{ worker.id }}/ratings',{auth:false});el.innerHTML=reviews.length?reviews.map(r=>`<article class="border-b border-slate-100 pb-4"><div class="text-amber-600">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><p class="text-sm text-slate-700 mt-1">${escapeHtml(r.comment||'No written comment.')}</p><p class="text-xs text-slate-400 mt-2">${new Date(r.created_at).toLocaleDateString()}</p></article>`).join(''):'<p class="text-sm text-slate-500">No reviews yet.</p>'}catch(e){el.innerHTML='<p class="text-sm text-slate-500">Reviews are temporarily unavailable.</p>'}})();function escapeHtml(s){const d=document.createElement('div');d.textContent=s??'';return d.innerHTML;}
+function escapeHtml(s){const d=document.createElement('div');d.textContent=s??'';return d.innerHTML;}
+(async()=>{
+  // If the current user has a job with this professional that's ready to be
+  // rated, point them at the booking tracker where the star-rating form
+  // lives, rather than duplicating that form on this public profile page.
+  if (Auth.isLoggedIn()) {
+    try {
+      const e = await apiFetch('/services/workers/{{ worker.id }}/review-eligibility');
+      if (e.eligible) {
+        const prompt = document.getElementById('reviewPrompt');
+        prompt.classList.remove('hidden');
+        prompt.innerHTML = `You have a completed job with this professional. <a href="/services/bookings/${e.booking_id}" class="font-semibold underline">Rate the work</a>.`;
+      }
+    } catch (e) { /* no eligible booking to review */ }
+  }
+  const el = document.getElementById('reviews');
+  try {
+    const reviews = await apiFetch('/services/workers/{{ worker.id }}/ratings', { auth: false });
+    el.innerHTML = reviews.length ? reviews.map(r => `<article class="border-b border-slate-100 pb-4"><div class="text-amber-600">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><p class="text-sm text-slate-700 mt-1">${escapeHtml(r.comment||'No written comment.')}</p><p class="text-xs text-slate-400 mt-2">${new Date(r.created_at).toLocaleDateString()}</p></article>`).join('') : '<p class="text-sm text-slate-500">No reviews yet.</p>';
+  } catch (e) {
+    el.innerHTML = '<p class="text-sm text-slate-500">Reviews are temporarily unavailable.</p>';
+  }
+})();
 </script>
 {% endblock %}

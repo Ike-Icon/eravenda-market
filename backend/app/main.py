@@ -4,32 +4,50 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from dotenv import load_dotenv
+from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
 
 from .database import Base, engine, get_db
 from .migrate import run_migrations
 from . import models  # noqa: F401 - registers models on Base before create_all
-from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews
-
-load_dotenv()
+from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery
 
 app = FastAPI(title="Eravenda API", version="1.0.0")
 
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",") if origin.strip()]
+if not allowed_origins:
+    allowed_origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
+    # The frontend uses bearer tokens, not cookies. Keeping credentials off
+    # makes wildcard origins valid and avoids accidental credential leakage.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if request.url.path.startswith("/api"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
 
 
 @app.on_event("startup")
@@ -60,11 +78,13 @@ app.include_router(contact.router, prefix="/api")
 app.include_router(wishlist.router, prefix="/api")
 app.include_router(services.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
+app.include_router(delivery.router, prefix="/api")
 
 
 @app.get("/api/health")
-def health_check():
-    return {"status": "ok", "service": "eravenda-api"}
+def health_check(db: Session = Depends(get_db)):
+    db.execute(text("SELECT 1"))
+    return {"status": "ok", "service": "eravenda-api", "database": "ok"}
 
 
 # ============================================================
@@ -291,6 +311,16 @@ def services_register_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("services-register.html", page_context(request, db))
 
 
+@app.get("/delivery/register", response_class=HTMLResponse)
+def delivery_register_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("delivery-register.html", page_context(request, db))
+
+
+@app.get("/delivery/dashboard", response_class=HTMLResponse)
+def delivery_dashboard_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("delivery-dashboard.html", page_context(request, db))
+
+
 @app.get("/professional/dashboard.html", response_class=HTMLResponse)
 def professional_dashboard_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("professional/dashboard.html", page_context(request, db))
@@ -313,6 +343,25 @@ def service_request_page(handyman_id: str, request: Request, db: Session = Depen
     if not worker:
         raise HTTPException(status_code=404, detail="Service professional not found")
     return templates.TemplateResponse("service-request.html", page_context(request, db, worker=worker))
+
+
+# ============================================================
+# Seeker-facing booking pages. Both are auth-gated client-side
+# (see each template's script block) since bookings belong to
+# whoever's JWT is in localStorage — the same pattern as
+# orders.html and the seller/admin dashboards.
+# ============================================================
+@app.get("/services/bookings", response_class=HTMLResponse)
+def my_bookings_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("my-bookings.html", page_context(request, db))
+
+
+@app.get("/services/bookings/{booking_id}", response_class=HTMLResponse)
+def booking_tracker_page(booking_id: str, request: Request, db: Session = Depends(get_db)):
+    # The booking itself is fetched client-side (with the viewer's JWT) so
+    # the API can enforce who's allowed to see it. This route just needs a
+    # valid-looking id to hand off to the template.
+    return templates.TemplateResponse("booking-tracker.html", page_context(request, db, booking_id=booking_id))
 
 
 @app.get("/forgot-password", response_class=HTMLResponse)
@@ -351,6 +400,11 @@ def contact_page(request: Request, db: Session = Depends(get_db)):
 @app.get("/terms", response_class=HTMLResponse)
 def terms_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("terms.html", page_context(request, db))
+
+
+@app.get("/delivery/terms", response_class=HTMLResponse)
+def delivery_terms_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("delivery-terms.html", page_context(request, db))
 
 
 @app.get("/privacy", response_class=HTMLResponse)
@@ -429,6 +483,16 @@ def orders_page(request: Request, db: Session = Depends(get_db)):
     # block), since orders belong to whoever's JWT is in localStorage,
     # not a server-side session this route could read directly.
     return templates.TemplateResponse("orders.html", page_context(request, db))
+
+
+@app.get("/orders/review", response_class=HTMLResponse)
+def order_review_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("order-review.html", page_context(request, db))
+
+
+@app.get("/orders/track", response_class=HTMLResponse)
+def order_tracking_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("order-tracking.html", page_context(request, db))
 
 
 @app.get("/robots.txt")

@@ -39,7 +39,7 @@ def list_products(
     if max_price is not None:
         query = query.filter(models.Product.price <= max_price)
     if brand:
-        query = query.filter(models.Product.brand.ilike(brand))
+        query = query.filter(models.Product.brand.ilike(f"%{brand}%"))
 
     if sort == "price_asc":
         query = query.order_by(models.Product.price.asc())

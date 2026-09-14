@@ -26,7 +26,7 @@ services:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "1440"
       - key: ALLOWED_ORIGINS
-        value: "*"
+        sync: false
       - key: SITE_URL
         value: https://eravenda-api.onrender.com
       - key: SUPPORT_EMAIL
@@ -41,6 +41,10 @@ services:
         sync: false
       - key: FROM_EMAIL
         sync: false
+      - key: ADMIN_NOTIFICATION_EMAIL
+        sync: false
+      - key: EMAIL_FLYER_URL
+        value: https://res.cloudinary.com/ni2pcrua/image/upload/v1789391753/EraVenda_Banner.jpg
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
