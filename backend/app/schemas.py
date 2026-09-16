@@ -674,6 +674,10 @@ class CODPaymentRecord(BaseModel):
 
 # ---------- CONTACT FORM ----------
 
+class NewsletterSubscribeCreate(BaseModel):
+    email: EmailStr
+
+
 class ContactMessageCreate(BaseModel):
     name: str
     email: EmailStr

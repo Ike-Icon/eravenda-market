@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session, selectinload
 from .database import Base, engine, get_db
 from .migrate import run_migrations
 from . import models  # noqa: F401 - registers models on Base before create_all
-from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery
+from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter
 
 app = FastAPI(title="Eravenda API", version="1.0.0")
 
@@ -79,6 +79,7 @@ app.include_router(wishlist.router, prefix="/api")
 app.include_router(services.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(delivery.router, prefix="/api")
+app.include_router(newsletter.router, prefix="/api")
 
 
 @app.get("/api/health")

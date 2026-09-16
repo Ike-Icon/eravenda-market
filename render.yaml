@@ -45,6 +45,8 @@ services:
         sync: false
       - key: EMAIL_FLYER_URL
         value: https://res.cloudinary.com/ni2pcrua/image/upload/v1789391753/EraVenda_Banner.jpg
+      - key: NEWSLETTER_CRON_SECRET
+        generateValue: true
       - key: COMMISSION_LAUNCH_START_DATE
         value: "2026-10-14"
       - key: COMMISSION_LAUNCH_DURATION_DAYS

@@ -1,5 +1,6 @@
 import uuid
 import enum
+import secrets
 from datetime import datetime
 
 from sqlalchemy import (  # type: ignore[reportMissingImports]
@@ -537,3 +538,17 @@ class ServicePayment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     booking = relationship("ServiceBooking")
+
+
+class NewsletterSubscriber(Base):
+    """Footer 'Get new-arrival alerts' signup. is_active lets someone
+    unsubscribe without deleting their history; unsubscribe_token is the
+    one-click link sent in every digest email so no login is required."""
+    __tablename__ = "newsletter_subscribers"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    email = Column(String(255), nullable=False, unique=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    unsubscribe_token = Column(String(64), nullable=False, unique=True, default=lambda: secrets.token_urlsafe(32))
+    subscribed_at = Column(DateTime, default=datetime.utcnow)
+    last_sent_at = Column(DateTime, nullable=True)

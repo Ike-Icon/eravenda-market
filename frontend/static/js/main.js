@@ -796,24 +796,42 @@ function initProductGallery() {
 
 // ------------------------------------------------------------------
 // Module: Newsletter signup (footer)
-// No backend endpoint yet — this just gives immediate feedback so the
-// form doesn't feel broken. Wire it to a real endpoint when one exists.
+// Posts to /api/newsletter/subscribe. Falls back to a plain error message
+// if the request fails, rather than pretending the signup worked.
 // ------------------------------------------------------------------
 function initNewsletterForm() {
   const form = document.getElementById("newsletterForm");
   if (!form) return;
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const button = form.querySelector("button");
-    const originalText = button.textContent;
-    button.textContent = "Subscribed!";
-    button.disabled = true;
-    form.reset();
+  const input = form.querySelector('input[name="email"]');
+  const button = form.querySelector("button");
+  const originalText = button.textContent;
+
+  function resetButton(delay = 2500) {
     setTimeout(() => {
       button.textContent = originalText;
       button.disabled = false;
-    }, 2500);
+    }, delay);
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    button.disabled = true;
+    button.textContent = "Subscribing...";
+
+    try {
+      await apiFetch("/newsletter/subscribe", {
+        method: "POST",
+        body: { email: input.value.trim() },
+        auth: false,
+      });
+      button.textContent = "Subscribed!";
+      form.reset();
+    } catch (err) {
+      button.textContent = "Try again";
+    }
+
+    resetButton();
   });
 }
 
