@@ -2,12 +2,13 @@ import os
 import logging
 import time
 from collections import defaultdict, deque
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status  # type: ignore[reportMissingImports]
 from fastapi.security import OAuth2PasswordRequestForm  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
-from .. import models, schemas, auth
+from .. import models, schemas, auth, social_auth
 from ..database import get_db
 from ..email_utils import send_email
 
@@ -60,8 +61,95 @@ def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
 def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     _check_rate_limit(f"login:{request.client.host if request.client else 'unknown'}", 10, 300)
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
+    if user and not user.password_hash:
+        raise HTTPException(
+            status_code=401,
+            detail=f"This account signs in with {user.oauth_provider.title()}. Use that button instead, or reset your password to add one.",
+        )
     if not user or not auth.verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="This account has been deactivated")
+
+    token = auth.create_access_token({"sub": user.id, "role": user.role.value})
+    return schemas.Token(access_token=token, user=schemas.UserOut.model_validate(user))
+
+
+def _oauth_login_or_register(db: Session, provider: str, claims: dict, fallback_name: Optional[str] = None) -> models.User:
+    """Shared by /google and /apple below. Three cases, checked in order:
+    1) this provider account has signed in before — just log them in
+    2) a password account already exists with the same email — link the
+       provider to it, so one person doesn't end up with two accounts
+    3) neither exists — create a fresh account
+    """
+    sub = claims["sub"]
+
+    user = (
+        db.query(models.User)
+        .filter(models.User.oauth_provider == provider, models.User.oauth_sub == sub)
+        .first()
+    )
+    if user:
+        return user
+
+    email = claims.get("email")
+    if email:
+        user = db.query(models.User).filter(models.User.email == email).first()
+        if user:
+            user.oauth_provider = provider
+            user.oauth_sub = sub
+            db.commit()
+            db.refresh(user)
+            return user
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Your {provider.title()} account didn't share an email address, so we can't sign you in.",
+        )
+
+    full_name = fallback_name or claims.get("full_name") or email.split("@")[0]
+    user = models.User(
+        full_name=full_name,
+        email=email,
+        password_hash=None,
+        oauth_provider=provider,
+        oauth_sub=sub,
+        is_verified=claims.get("email_verified", False),
+        role=models.UserRole.buyer,
+    )
+    db.add(user)
+    db.flush()
+    db.add(models.Cart(user_id=user.id))
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.post("/google", response_model=schemas.Token)
+def google_login(payload: schemas.GoogleAuthRequest, db: Session = Depends(get_db)):
+    try:
+        claims = social_auth.verify_google_token(payload.id_token)
+    except social_auth.TokenVerificationError:
+        logger.warning("Google sign-in token failed verification")
+        raise HTTPException(status_code=401, detail="Could not verify Google sign-in. Please try again.")
+
+    user = _oauth_login_or_register(db, "google", claims)
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="This account has been deactivated")
+
+    token = auth.create_access_token({"sub": user.id, "role": user.role.value})
+    return schemas.Token(access_token=token, user=schemas.UserOut.model_validate(user))
+
+
+@router.post("/apple", response_model=schemas.Token)
+def apple_login(payload: schemas.AppleAuthRequest, db: Session = Depends(get_db)):
+    try:
+        claims = social_auth.verify_apple_token(payload.identity_token)
+    except social_auth.TokenVerificationError:
+        logger.warning("Apple sign-in token failed verification")
+        raise HTTPException(status_code=401, detail="Could not verify Apple sign-in. Please try again.")
+
+    user = _oauth_login_or_register(db, "apple", claims, fallback_name=payload.full_name)
     if not user.is_active:
         raise HTTPException(status_code=403, detail="This account has been deactivated")
 

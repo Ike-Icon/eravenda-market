@@ -105,10 +105,12 @@ class User(Base):
     full_name = Column(String(150), nullable=False)
     email = Column(String(150), unique=True, nullable=False, index=True)
     phone = Column(String(20), unique=True, nullable=True)
-    password_hash = Column(Text, nullable=False)
+    password_hash = Column(Text, nullable=True)
     role = Column(Enum(UserRole), nullable=False, default=UserRole.buyer)
     is_active = Column(Boolean, nullable=False, default=True)
     is_verified = Column(Boolean, nullable=False, default=False)
+    oauth_provider = Column(String(20), nullable=True)  # "google" | "apple" | None for password accounts
+    oauth_sub = Column(String(255), nullable=True)  # stable id from the provider's token, not their email
     avatar_key = Column(String(40), nullable=False, default="Avery")
     region = Column(String(100), nullable=True)
     city = Column(String(100), nullable=True)

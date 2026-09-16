@@ -795,6 +795,77 @@ function initProductGallery() {
 }
 
 // ------------------------------------------------------------------
+// Module: Social sign-in (Google + Apple)
+// Shared by login.html and register.html. Google's SDK calls back with an
+// ID token directly; Apple's opens a popup and resolves one the same way.
+// Both get posted to the matching backend endpoint, which verifies the
+// token, finds-or-creates the account, and returns the same
+// {access_token, user} shape as a normal email/password login.
+// If a client ID hasn't been configured yet (see config.js), the matching
+// button hides instead of rendering something that can't work.
+// ------------------------------------------------------------------
+function initSocialAuth({ errorBoxId, redirectTo = "/" }) {
+  const errBox = document.getElementById(errorBoxId);
+  function showError(message) {
+    if (!errBox) return;
+    errBox.textContent = message;
+    errBox.classList.remove("hidden");
+  }
+
+  async function finishLogin(endpoint, body) {
+    try {
+      const data = await apiFetch(endpoint, { method: "POST", body, auth: false });
+      Auth.setSession(data.access_token, data.user);
+      await mergeGuestData();
+      window.location.href = redirectTo;
+    } catch (err) {
+      showError(err.message || "Sign-in failed. Please try again.");
+    }
+  }
+
+  const googleContainer = document.getElementById("googleSignInDiv");
+  if (googleContainer) {
+    if (window.google && window.GOOGLE_CLIENT_ID) {
+      google.accounts.id.initialize({
+        client_id: window.GOOGLE_CLIENT_ID,
+        callback: (response) => finishLogin("/auth/google", { id_token: response.credential }),
+      });
+      google.accounts.id.renderButton(googleContainer, { theme: "outline", size: "large", width: 336 });
+    } else {
+      googleContainer.classList.add("hidden");
+    }
+  }
+
+  const appleBtn = document.getElementById("appleSignInBtn");
+  if (appleBtn) {
+    if (window.AppleID && window.APPLE_CLIENT_ID) {
+      AppleID.auth.init({
+        clientId: window.APPLE_CLIENT_ID,
+        scope: "name email",
+        redirectURI: window.location.origin + "/login",
+        usePopup: true,
+      });
+      appleBtn.addEventListener("click", async () => {
+        try {
+          const res = await AppleID.auth.signIn();
+          const fullName = res.user && res.user.name
+            ? `${res.user.name.firstName || ""} ${res.user.name.lastName || ""}`.trim()
+            : undefined;
+          await finishLogin("/auth/apple", { identity_token: res.authorization.id_token, full_name: fullName });
+        } catch (err) {
+          // Apple rejects its own promise when the user just closes the
+          // popup — that's not a failure worth showing an error for.
+          if (err && err.error === "popup_closed_by_user") return;
+          showError("Apple sign-in failed. Please try again.");
+        }
+      });
+    } else {
+      appleBtn.classList.add("hidden");
+    }
+  }
+}
+
+// ------------------------------------------------------------------
 // Module: Newsletter signup (footer)
 // Posts to /api/newsletter/subscribe. Falls back to a plain error message
 // if the request fails, rather than pretending the signup worked.

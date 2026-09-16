@@ -66,6 +66,18 @@ class Token(BaseModel):
     user: UserOut
 
 
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+
+
+class AppleAuthRequest(BaseModel):
+    identity_token: str
+    # Apple only includes the person's name in its response the very first
+    # time they authorize the app, never inside the token itself, so the
+    # frontend passes it along separately and only on that first sign-in.
+    full_name: Optional[str] = None
+
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 

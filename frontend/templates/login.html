@@ -1,11 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Log in — Eravenda Market{% endblock %}
 
+{% block extra_head %}
+<script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-md mx-auto px-4 py-16">
   <div class="border border-slate-200 rounded-md p-8">
     <h1 class="font-head text-xl font-semibold mb-4">Welcome back</h1>
     <div id="loginError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3 mb-4"></div>
+
+    <div class="space-y-2 mb-2">
+      <div id="googleSignInDiv" class="flex justify-center"></div>
+      <button id="appleSignInBtn" type="button" class="w-full flex items-center justify-center gap-2 border border-slate-300 rounded-md py-2 font-semibold text-sm hover:bg-slate-50 transition-colors">
+        <i class="fa-brands fa-apple text-base"></i>
+        Continue with Apple
+      </button>
+    </div>
+    <div class="flex items-center gap-3 my-4">
+      <div class="flex-1 h-px bg-slate-200"></div>
+      <span class="text-xs text-slate-400 uppercase tracking-wide">or</span>
+      <div class="flex-1 h-px bg-slate-200"></div>
+    </div>
+
     <form id="loginForm" class="space-y-4">
       <div>
         <label class="block text-sm font-medium mb-1">Email</label>
@@ -25,6 +44,9 @@
 
 {% block scripts %}
 <script>
+  const loginNext = new URLSearchParams(window.location.search).get("next") || "/";
+  initSocialAuth({ errorBoxId: "loginError", redirectTo: loginNext });
+
   document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const errBox = document.getElementById("loginError");
@@ -41,8 +63,7 @@
       if (!res.ok) throw new Error(data.detail || "Login failed");
       Auth.setSession(data.access_token, data.user);
       await mergeGuestData();
-      const params = new URLSearchParams(window.location.search);
-      window.location.href = params.get("next") || "/";
+      window.location.href = loginNext;
     } catch (err) {
       errBox.textContent = err.message;
       errBox.classList.remove("hidden");

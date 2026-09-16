@@ -8,3 +8,5 @@ const API_BASE = window.location.origin + "/api";
 // from the browser.
 const CLOUDINARY_CLOUD_NAME = "ni2pcrua";
 const CLOUDINARY_UPLOAD_PRESET = "eravenda";
+
+window.GOOGLE_CLIENT_ID = "251964652903-1uihn86jpjf80absmj90g9a6b7dpbbtn.apps.googleusercontent.com"
