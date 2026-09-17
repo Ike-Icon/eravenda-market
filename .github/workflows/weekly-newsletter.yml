@@ -1,0 +1,17 @@
+name: Weekly newsletter
+
+on:
+  schedule:
+    # 08:00 UTC every Monday. Adjust the cron expression for a different
+    # day or time; GitHub's schedule runs in UTC, not your local time.
+    - cron: "0 8 * * 1"
+  workflow_dispatch: {}  # lets you trigger it manually from the Actions tab
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly digest
+        run: |
+          curl -sf -X POST "https://eravenda-api.onrender.com/api/newsletter/cron/send-weekly" \
+            -H "X-Newsletter-Secret: ${{ secrets.NEWSLETTER_CRON_SECRET }}"
