@@ -1,318 +1,1006 @@
 {% extends "base.html" %}
 
-{% block title %}EraVenda — Your Marketplace. Reimagined.{% endblock %}
-{% block meta_description %}Shop quality products from verified Ghanaian sellers or book trusted professionals for any
-job. Electronics, fashion, home essentials, repairs, cleaning and more — all in one marketplace with secure checkout and
-tracked delivery.{% endblock %}
+{% block title %}EraVenda — Ghana's Marketplace for Products & Handyman Services{% endblock %}
+{% block meta_description %}Shop thousands of quality products from verified Ghanaian sellers or book trusted, background-checked handymen for electrical, plumbing, AC repair, and more. Escrow-protected checkout and tracked delivery across Ghana.{% endblock %}
 
 {% block content %}
 
 <!-- ============================================================
-     HERO SPOTLIGHT — warm, open, product-focused
+     1. HERO SPOTLIGHT & DUAL-INTENT CONSOLE
      ============================================================ -->
-<section id="hero-slideshow"
-  class="relative overflow-hidden text-white min-h-[520px] md:min-h-[580px] flex items-center">
-  <div class="absolute inset-0">
-    <div class="slide absolute inset-0 opacity-100 transition-opacity duration-1000 ease-in-out">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604601/samples/shoe.jpg"
-        alt="Products available on Eravenda Market" fetchpriority="high"
-        class="w-full h-full object-cover object-center">
-    </div>
+<section class="relative overflow-hidden bg-slate-950 text-white">
+  <!-- Background slideshow -->
+  <div id="hero-slideshow" class="absolute inset-0">
     <div class="slide absolute inset-0 opacity-100 transition-opacity duration-1000 ease-in-out">
       <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604593/samples/ecommerce/analog-classic.jpg"
-        alt="Products available on Eravenda Market" fetchpriority="high"
-        class="w-full h-full object-cover object-center">
+        alt="Eravenda Marketplace Products" fetchpriority="high"
+        class="w-full h-full object-cover object-center opacity-45">
     </div>
     <div class="slide absolute inset-0 opacity-0 transition-opacity duration-1000 ease-in-out">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604606/cld-sample-5.jpg"
-        alt="Featured products from Eravenda sellers" loading="lazy" class="w-full h-full object-cover object-center">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081557/Gemini_Generated_Image_mlwywumlwywumlwy.jpg"
+        alt="EraVenda Handyman Hub" loading="lazy"
+        class="w-full h-full object-cover object-center opacity-40">
+    </div>
+    <div class="slide absolute inset-0 opacity-0 transition-opacity duration-1000 ease-in-out">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604601/samples/shoe.jpg"
+        alt="Quality items from Ghanaian sellers" loading="lazy"
+        class="w-full h-full object-cover object-center opacity-45">
     </div>
   </div>
-  <div class="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/50 to-slate-950/20 pointer-events-none">
-  </div>
 
-  <div class="relative z-10 max-w-7xl mx-auto px-4 py-16 md:py-20 w-full">
-    <div class="max-w-2xl">
-      <span
-        class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold tracking-[0.18em] text-accent-300 uppercase">
-        Your Marketplace. Reimagined.
-      </span>
-      <h1 class="font-head text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.05] mt-5 max-w-2xl">
-        Everything you need,<br>from sellers you can trust.
+  <!-- Subtle overlay gradients -->
+  <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent pointer-events-none"></div>
+  <div class="absolute inset-0 hidden md:block bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent pointer-events-none"></div>
+
+  <!-- Hero Content -->
+  <div class="relative z-10 max-w-7xl mx-auto px-4 pt-12 pb-8 sm:pt-16 sm:pb-12 md:pt-20 md:pb-16 w-full">
+    <div class="max-w-3xl">
+      <!-- Badge -->
+      <div class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-bold tracking-[0.16em] text-emerald-300 uppercase backdrop-blur-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Shop it. Fix it. EraVenda.
+      </div>
+
+      <!-- Main Headline -->
+      <h1 class="font-head text-3xl sm:text-5xl md:text-6xl font-bold leading-[1.08] mt-4 tracking-tight">
+        Ghana's all-in-one marketplace for <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-emerald-300 to-teal-200">products & verified pros</span>.
       </h1>
-      <p class="mt-5 text-base md:text-lg leading-relaxed text-slate-200 max-w-xl">
-        Ghana's products and professionals, all in one place. Shop from verified sellers or book a trusted pro — with
-        real reviews, secure checkout, and delivery you can track.
+
+      <p class="mt-4 text-base sm:text-lg md:text-xl text-slate-200 leading-relaxed max-w-2xl font-normal">
+        Buy top items from independent sellers or hire certified tradespeople for repairs and installations — all with escrow security, genuine reviews, and doorstep tracking.
       </p>
-      <div class="mt-8 flex flex-wrap items-center gap-3">
+
+      <!-- Primary Action Buttons -->
+      <div class="mt-6 sm:mt-8 flex flex-wrap items-center gap-3">
         <a href="/products"
-          class="group bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold px-6 py-3.5 rounded-lg transition-colors shadow-lg flex items-center gap-2">
-          Browse products <i data-lucide="arrow-right"
-            class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
+          class="inline-flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg hover:shadow-accent-500/25 text-sm sm:text-base">
+          <i class="fas fa-bag-shopping"></i>
+          <span>Shop Products</span>
         </a>
         <a href="/services"
-          class="text-sm font-semibold text-white/80 hover:text-white underline underline-offset-4">Need a professional
-          handyman?</a>
+          class="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 text-sm sm:text-base">
+          <i class="fas fa-screwdriver-wrench"></i>
+          <span>Book a Handyman</span>
+        </a>
+        <a href="/seller/dashboard.html"
+          class="inline-flex items-center justify-center gap-2 border border-white/25 hover:border-white/50 text-white hover:bg-white/10 font-semibold px-5 py-3.5 rounded-xl transition-colors text-sm sm:text-base backdrop-blur-sm">
+          <i class="fas fa-store"></i>
+          <span>Sell with Us</span>
+        </a>
       </div>
-      <p class="mt-4 text-sm text-slate-300">Selling products? <a href="/seller/dashboard.html"
-          class="underline font-semibold hover:text-accent-300">Open a store</a> and reach new customers.</p>
+    </div>
+
+    <!-- Dual Mode Action Console (Quick Finder for Products & Handymen) -->
+    <div class="mt-10 sm:mt-12 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20 dark:border-slate-800 shadow-2xl text-slate-900 dark:text-white max-w-4xl">
+      <!-- Mode Switcher Tabs -->
+      <div class="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit mb-4">
+        <button type="button" data-hero-mode="products" aria-pressed="true"
+          class="hero-mode-btn active flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
+          <i class="fas fa-cart-shopping text-brand-600 dark:text-brand-400"></i>
+          <span>Shop Marketplace</span>
+        </button>
+        <button type="button" data-hero-mode="handyman" aria-pressed="false"
+          class="hero-mode-btn flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
+          <i class="fas fa-screwdriver-wrench text-teal-600 dark:text-teal-400"></i>
+          <span>Handyman Hub</span>
+          <span class="text-[10px] bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded-full uppercase font-bold">On Demand</span>
+        </button>
+      </div>
+
+      <!-- Panel 1: Products Quick Search & Category Chips -->
+      <div id="heroProductsPanel" class="space-y-3">
+        <form action="/products" method="get" class="flex flex-col sm:flex-row gap-2">
+          <div class="relative flex-1">
+            <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="search" name="q" placeholder="Search 1,000s of products, phones, fashion, electronics…"
+              class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <button type="submit"
+            class="bg-brand-500 hover:bg-brand-600 text-white font-bold px-6 py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shrink-0">
+            <span>Find Products</span>
+            <i class="fas fa-arrow-right text-xs"></i>
+          </button>
+        </form>
+
+        <!-- Quick category tags -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 text-xs text-slate-600 dark:text-slate-300">
+          <span class="font-semibold text-slate-400 shrink-0">Popular:</span>
+          {% for cat in category_tree|default([]) %}
+          {% if loop.index <= 6 %}
+          <a href="/products?category_id={{ cat.id }}"
+            class="shrink-0 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-brand-50 hover:text-brand-700 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
+            {{ cat.name }}
+          </a>
+          {% endif %}
+          {% endfor %}
+          <a href="/products?sort=price_asc" class="shrink-0 font-semibold text-amber-600 dark:text-amber-400 hover:underline ml-1">
+            ⚡ Flash Deals
+          </a>
+        </div>
+      </div>
+
+      <!-- Panel 2: Handyman Hub Quick Search & Popular Trades -->
+      <div id="heroHandymanPanel" class="hidden space-y-3">
+        <form action="/services" method="get" class="flex flex-col sm:flex-row gap-2">
+          <div class="relative flex-1">
+            <i class="fas fa-wrench absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="search" name="q" placeholder="Search for Electricians, Plumbers, AC Repair, Carpenters, Masons…"
+              class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+          </div>
+          <button type="submit"
+            class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shrink-0">
+            <span>Find Verified Pro</span>
+            <i class="fas fa-arrow-right text-xs"></i>
+          </button>
+        </form>
+
+        <!-- 1-Click Popular Trade Pills -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 text-xs">
+          <span class="font-semibold text-slate-400 shrink-0">Trades:</span>
+          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
+            ⚡ Electrician
+          </a>
+          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
+            🚰 Plumber
+          </a>
+          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
+            ❄️ AC Technician
+          </a>
+          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
+            🔨 Carpenter
+          </a>
+          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
+            🎨 Painter
+          </a>
+          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
+            🧱 Mason
+          </a>
+          <a href="/services/register" class="shrink-0 font-semibold text-teal-600 dark:text-teal-400 hover:underline ml-1">
+            + Join as a Pro
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-10" aria-label="Hero slides">
-    <button onclick="goToSlide(0)" class="dot w-2.5 h-2.5 rounded-full bg-white opacity-100 transition-opacity"
-      aria-label="Show slide 1"></button>
-    <button onclick="goToSlide(1)" class="dot w-2.5 h-2.5 rounded-full bg-white opacity-40 transition-opacity"
-      aria-label="Show slide 2"></button>
+  <!-- Slideshow Dots -->
+  <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10" aria-label="Hero Slides Navigation">
+    <button onclick="goToSlide(0)" class="dot w-2 h-2 rounded-full bg-white opacity-100 transition-opacity" aria-label="Slide 1"></button>
+    <button onclick="goToSlide(1)" class="dot w-2 h-2 rounded-full bg-white opacity-40 transition-opacity" aria-label="Slide 2"></button>
+    <button onclick="goToSlide(2)" class="dot w-2 h-2 rounded-full bg-white opacity-40 transition-opacity" aria-label="Slide 3"></button>
   </div>
 </section>
 
 
 <!-- ============================================================
-     WHY ERAVENDA — motto + product & service messaging
+     2. VALUE PROPOSITION STRIP — Confidence & Buyer Protection
      ============================================================ -->
-<section class="bg-[var(--bg-secondary)] py-8 md:py-10">
+<section class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 py-5">
   <div class="max-w-7xl mx-auto px-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+      <!-- 1 -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
+          <i class="fas fa-truck-fast text-lg"></i>
+        </div>
+        <div>
+          <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">Nationwide Delivery</h4>
+          <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">Tracked across all Ghana regions</p>
+        </div>
+      </div>
 
-    <!-- Motto banner -->
-    <div class="text-center max-w-3xl mx-auto mb-3">
-      <p class="text-xs font-bold tracking-[0.22em] text-brand-600 uppercase mb-2">Our Promise</p>
-      <h2 class="font-head text-2xl md:text-3xl font-bold leading-tight">Shop it. Fix it. EraVenda.</h2>
-      <p class="mt-1 text-base text-slate-700 leading-relaxed">
-        No more guessing who to trust. Eravenda delivers vetted sellers, reviewed handymen, and tracked orders straight
-        to you.
-      </p>
+      <!-- 2 -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <i class="fas fa-shield-halved text-lg"></i>
+        </div>
+        <div>
+          <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">Escrow Protection</h4>
+          <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">Funds held safe until satisfied</p>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+          <i class="fas fa-user-check text-lg"></i>
+        </div>
+        <div>
+          <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">Vetted Handymen</h4>
+          <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">Background-checked & certified</p>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <i class="fas fa-money-bill-wave text-lg"></i>
+        </div>
+        <div>
+          <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug">Instant Local Pay</h4>
+          <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">MTN MoMo, Telecel, AT & Cards</p>
+        </div>
+      </div>
     </div>
-
-
   </div>
 </section>
+
+
 <!-- ============================================================
-     PROMOTIONAL BANNERS
+     3. VISUAL DEPARTMENTS & CATEGORIES CAROUSEL
      ============================================================ -->
-<section class="max-w-7xl mx-auto px-4 pb-10" aria-labelledby="campaigns-heading">
-  <div class="flex items-end justify-between mb-5">
+{% if category_tree|default([]) %}
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <div class="flex items-end justify-between mb-4">
     <div>
-      <p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">From the marketplace</p>
-      <h2 id="campaigns-heading" class="font-head text-xl md:text-2xl font-bold">Offers, campaigns & local finds</h2>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Departments</span>
+      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Shop by Category</h2>
     </div>
-    <div class="hidden sm:flex gap-2">
-      <button type="button" data-promo-prev
-        class="w-8 h-8 border border-slate-200 rounded hover:border-brand-500 bg-white text-sm"
-        aria-label="Previous">←</button>
-      <button type="button" data-promo-next
-        class="w-8 h-8 border border-slate-200 rounded hover:border-brand-500 bg-white text-sm"
-        aria-label="Next">→</button>
-    </div>
+    <a href="/products" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group">
+      <span>All Categories</span>
+      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+    </a>
   </div>
-  <div id="promoCarousel" class="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 no-scrollbar">
-    <a href="/products"
-      class="promo-banner snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] text-white bg-brand-900 group">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081195/Gemini_Generated_Image_1xyv7m1xyv7m1xyv.jpg" alt="Fresh deals"
-        loading="lazy"
-        class="absolute inset-0 w-full h-full object-cover opacity-100 group-hover:scale-105 transition-transform duration-700">
-      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 to-slate-950/10"></div>
-      <div class="relative h-full min-h-[200px] p-5 flex flex-col justify-end">
-      <span class="text-xs font-bold text-accent-300 tracking-wider">SHOP LOCAL</span>
-        {# <h3 class="font-head text-xl font-bold mt-1">Fresh finds from Ghanaian sellers</h3> #}
-        <span
-          class="text-sm mt-2">Start exploring →</span>
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+    {% for c in category_tree %}
+    <a href="/products?category_id={{ c.id }}"
+      class="group border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 text-center bg-white dark:bg-slate-900 hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all flex flex-col items-center justify-center min-h-[110px]">
+      <div class="w-11 h-11 rounded-full bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+        <i data-lucide="{{ c.icon_url or 'shopping-bag' }}" class="w-5 h-5"></i>
       </div>
+      <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 line-clamp-1 w-full">{{ c.name }}</span>
+      <span class="text-[10px] text-slate-400 mt-0.5">{{ c.children|length if c.children else 'Browse' }} items</span>
     </a>
-    <a href="/seller/dashboard.html"
-      class="promo-banner snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] text-white bg-brand-700 group">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081367/Gemini_Generated_Image_h8fvveh8fvveh8fv.jpg" alt="Sell on Eravenda"
-        loading="lazy"
-        class="absolute inset-0 w-full h-full object-cover opacity-100 group-hover:scale-105 transition-transform duration-700">
-      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 to-transparent"></div>
-      <div class="relative h-full min-h-[200px] p-5 flex flex-col justify-end"><span
-          class="text-xs font-bold text-accent-400 tracking-wider">SELL ON ERAVENDA</span>
-        {# <h3 class="font-head text-xl font-bold mt-1">Turn your products into opportunities</h3> #}
-        <span
-          class="text-sm mt-2">Open your store →</span>
-      </div>
-    </a>
-    <a href="/services"
-      class="promo-banner snap-start shrink-0 w-[85%] sm:w-[48%] lg:w-[32%] text-white bg-teal-800 group">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081557/Gemini_Generated_Image_mlwywumlwywumlwy.jpg" alt="Handyman Hub"
-        loading="lazy"
-        class="absolute inset-0 w-full h-full object-cover opacity-100 group-hover:scale-105 transition-transform duration-700">
-      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent"></div>
-      <div class="relative h-full min-h-[200px] p-5 flex flex-col justify-end">
-      <span class="text-xs font-bold text-accent-300 tracking-wider">HANDYMAN HUB</span>
-        {# <h3 class="font-head text-xl font-bold mt-1">Find verified pros for any job</h3> #}
-        <span
-          class="text-sm mt-2">Browse handymen →</span>
-      </div>
-    </a>
+    {% endfor %}
   </div>
 </section>
+{% endif %}
+
 
 <!-- ============================================================
-     FLASH DEALS — countdown cards for discounted products
+     4. FLASH DEALS SECTION — Limited-Time Offers & Countdown
      ============================================================ -->
 {% if flash_deals|default([]) %}
-<section class="max-w-7xl mx-auto px-4 pt-12 pb-4">
-  <div class="flex items-end justify-between mb-5">
-    <div class="flex items-center gap-3">
-      <span class="flash-sale-timer"><i class="fas fa-bolt"></i> FLASH DEALS</span>
-      <h2 class="font-head text-xl md:text-2xl font-bold">Limited-time offers</h2>
+<section id="flashDealsSection" class="max-w-7xl mx-auto px-4 py-8">
+  <div class="rounded-2xl border border-red-200/70 dark:border-red-900/40 bg-gradient-to-br from-red-50/60 via-white to-amber-50/40 dark:from-red-950/20 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-6 shadow-sm">
+    <!-- Header with Live Ticking Timer -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-red-100 dark:border-slate-800">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold uppercase tracking-wider shadow-sm">
+          <i class="fas fa-bolt"></i> Flash Sale
+        </span>
+        <div>
+          <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Limited-Time Bargains</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Special discounts updated daily. Grab them before stock runs out!</p>
+        </div>
+      </div>
+
+      <!-- Live Timer -->
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mr-1 hidden sm:inline">Ends in:</span>
+        <div class="countdown-box">
+          <div id="flashHours" class="val">08</div>
+          <div class="lbl">Hrs</div>
+        </div>
+        <span class="font-bold text-slate-400">:</span>
+        <div class="countdown-box">
+          <div id="flashMins" class="val">42</div>
+          <div class="lbl">Min</div>
+        </div>
+        <span class="font-bold text-slate-400">:</span>
+        <div class="countdown-box">
+          <div id="flashSecs" class="val">19</div>
+          <div class="lbl">Sec</div>
+        </div>
+      </div>
     </div>
-    <a href="/products?sort=price_asc" class="text-sm font-semibold text-brand-600 hover:underline">See all deals</a>
+
+    <!-- Flash Deals Product Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 mt-5">
+      {% for p in flash_deals %}
+      {% set price = p.discount_price if p.discount_price else p.price %}
+      {% set discount_pct = ((1 - (price / p.price)) * 100) | round | int %}
+      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+      <article data-product-card data-product-url="/product/{{ p.id }}"
+        class="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:border-red-400 hover:shadow-lg transition-all flex flex-col justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500">
+        
+        <!-- Image & Actions -->
+        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          <!-- Discount Badge -->
+          <span class="absolute top-2 left-2 z-10 bg-red-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+            -{{ discount_pct }}%
+          </span>
+
+          <!-- Quick Action Buttons -->
+          <div class="card-quick-actions">
+            <button type="button" data-home-wishlist="{{ p.id }}" class="card-quick-btn wishlist-btn"
+              aria-label="Add to wishlist" title="Save to wishlist">
+              <i class="far fa-heart"></i>
+            </button>
+            <button type="button" data-quick-view
+              data-id="{{ p.id }}"
+              data-name="{{ p.name }}"
+              data-price="{{ price }}"
+              data-original-price="{{ p.price }}"
+              data-discount-pct="{{ discount_pct }}"
+              data-image="{{ primary_image.image_url if primary_image else '' }}"
+              data-store="{{ p.store.store_name if p.store else '' }}"
+              data-store-url="/store/{{ p.store.id if p.store else '' }}"
+              data-rating="{{ p.average_rating }}"
+              data-reviews="{{ p.review_count }}"
+              data-desc="{{ p.description or '' }}"
+              data-stock="{{ p.stock_quantity }}"
+              data-url="/product/{{ p.id }}"
+              class="card-quick-btn quick-view-btn"
+              aria-label="Quick preview {{ p.name }}" title="Quick view">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
+              data-image="{{ primary_image.image_url if primary_image else '' }}" class="card-quick-btn"
+              aria-label="Add to cart" title="Add to cart">
+              <i class="fas fa-cart-plus"></i>
+            </button>
+          </div>
+
+          {% if primary_image %}
+          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center text-3xl text-slate-300">🛍️</div>
+          {% endif %}
+        </div>
+
+        <!-- Details -->
+        <div class="p-3 sm:p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <span class="text-[11px] text-slate-400 block truncate">{{ p.store.store_name if p.store else 'Verified Seller' }}</span>
+            <h3 class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-2 mt-0.5 group-hover:text-red-600 transition-colors">
+              {{ p.name }}
+            </h3>
+
+            <!-- Rating -->
+            <div class="flex items-center gap-1.5 text-xs text-amber-500 mt-1.5">
+              <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
+              <span class="text-slate-400 text-[11px]">({{ p.review_count }})</span>
+            </div>
+          </div>
+
+          <!-- Price & Stock Urgency -->
+          <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div class="flex items-baseline gap-2">
+              <span class="text-base sm:text-lg font-bold text-red-600">₵{{ "%.2f"|format(price) }}</span>
+              <span class="text-xs text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
+            </div>
+
+            <!-- Scarcity Bar -->
+            <div class="mt-2">
+              <div class="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-medium mb-1">
+                <span>⚡ Selling Fast</span>
+                <span>{{ p.stock_quantity if p.stock_quantity > 0 else 'Few' }} left</span>
+              </div>
+              <div class="flash-stock-track">
+                <div class="flash-stock-bar" style="width: {{ [100 - (p.stock_quantity * 4), 85]|min }}%;"></div>
+              </div>
+            </div>
+
+            <!-- Instant Add to Cart -->
+            <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
+              data-image="{{ primary_image.image_url if primary_image else '' }}"
+              class="w-full mt-3 rounded-lg bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold px-3 py-2 text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+              <i class="fas fa-shopping-cart text-xs"></i>
+              <span>Add to Cart</span>
+            </button>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
   </div>
-  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-    {% for p in flash_deals %}
+</section>
+{% endif %}
+
+
+<!-- ============================================================
+     4B. TOP DEALS — horizontal-scroll rail, compact cards
+     ============================================================ -->
+{% if top_deals|default([]) %}
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <div class="flex items-end justify-between mb-4">
+    <div>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Best Value</span>
+      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Top Deals</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">The biggest markdowns across the catalog right now</p>
+    </div>
+    <a href="/products?sort=price_asc" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group shrink-0">
+      <span>See All</span>
+      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+    </a>
+  </div>
+
+  <div class="relative" data-scroll-rail>
+    <button type="button" data-scroll-prev aria-label="Scroll left"
+      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </button>
+
+    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
+      {% for p in top_deals %}
+      {% set price = p.discount_price if p.discount_price else p.price %}
+      {% set has_discount = p.discount_price and p.discount_price < p.price %}
+      {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
+      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+      <article data-product-card data-product-url="/product/{{ p.id }}"
+        class="group shrink-0 snap-start w-[136px] sm:w-[160px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          {% if has_discount %}
+          <span class="absolute top-1.5 left-1.5 z-10 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+            -{{ discount_pct }}%
+          </span>
+          {% endif %}
+          {% if primary_image %}
+          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>
+          {% endif %}
+        </div>
+        <div class="p-2">
+          <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+            {{ p.name }}
+          </h3>
+          <div class="flex items-center gap-1 text-[10px] text-amber-500 mt-1">
+            <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
+            <span class="text-slate-400">({{ p.review_count }})</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1">
+            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
+            {% if has_discount %}
+            <span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <button type="button" data-scroll-next aria-label="Scroll right"
+      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>
+  </div>
+</section>
+{% endif %}
+
+
+<!-- ============================================================
+     5. DEDICATED HANDYMAN HUB SHOWCASE — "Shop it. Fix it. EraVenda."
+     ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 py-12">
+  <div class="rounded-3xl border border-teal-200 dark:border-teal-900 bg-gradient-to-br from-teal-900 via-teal-950 to-slate-950 text-white p-6 sm:p-8 md:p-10 shadow-xl relative overflow-hidden">
+    
+    <!-- Background Accents -->
+    <div class="absolute -right-16 -top-16 w-80 h-80 rounded-full border-[40px] border-white/5 pointer-events-none"></div>
+    <div class="absolute -left-12 -bottom-12 w-64 h-64 rounded-full border-[30px] border-white/[0.03] pointer-events-none"></div>
+
+    <!-- Header -->
+    <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-300 text-xs font-bold tracking-widest uppercase">
+          <i class="fas fa-screwdriver-wrench"></i> Handyman Hub
+        </div>
+        <h2 class="font-head text-2xl sm:text-4xl font-bold mt-3 leading-tight">
+          Verified Professionals for Any Repair or Installation
+        </h2>
+        <p class="text-teal-100/80 text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
+          Skip the guesswork and unreliable tradesmen. Book vetted, rated electricians, plumbers, AC technicians, and carpenters with safe escrow payments.
+        </p>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        <a href="/services"
+          class="inline-flex items-center gap-2 bg-white text-teal-950 font-bold px-5 py-2.5 rounded-xl hover:bg-teal-50 transition-colors text-sm shadow-md">
+          <span>Browse All Pros</span>
+          <i class="fas fa-arrow-right text-xs"></i>
+        </a>
+        <a href="/services/register"
+          class="inline-flex items-center gap-2 border border-white/30 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-sm">
+          <span>Join as a Pro</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 8 Core Popular Trades Grid -->
+    <div class="relative z-10 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-10">
+      <!-- Electrician -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          ⚡
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Electrician</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Wiring & Power</span>
+      </a>
+
+      <!-- Plumber -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🚰
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Plumber</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Pipes & Leaks</span>
+      </a>
+
+      <!-- AC Technician -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          ❄️
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">AC Tech</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Cooling & Gas</span>
+      </a>
+
+      <!-- Carpenter -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-yellow-500/20 text-yellow-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🔨
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Carpenter</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Wood & Doors</span>
+      </a>
+
+      <!-- Painter -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-rose-500/20 text-rose-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🎨
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Painter</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Walls & Finish</span>
+      </a>
+
+      <!-- Mason -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-orange-500/20 text-orange-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🧱
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Mason</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Tiling & Brick</span>
+      </a>
+
+      <!-- Appliance Repair -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🔧
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Appliances</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Fridge & Wash</span>
+      </a>
+
+      <!-- Mechanic -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🚗
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Mechanic</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Auto & Service</span>
+      </a>
+    </div>
+
+    <!-- Featured Verified Service Pros -->
+    {% if featured_handymen|default([]) %}
+    <div class="relative z-10 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-head text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+          <i class="fas fa-certificate text-accent-400"></i> Top-Rated Approved Pros
+        </h3>
+        <span class="text-xs text-teal-200">Ready for service requests</span>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for worker in featured_handymen %}
+        {% set w_name = worker.professional_name or worker.custom_job_title or worker.job_title %}
+        {% set w_trade = worker.custom_job_title or worker.job_title %}
+        {% set w_photo = worker.portfolio[0].image_url if (worker.portfolio and worker.portfolio[0]) else '' %}
+        <div class="bg-white/10 hover:bg-white/15 border border-white/15 rounded-2xl p-4 backdrop-blur-md transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3">
+              <div class="w-14 h-14 rounded-xl bg-slate-800 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center text-slate-400">
+                {% if w_photo %}
+                <img src="{{ w_photo }}" alt="{{ w_name }}" class="w-full h-full object-cover">
+                {% else %}
+                <i class="fas fa-user-hard-hat text-2xl text-teal-300"></i>
+                {% endif %}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  {% if worker.verified_pro %}
+                  <span class="text-[10px] font-bold bg-teal-400/20 text-teal-200 border border-teal-400/30 px-1.5 py-0.5 rounded">Verified Pro</span>
+                  {% endif %}
+                  {% if worker.background_checked %}
+                  <span class="text-[10px] font-bold bg-blue-400/20 text-blue-200 border border-blue-400/30 px-1.5 py-0.5 rounded">ID Checked</span>
+                  {% endif %}
+                </div>
+                <h4 class="font-head font-bold text-sm sm:text-base text-white truncate mt-1">{{ w_name }}</h4>
+                <p class="text-xs text-teal-200 font-medium truncate">{{ w_trade }}</p>
+              </div>
+            </div>
+
+            <!-- Ratings & Experience -->
+            <div class="mt-3 flex items-center gap-3 text-xs text-teal-100/90">
+              <span class="text-amber-400 font-bold">★ {{ "%.1f"|format(worker.average_rating) }}</span>
+              <span>({{ worker.review_count }} review{{ 's' if worker.review_count != 1 else '' }})</span>
+              {% if worker.company_name %}
+              <span class="text-white/40">·</span>
+              <span class="truncate text-teal-200/80">{{ worker.company_name }}</span>
+              {% endif %}
+            </div>
+
+            <p class="mt-2 text-xs text-slate-300 line-clamp-2">
+              {{ worker.qualifications or worker.work_experience or 'Experienced and certified professional on EraVenda.' }}
+            </p>
+          </div>
+
+          <!-- Buttons -->
+          <div class="mt-4 pt-3 border-t border-white/10 flex items-center gap-2">
+            <a href="/services/professional/{{ worker.id }}"
+              class="flex-1 text-center py-2 px-3 rounded-lg border border-white/30 hover:bg-white/10 text-white font-semibold text-xs transition">
+              Profile
+            </a>
+            <a href="/services/request/{{ worker.id }}"
+              class="flex-1 text-center py-2 px-3 rounded-lg bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold text-xs transition shadow">
+              Book Pro
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- How Handyman Hub Works in 3 Steps -->
+    <div class="relative z-10 pt-6 border-t border-white/15">
+      <h4 class="text-xs font-bold uppercase tracking-widest text-teal-300 mb-4 text-center">How It Works: Safe & Easy</h4>
+      <div class="grid sm:grid-cols-3 gap-4 text-center">
+        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+          <div class="w-7 h-7 rounded-full bg-teal-400 text-teal-950 font-bold text-xs flex items-center justify-center mx-auto mb-2">1</div>
+          <h5 class="font-bold text-sm text-white">Choose Your Specialist</h5>
+          <p class="text-xs text-teal-100/70 mt-1">Select verified pros by trade, qualification, and verified ratings.</p>
+        </div>
+        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+          <div class="w-7 h-7 rounded-full bg-teal-400 text-teal-950 font-bold text-xs flex items-center justify-center mx-auto mb-2">2</div>
+          <h5 class="font-bold text-sm text-white">Safe Escrow Booking</h5>
+          <p class="text-xs text-teal-100/70 mt-1">Funds are protected in escrow until you verify the job is done right.</p>
+        </div>
+        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+          <div class="w-7 h-7 rounded-full bg-teal-400 text-teal-950 font-bold text-xs flex items-center justify-center mx-auto mb-2">3</div>
+          <h5 class="font-bold text-sm text-white">Job Guaranteed & Done</h5>
+          <p class="text-xs text-teal-100/70 mt-1">Inspect the finished work, release payment, and leave a review.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     6. INTERACTIVE PRODUCT DISCOVERY WITH FILTER TABS
+     ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <!-- Section Title & Filter Tabs -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+    <div>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Marketplace Highlights</span>
+      <h2 class="font-head text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Discover Products</h2>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Explore authentic merchandise from verified Ghanaian merchants</p>
+    </div>
+
+    <!-- Client-Side Filter Tabs -->
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-semibold">
+      <button type="button" data-product-filter="all" class="product-filter-tab active px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
+        All Products
+      </button>
+      <button type="button" data-product-filter="deals" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
+        🔥 Top Deals
+      </button>
+      <button type="button" data-product-filter="top-rated" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
+        ⭐ Highly Rated (4★+)
+      </button>
+      {% for cat in category_tree|default([]) %}
+      {% if loop.index <= 4 %}
+      <button type="button" data-product-filter="{{ cat.id }}" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
+        {{ cat.name }}
+      </button>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Products Grid -->
+  {% if products|default([]) %}
+  <div data-product-grid class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+    {% for p in products %}
     {% set price = p.discount_price if p.discount_price else p.price %}
+    {% set has_discount = p.discount_price and p.discount_price < p.price %}
+    {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
     {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
-    <article data-product-card data-product-url="/product/{{ p.id }}" class="flash-sale-card group cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
-      <div class="relative aspect-square bg-slate-100 overflow-hidden">
-        <span
-          class="discount-badge absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">-{{
-          ((1 - (price / p.price)) * 100) | round | int }}%</span>
-        <div class="flash-shimmer"></div>
+    
+    <article data-product-card
+      data-product-url="/product/{{ p.id }}"
+      data-category="{{ p.category_id }}"
+      data-parent-category="{{ p.category.parent_id if p.category else '' }}"
+      data-has-discount="{{ 'true' if has_discount else 'false' }}"
+      data-rating="{{ p.average_rating }}"
+      class="group border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all flex flex-col justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
+      
+      <!-- Product Image -->
+      <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+        {% if has_discount %}
+        <span class="absolute top-2 left-2 z-10 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+          -{{ discount_pct }}%
+        </span>
+        {% endif %}
+
+        <!-- Card Quick Action Buttons -->
         <div class="card-quick-actions">
           <button type="button" data-home-wishlist="{{ p.id }}" class="card-quick-btn wishlist-btn"
-            aria-label="Add to wishlist"><i class="far fa-heart"></i></button>
+            aria-label="Add {{ p.name }} to wishlist" title="Add to wishlist">
+            <i class="far fa-heart"></i>
+          </button>
+          <button type="button" data-quick-view
+            data-id="{{ p.id }}"
+            data-name="{{ p.name }}"
+            data-price="{{ price }}"
+            data-original-price="{{ p.price if has_discount else '' }}"
+            data-discount-pct="{{ discount_pct if has_discount else '' }}"
+            data-image="{{ primary_image.image_url if primary_image else '' }}"
+            data-store="{{ p.store.store_name if p.store else '' }}"
+            data-store-url="/store/{{ p.store.id if p.store else '' }}"
+            data-rating="{{ p.average_rating }}"
+            data-reviews="{{ p.review_count }}"
+            data-desc="{{ p.description or '' }}"
+            data-stock="{{ p.stock_quantity }}"
+            data-url="/product/{{ p.id }}"
+            class="card-quick-btn quick-view-btn"
+            aria-label="Quick view {{ p.name }}" title="Quick view">
+            <i class="fas fa-eye"></i>
+          </button>
           <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
             data-image="{{ primary_image.image_url if primary_image else '' }}" class="card-quick-btn"
-            aria-label="Add to cart"><i class="fas fa-cart-plus"></i></button>
+            aria-label="Add {{ p.name }} to cart" title="Add to cart">
+            <i class="fas fa-cart-plus"></i>
+          </button>
         </div>
-        {% if primary_image %}<img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">{% else %}<div
-          class="w-full h-full flex items-center justify-center text-3xl text-slate-300">🛍️</div>{% endif %}
+
+        {% if primary_image %}
+        <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center text-3xl text-slate-300">🛍️</div>
+        {% endif %}
       </div>
-      <div class="p-3">
-        <a href="/product/{{ p.id }}" class="text-sm font-medium text-slate-700 line-clamp-2 min-h-[2.5em] hover:text-brand-600">{{ p.name }}</a>
-        <div class="text-xs text-amber-600 mt-1">★ {{ "%.1f"|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }} review{{ "s" if p.review_count != 1 else "" }})</span></div>
-        {% if p.badge_keys %}<div class="flex flex-wrap gap-1 mt-2">{% for badge in p.badge_keys[:3] %}<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-3 h-3"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}
-        <div class="mt-1.5 flex items-baseline gap-2">
-          <span class="font-bold text-red-600">₵{{ "%.2f"|format(price) }}</span>
-          <span class="text-xs text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
+
+      <!-- Card Details -->
+      <div class="p-3 flex-1 flex flex-col justify-between">
+        <div>
+          <a href="/store/{{ p.store.id }}" class="text-[11px] text-brand-600 dark:text-brand-400 font-medium hover:underline block truncate">
+            {{ p.store.store_name if p.store else 'Ghana Seller' }}
+          </a>
+          <h3 class="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-2 mt-0.5 group-hover:text-brand-600 transition-colors">
+            {{ p.name }}
+          </h3>
+
+          <div class="flex items-center gap-1 text-[11px] text-amber-500 mt-1">
+            <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
+            <span class="text-slate-400">({{ p.review_count }})</span>
+          </div>
         </div>
-        <div class="mt-2"><button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}"
-            data-price="{{ price }}" data-image="{{ primary_image.image_url if primary_image else '' }}"
-            class="w-full rounded bg-accent-500 hover:bg-accent-600 px-2 py-1.5 text-xs font-bold text-slate-900 transition-colors"><i
-              class="fas fa-shopping-cart mr-1"></i>Add to cart</button></div>
+
+        <div class="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="flex items-baseline gap-1.5">
+            <span class="font-bold text-sm sm:text-base text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
+            {% if has_discount %}
+            <span class="text-[11px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
+            {% endif %}
+          </div>
+
+          <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
+            data-image="{{ primary_image.image_url if primary_image else '' }}"
+            class="w-full mt-2 rounded bg-brand-50 hover:bg-brand-500 text-brand-700 hover:text-white dark:bg-slate-800 dark:hover:bg-brand-500 dark:text-brand-300 dark:hover:text-white px-2 py-1.5 text-xs font-bold transition-colors flex items-center justify-center gap-1">
+            <i class="fas fa-shopping-cart text-[11px]"></i>
+            <span>Add to Cart</span>
+          </button>
+        </div>
       </div>
     </article>
     {% endfor %}
   </div>
-</section>
-{% endif %}
 
-<!-- ============================================================
-     CATEGORY HIGHLIGHTS — browse by category
-     ============================================================ -->
-{% if category_tree|default([]) %}
-<section class="max-w-7xl mx-auto px-4 pt-10 pb-4">
-  <div class="flex items-end justify-between mb-5">
-    <div>
-      <p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Browse</p>
-      <h2 class="font-head text-xl md:text-2xl font-bold">Shop by category</h2>
-    </div>
-    <a href="/products" class="text-sm font-semibold text-brand-600 hover:underline">View all products</a>
+  <div id="noProductMatches" class="hidden text-center py-12 text-slate-500 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl mt-4">
+    No products found in this category filter.
   </div>
-  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-    {% for c in category_tree %}
-    <div class="relative group">
-      <a href="/products?category_id={{ c.id }}"
-        class="border border-slate-200 rounded-lg p-4 text-center bg-white hover:border-brand-500 hover:shadow-sm transition-all flex flex-col items-center justify-center min-h-[100px]">
-        <i data-lucide="{{ c.icon_url or 'shopping-bag' }}" class="w-5 h-5 text-slate-700 mb-2"></i>
-        <div class="text-xs font-semibold text-slate-700 truncate w-full">{{ c.name }}</div>
-        {% if c.children %}<div class="text-[10px] text-slate-400 mt-0.5">{{ c.children|length }} subcategories</div>{%
-        endif %}
-      </a>
-      {% if c.children %}
-      <div
-        class="absolute left-0 top-full hidden group-hover:block bg-white border border-slate-200 rounded-md shadow-lg py-2 min-w-[200px] z-50">
-        {% for child in c.children %}
-        <a href="/products?category_id={{ child.id }}"
-          class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 hover:text-brand-600 whitespace-nowrap"><i
-            data-lucide="{{ child.icon_url or 'shopping-bag' }}" class="w-3.5 h-3.5 text-slate-400"></i>{{ child.name
-          }}</a>
-        {% endfor %}
-      </div>
-      {% endif %}
-    </div>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
 
-<!-- ============================================================
-     EXPANDED PRODUCT GRID — more products, quick-action buttons
-     ============================================================ -->
-<section class="max-w-7xl mx-auto px-4 py-10">
-  <div class="flex items-end justify-between mb-5">
-    <div>
-      <p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Featured products</p>
-      <h2 class="font-head text-xl md:text-2xl font-bold">Popular picks from sellers</h2>
-    </div>
-    <a href="/products" class="text-sm font-semibold text-brand-600 hover:underline">See all products</a>
-  </div>
-  {% if products|default([]) %}
-  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-    {% for p in products %}
-    {% set price = p.discount_price if p.discount_price else p.price %}
-    {% set has_discount = p.discount_price and p.discount_price < p.price %} {% set primary_image=(p.images |
-      selectattr("is_primary") | list | first) or (p.images | first) %} <article data-product-card data-product-url="/product/{{ p.id }}"
-      class="group border border-slate-200 rounded-lg overflow-hidden bg-white hover:border-brand-500 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
-      <div class="relative aspect-square bg-slate-100 lazy-img">
-        {% if has_discount %}<span
-          class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">-{{ ((1 -
-          (price / p.price)) * 100) | round | int }}%</span>{% endif %}
-        <div class="card-quick-actions">
-          <button type="button" data-home-wishlist="{{ p.id }}" class="card-quick-btn wishlist-btn"
-            aria-label="Add {{ p.name }} to wishlist"><i class="far fa-heart"></i></button>
-          <a href="/product/{{ p.id }}" class="card-quick-btn quick-view-btn" aria-label="Quick view {{ p.name }}"><i
-              class="fas fa-eye"></i></a>
-          <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
-            data-image="{{ primary_image.image_url if primary_image else '' }}" class="card-quick-btn"
-            aria-label="Add to cart"><i class="fas fa-cart-plus"></i></button>
-        </div>
-        {% if primary_image %}<img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">{% else %}<div
-          class="w-full h-full flex items-center justify-center text-3xl text-slate-300">🛍️</div>{% endif %}
-      </div>
-      <div class="p-3">
-        <a href="/product/{{ p.id }}" class="text-sm font-medium text-slate-700 line-clamp-2 min-h-[2.5em] hover:text-brand-600">{{ p.name }}</a>
-        <div class="text-xs text-brand-600 mt-1">{{ p.store.store_name }}</div>
-        <div class="mt-1 font-bold">₵{{ "%.2f"|format(price) }}{% if has_discount %}<span class="text-xs text-slate-400 line-through font-normal ml-1">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}</div>
-        <div class="text-xs text-accent-600 mt-1">★ {{ "%.1f"|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }} review{{ "s" if p.review_count != 1 else "" }})</span></div>
-        {% if p.badge_keys %}<div class="flex flex-wrap gap-1 mt-2">{% for badge in p.badge_keys[:3] %}<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-3 h-3"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}
-        <div class="mt-2"><button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}" data-image="{{ primary_image.image_url if primary_image else '' }}" class="w-full rounded bg-accent-500 hover:bg-accent-600 px-2 py-1.5 text-xs font-bold text-slate-900 transition-colors"><i class="fas fa-shopping-cart mr-1"></i>Add to cart</button></div>
-      </div>
-      </article>
-      {% endfor %}
+  <div class="text-center mt-8">
+    <a href="/products"
+      class="inline-flex items-center gap-2 bg-brand-700 hover:bg-slate-800 text-white dark:bg-accent-200 dark:hover:bg-slate-100 dark:text-slate-950 font-bold px-8 py-3 rounded-xl transition-colors shadow">
+      <span>Browse Complete Catalog</span>
+      <i class="fas fa-arrow-right text-xs"></i>
+    </a>
   </div>
   {% else %}
-  <div class="text-center py-16 text-slate-500 bg-white rounded-lg border border-slate-200">No products yet. Check back
-    soon.</div>
+  <div class="text-center py-16 text-slate-500 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+    No products available yet. Check back soon!
+  </div>
   {% endif %}
 </section>
 
+
 <!-- ============================================================
-     FEATURED STORES — vendor spotlights
+     6B. HIGHLY RATED — horizontal-scroll rail, compact cards
+     ============================================================ -->
+{% if top_rated|default([]) %}
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <div class="flex items-end justify-between mb-4">
+    <div>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Customer Favorites</span>
+      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Highly Rated</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">4★ and up, straight from real buyer reviews</p>
+    </div>
+    <a href="/products?sort=rating_desc" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group shrink-0">
+      <span>See All</span>
+      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+    </a>
+  </div>
+
+  <div class="relative" data-scroll-rail>
+    <button type="button" data-scroll-prev aria-label="Scroll left"
+      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </button>
+
+    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
+      {% for p in top_rated %}
+      {% set price = p.discount_price if p.discount_price else p.price %}
+      {% set has_discount = p.discount_price and p.discount_price < p.price %}
+      {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
+      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+      <article data-product-card data-product-url="/product/{{ p.id }}"
+        class="group shrink-0 snap-start w-[136px] sm:w-[160px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          <span class="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+            ★ {{ "%.1f"|format(p.average_rating) }}
+          </span>
+          {% if primary_image %}
+          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>
+          {% endif %}
+        </div>
+        <div class="p-2">
+          <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+            {{ p.name }}
+          </h3>
+          <div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+            <span>{{ p.review_count }} review{{ 's' if p.review_count != 1 else '' }}</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1">
+            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
+            {% if has_discount %}
+            <span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <button type="button" data-scroll-next aria-label="Scroll right"
+      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>
+  </div>
+</section>
+{% endif %}
+
+
+<!-- ============================================================
+     7. PROMOTIONAL BANNERS & COMBO CAMPAIGNS
+     ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 py-8" aria-labelledby="campaigns-heading">
+  <div class="flex items-end justify-between mb-4">
+    <div>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Special Campaigns</span>
+      <h2 id="campaigns-heading" class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Shop Local & Grow Your Business</h2>
+    </div>
+  </div>
+
+  <div class="grid sm:grid-cols-3 gap-4">
+    <!-- Banner 1: Local Ghana Sellers -->
+    <a href="/products"
+      class="group relative rounded-2xl overflow-hidden min-h-[220px] flex flex-col justify-end p-5 text-white shadow-md">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081195/Gemini_Generated_Image_1xyv7m1xyv7m1xyv.jpg"
+        alt="Made in Ghana products" loading="lazy"
+        class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"></div>
+      <div class="relative z-10">
+        <span class="text-[10px] font-bold tracking-widest text-accent-300 uppercase">LOCAL MERCHANTS</span>
+        <h3 class="font-head text-lg font-bold mt-1">Made In Ghana & Authentic Brands</h3>
+        <p class="text-xs text-slate-200 mt-1 line-clamp-2">Support local craftsmanship with safe payments and delivery to your doorstep.</p>
+        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 mt-2 group-hover:translate-x-1 transition-transform">
+          Shop Now <i class="fas fa-arrow-right text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <!-- Banner 2: Handyman Service -->
+    <a href="/services"
+      class="group relative rounded-2xl overflow-hidden min-h-[220px] flex flex-col justify-end p-5 text-white shadow-md">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081557/Gemini_Generated_Image_mlwywumlwywumlwy.jpg"
+        alt="Handyman Hub Services" loading="lazy"
+        class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+      <div class="absolute inset-0 bg-gradient-to-t from-teal-950/90 via-teal-950/40 to-transparent"></div>
+      <div class="relative z-10">
+        <span class="text-[10px] font-bold tracking-widest text-teal-300 uppercase">HANDYMAN ON DEMAND</span>
+        <h3 class="font-head text-lg font-bold mt-1">Fix, Install & Renovate with Confidence</h3>
+        <p class="text-xs text-slate-200 mt-1 line-clamp-2">Book electrical, plumbing, carpentry, or masonry services with escrow protection.</p>
+        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-teal-300 mt-2 group-hover:translate-x-1 transition-transform">
+          Find a Pro <i class="fas fa-arrow-right text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <!-- Banner 3: Vendor Onboarding -->
+    <a href="/seller/dashboard.html"
+      class="group relative rounded-2xl overflow-hidden min-h-[220px] flex flex-col justify-end p-5 text-white shadow-md">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081367/Gemini_Generated_Image_h8fvveh8fvveh8fv.jpg"
+        alt="Sell on EraVenda" loading="lazy"
+        class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"></div>
+      <div class="relative z-10">
+        <span class="text-[10px] font-bold tracking-widest text-accent-400 uppercase">SELL ON ERAVENDA</span>
+        <h3 class="font-head text-lg font-bold mt-1">Grow Your Business Across All Ghana</h3>
+        <p class="text-xs text-slate-200 mt-1 line-clamp-2">Open your verified store in minutes. Zero upfront fees and fast payouts.</p>
+        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-accent-300 mt-2 group-hover:translate-x-1 transition-transform">
+          Open Store <i class="fas fa-arrow-right text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     8. FEATURED STORES — Verified Merchant Spotlights
      ============================================================ -->
 {% if featured_stores|default([]) %}
-<section class="max-w-7xl mx-auto px-4 pb-10">
-  <div class="flex items-end justify-between mb-5">
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <div class="flex items-end justify-between mb-4">
     <div>
-      <p class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Our sellers</p>
-      <h2 class="font-head text-xl md:text-2xl font-bold">Featured stores</h2>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Independent Sellers</span>
+      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Featured Merchant Stores</h2>
     </div>
-    <a href="/products" class="text-sm font-semibold text-brand-600 hover:underline">Browse all products</a>
+    <a href="/products" class="text-xs sm:text-sm font-semibold text-brand-600 hover:underline">Browse All</a>
   </div>
+
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
     {% for store in featured_stores %}
     <a href="/store/{{ store.id }}"
-      class="group border border-slate-200 rounded-lg p-4 text-center bg-white hover:border-brand-500 hover:shadow-sm transition-all">
-      <div
-        class="w-12 h-12 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center mx-auto mb-2 text-lg font-bold">
+      class="group border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-center bg-white dark:bg-slate-900 hover:border-brand-500 hover:shadow-md transition-all">
+      <div class="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 flex items-center justify-center mx-auto mb-2 text-base font-bold shadow-inner">
         {{ store.store_name[0]|upper if store.store_name else '?' }}
       </div>
-      <div class="text-sm font-semibold text-slate-700 truncate group-hover:text-brand-600">{{ store.store_name }}</div>
-      <div class="text-xs text-slate-400 mt-1">Visit store →</div>
+      <h4 class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 truncate group-hover:text-brand-600 transition-colors">
+        {{ store.store_name }}
+      </h4>
+      <span class="inline-flex items-center gap-1 text-[10px] text-brand-600 dark:text-brand-400 mt-1 font-medium">
+        <i class="fas fa-check-circle text-[9px]"></i> Verified Store
+      </span>
     </a>
     {% endfor %}
   </div>
@@ -320,152 +1008,166 @@ tracked delivery.{% endblock %}
 {% endif %}
 
 
-
 <!-- ============================================================
-     SERVICES CTA — professional services showcase
+     9. TESTIMONIALS & SOCIAL PROOF — Products + Handyman Hub
      ============================================================ -->
-
-<!-- Seller CTA & Professional CTA -->
-<div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row gap-4">
-  <!-- Seller CTA -->
-  <section class="flex-1">
-    <div
-      class="relative overflow-hidden rounded-lg bg-[var(--bg-secondary)] text-slate-900 p-5 md:p-6 min-h-[180px] flex flex-col justify-between h-full">
-      <div class="absolute -right-16 -top-16 w-48 h-48 rounded-full border-[30px] border-white/5"></div>
-      <div class="absolute -left-10 -bottom-10 w-36 h-36 rounded-full border-[24px] border-white/[0.03]"></div>
-      <div class="relative">
-        <span class="inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-accent-400 uppercase"><i
-            data-lucide="store" class="w-4 h-4"></i> Sell on EraVenda</span>
-        <h2 class="font-head text-2xl md:text-3xl font-bold mt-3 leading-tight">Your products deserve a bigger audience.
-        </h2>
-        <p class="mt-3 text-slate-500 leading-relaxed max-w-lg">
-          Customers are already looking for what you sell. Open your store in minutes and start growing.
-        </p>
-      </div>
-      <a href="/seller/dashboard.html"
-        class="relative mt-4 inline-flex w-fit items-center gap-2 bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold px-5 py-2.5 rounded-lg transition-colors">Start
-        selling today <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
-    </div>
-  </section>
-
-  <!-- professional CTA -->
-  <section class="flex-1">
-    <div
-      class="relative overflow-hidden rounded-lg bg-teal-800 text-white p-5 md:p-6 min-h-[180px] flex flex-col justify-between h-full">
-      <div class="absolute -right-16 -top-16 w-48 h-48 rounded-full border-[30px] border-white/5"></div>
-      <div class="absolute -left-10 -bottom-10 w-36 h-36 rounded-full border-[24px] border-white/[0.03]"></div>
-      <div class="relative">
-        <span class="inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-teal-200 uppercase"><i
-            class="fas fa-screwdriver-wrench"></i> Handyman Hub</span>
-        <h2 class="font-head text-2xl md:text-3xl font-bold mt-3 leading-tight">Don't just shop — get it done.</h2>
-        <p class="mt-3 text-teal-100 leading-relaxed max-w-lg">
-          Book verified professionals online. Pay securely. Rate your experience.
-        </p>
-      </div>
-      <div class="relative mt-4 flex flex-wrap gap-3">
-        <a href="/services"
-          class="inline-flex items-center gap-2 bg-white hover:bg-teal-50 text-teal-800 font-bold px-5 py-2.5 rounded-lg transition-colors text-sm">Hire
-          a Handyman <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
-        <a href="/services/register"
-          class="inline-flex items-center gap-2 border border-white/40 text-white hover:bg-white/10 font-bold px-5 py-2.5 rounded-lg transition-colors text-sm">Join
-          as a Handyman <i data-lucide="user-plus" class="w-4 h-4"></i></a>
-      </div>
-    </div>
-  </section>
-</div>
-
-
-
-<!-- ============================================================
-     WHY SHOP WITH US — trust & assurance strip
-     ============================================================ -->
-<section class="bg-[var(--bg-secondary)] text-brand-600 py-6 md:py-8">
+<section class="bg-slate-50 dark:bg-slate-900/60 border-y border-slate-200 dark:border-slate-800 py-12">
   <div class="max-w-7xl mx-auto px-4">
-    <div class="text-center max-w-2xl mx-auto mb-5">
-      <p class="text-xs font-bold tracking-[0.22em] text-brand-600 uppercase mb-2">The EraVenda Difference</p>
-      <h2 class="font-head text-2xl md:text-3xl font-bold leading-tight text-slate-900">More than a marketplace — a
-        promise.</h2>
-      <p class="mt-2 text-slate-600 leading-relaxed">
-        We stand behind every transaction so you never have to worry.
-      </p>
+    <div class="text-center max-w-2xl mx-auto mb-8">
+      <span class="text-xs font-bold tracking-[0.2em] text-brand-600 uppercase">Real Stories</span>
+      <h2 class="font-head text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-1">Loved by Shoppers & Homeowners</h2>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">See how EraVenda makes shopping and home maintenance effortless across Ghana.</p>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      <div class="text-center p-3">
-        <div class="w-12 h-12 rounded-full bg-brand-600/10 flex items-center justify-center mx-auto mb-2">
-          <i class="fas fa-shield-halved text-accent-500 text-xl"></i>
+
+    <div class="grid sm:grid-cols-3 gap-5">
+      <!-- Story 1 -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="text-amber-500 text-sm mb-2">★★★★★</div>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
+            "Ordered mobile accessories from Accra to Kumasi. Arrived in under 24 hours, packaged neatly. The MoMo checkout was super fast!"
+          </p>
         </div>
-        <h3 class="font-head font-bold text-sm mb-1 text-slate-900">Verified Sellers</h3>
-        <p class="text-xs text-slate-600 leading-relaxed">Every seller is vetted before they list. No anonymous vendors
-          — real people, real accountability.</p>
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 font-bold text-xs flex items-center justify-center">KA</div>
+          <div>
+            <h5 class="text-xs font-bold text-slate-900 dark:text-white">Kofi A.</h5>
+            <span class="text-[10px] text-slate-400">Verified Buyer · Kumasi</span>
+          </div>
+        </div>
       </div>
-      <div class="text-center p-3">
-        <div class="w-12 h-12 rounded-full bg-brand-600/10 flex items-center justify-center mx-auto mb-2">
-          <i class="fas fa-lock text-accent-500 text-xl"></i>
+
+      <!-- Story 2: Handyman Hub -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-teal-200 dark:border-teal-900 shadow-sm flex flex-col justify-between relative overflow-hidden">
+        <div class="absolute top-0 right-0 bg-teal-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg uppercase">Handyman Hub</div>
+        <div>
+          <div class="text-amber-500 text-sm mb-2">★★★★★</div>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
+            "Needed an emergency electrician for my salon. Found an approved pro on Handyman Hub in 20 minutes. The escrow payment gave total peace of mind!"
+          </p>
         </div>
-        <h3 class="font-head font-bold text-sm mb-1 text-slate-900">Secure Payments</h3>
-        <p class="text-xs text-slate-600 leading-relaxed">Pay with card, mobile money or cash on delivery — every method
-          is encrypted and protected.</p>
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-800 font-bold text-xs flex items-center justify-center">AB</div>
+          <div>
+            <h5 class="text-xs font-bold text-slate-900 dark:text-white">Abena B.</h5>
+            <span class="text-[10px] text-slate-400">Service Client · East Legon</span>
+          </div>
+        </div>
       </div>
-      <div class="text-center p-3">
-        <div class="w-12 h-12 rounded-full bg-brand-600/10 flex items-center justify-center mx-auto mb-2">
-          <i class="fas fa-truck-fast text-accent-500 text-xl"></i>
+
+      <!-- Story 3 -->
+      <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="text-amber-500 text-sm mb-2">★★★★★</div>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed italic">
+            "I sell handmade leather shoes. Setting up my store was easy, and having integrated delivery handling took a massive burden off my shoulders."
+          </p>
         </div>
-        <h3 class="font-head font-bold text-sm mb-1 text-slate-900">Tracked Delivery</h3>
-        <p class="text-xs text-slate-600 leading-relaxed">Follow your order from purchase to doorstep. Real-time updates
-          so you're never left guessing.</p>
-      </div>
-      <div class="text-center p-3">
-        <div class="w-12 h-12 rounded-full bg-brand-600/10 flex items-center justify-center mx-auto mb-2">
-          <i class="fas fa-star text-accent-500 text-xl"></i>
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center">EO</div>
+          <div>
+            <h5 class="text-xs font-bold text-slate-900 dark:text-white">Emmanuel O.</h5>
+            <span class="text-[10px] text-slate-400">Store Vendor · Tema</span>
+          </div>
         </div>
-        <h3 class="font-head font-bold text-sm mb-1 text-slate-900">Real Reviews</h3>
-        <p class="text-xs text-slate-600 leading-relaxed">Ratings and reviews from verified buyers only. See what real
-          customers think before you buy.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Scripts for hero/carousel/icons -->
+
+<!-- ============================================================
+     10. ACCESSIBLE QUICK-VIEW MODAL DIALOG
+     ============================================================ -->
+<dialog id="quickViewModal" aria-labelledby="qvTitle">
+  <div class="relative bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-2xl overflow-hidden flex flex-col md:flex-row">
+    
+    <!-- Close Button -->
+    <button type="button" data-close-quick-view
+      class="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 flex items-center justify-center transition"
+      aria-label="Close product preview">
+      <i class="fas fa-xmark text-sm"></i>
+    </button>
+
+    <!-- Left: Image Preview -->
+    <div class="md:w-1/2 bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative min-h-[260px] md:min-h-[380px]">
+      <span id="qvDiscount" class="hidden absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded shadow"></span>
+      <img id="qvImg" src="" alt="" class="w-full h-full max-h-[380px] object-cover">
+    </div>
+
+    <!-- Right: Details & Add to Cart -->
+    <div class="p-6 md:w-1/2 flex flex-col justify-between">
+      <div>
+        <a id="qvStore" href="#" class="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline block"></a>
+        <h2 id="qvTitle" class="font-head text-lg sm:text-xl font-bold mt-1 text-slate-900 dark:text-white"></h2>
+        
+        <div id="qvRating" class="text-xs text-amber-500 mt-1.5 flex items-center gap-1.5 font-bold"></div>
+
+        <div class="mt-3 flex items-baseline gap-2">
+          <span id="qvPrice" class="text-2xl font-bold text-brand-700 dark:text-brand-400"></span>
+          <span id="qvOldPrice" class="hidden text-sm text-slate-400 line-through"></span>
+        </div>
+
+        <p id="qvStock" class="mt-2 text-xs font-medium"></p>
+        <p id="qvDesc" class="mt-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-4"></p>
+      </div>
+
+      <!-- Action Row -->
+      <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center border border-slate-300 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800">
+            <span class="text-xs px-2.5 text-slate-500">Qty</span>
+            <input type="number" id="qvQtyInput" value="1" min="1" max="50"
+              class="w-14 py-1.5 text-center text-sm font-semibold bg-transparent focus:outline-none">
+          </div>
+          <button type="button" id="qvAddToCartBtn"
+            class="flex-1 bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition-colors flex items-center justify-center gap-2 shadow">
+            <i class="fas fa-shopping-cart"></i> Add to Cart
+          </button>
+        </div>
+
+        <a id="qvViewProductLink" href="#"
+          class="block text-center text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">
+          View full details & specifications →
+        </a>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Hero Carousel Logic & Icon Initialization -->
 <script>
   (function () {
     let currentSlide = 0;
     const slides = document.querySelectorAll('#hero-slideshow .slide');
-    const dots = document.querySelectorAll('#hero-slideshow .dot');
+    const dots = document.querySelectorAll('.dot');
     const totalSlides = slides.length;
-    const slideInterval = 5000;
+    if (!totalSlides) return;
+
     function showSlide(index) {
       slides.forEach((slide, i) => {
         slide.classList.toggle('opacity-100', i === index);
         slide.classList.toggle('opacity-0', i !== index);
       });
-      dots.forEach((dot, i) => dot.style.opacity = i === index ? '1' : '0.4');
+      dots.forEach((dot, i) => {
+        dot.style.opacity = i === index ? '1' : '0.4';
+      });
       currentSlide = index;
     }
-    function nextSlide() { showSlide((currentSlide + 1) % totalSlides); }
-    let timer = setInterval(nextSlide, slideInterval);
-    window.goToSlide = function (index) { showSlide(index); clearInterval(timer); timer = setInterval(nextSlide, slideInterval); };
+
+    function nextSlide() {
+      showSlide((currentSlide + 1) % totalSlides);
+    }
+
+    let timer = setInterval(nextSlide, 5000);
+    window.goToSlide = function (index) {
+      showSlide(index);
+      clearInterval(timer);
+      timer = setInterval(nextSlide, 5000);
+    };
   })();
 </script>
-
-<script src="https://unpkg.com/lucide@latest"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    if (window.lucide) lucide.createIcons();
-    const carousel = document.getElementById("promoCarousel");
-    if (!carousel) return;
-    const move = (direction) => carousel.scrollBy({ left: direction * carousel.clientWidth * .82, behavior: "smooth" });
-    function autoAdvance() {
-      const atEnd = carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 10;
-      atEnd ? carousel.scrollTo({ left: 0, behavior: "smooth" }) : move(1);
-    }
-    let timer = setInterval(autoAdvance, 5000);
-    function resetTimer() { clearInterval(timer); timer = setInterval(autoAdvance, 5000); }
-    document.querySelector("[data-promo-prev]")?.addEventListener("click", () => { move(-1); resetTimer(); });
-    document.querySelector("[data-promo-next]")?.addEventListener("click", () => { move(1); resetTimer(); });
-    carousel.addEventListener("mouseenter", () => clearInterval(timer));
-    carousel.addEventListener("mouseleave", resetTimer);
-  });
-</script>
-
 {% endblock %}

@@ -254,39 +254,45 @@ function refreshWishlistBadge() {
 
 // ------------------------------------------------------------------
 // Module: Theme switcher
-// Toggles between light and dark mode. Persists the choice in
-// localStorage and applies it via data-theme on <html>.
+// Three modes: light, dark, or system. "system" is represented by the
+// ABSENCE of erv_theme in localStorage — not the literal string — so the
+// pre-paint flash-prevention script in base.html (which already checks
+// `!t && matches`) keeps working unmodified. While in system mode, a live
+// listener updates the page immediately if the OS theme changes without
+// needing a reload.
 // ------------------------------------------------------------------
 const ThemeSwitcher = {
-  get() {
-    return document.documentElement.getAttribute("data-theme") || "light";
+  _mq: window.matchMedia("(prefers-color-scheme: dark)"),
+  getMode() {
+    return localStorage.getItem("erv_theme") || "system";
   },
-  set(theme) {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("erv_theme", theme);
+  _resolve(mode) {
+    return mode === "system" ? (this._mq.matches ? "dark" : "light") : mode;
   },
-  toggle() {
-    this.set(this.get() === "dark" ? "light" : "dark");
+  _apply(mode) {
+    document.documentElement.setAttribute("data-theme", this._resolve(mode));
+  },
+  set(mode) {
+    if (mode === "system") localStorage.removeItem("erv_theme");
+    else localStorage.setItem("erv_theme", mode);
+    this._apply(mode);
+    this._syncControls();
+  },
+  _syncControls() {
+    const mode = this.getMode();
+    document.querySelectorAll("[data-theme-option]").forEach(btn => {
+      const active = btn.dataset.themeOption === mode;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+    });
   },
   init() {
-    document.querySelectorAll("[data-theme-toggle]").forEach(el => {
-      el.addEventListener("change", () => {
-        this.set(el.checked ? "dark" : "light");
-        document.querySelectorAll("[data-theme-toggle]").forEach(other => {
-          if (other !== el) other.checked = el.checked;
-        });
-      });
-      el.addEventListener("click", () => {
-        if (el.tagName === "BUTTON") {
-          this.toggle();
-          document.querySelectorAll("[data-theme-toggle]").forEach(other => {
-            if (other.tagName === "INPUT") other.checked = this.get() === "dark";
-          });
-        }
-      });
+    document.querySelectorAll("[data-theme-option]").forEach(btn => {
+      btn.addEventListener("click", () => this.set(btn.dataset.themeOption));
     });
-    document.querySelectorAll("[data-theme-toggle]").forEach(el => {
-      if (el.tagName === "INPUT") el.checked = this.get() === "dark";
+    this._syncControls();
+    this._mq.addEventListener("change", () => {
+      if (this.getMode() === "system") this._apply("system");
     });
   },
 };
@@ -977,6 +983,45 @@ function initCategoryStrip() {
 }
 
 // ------------------------------------------------------------------
+// Module: Horizontal product rails
+// Generic version of the category strip slider above, for any number of
+// horizontal-scroll rails on a page (e.g. the homepage's Top Deals and
+// Highly Rated rows). Each rail just needs data-scroll-rail on the
+// wrapper, data-scroll-track on the scrolling element, and
+// data-scroll-prev/data-scroll-next on its arrow buttons.
+// ------------------------------------------------------------------
+function initScrollRails() {
+  document.querySelectorAll("[data-scroll-rail]").forEach(rail => {
+    if (rail.dataset.scrollRailBound === "1") return;
+    rail.dataset.scrollRailBound = "1";
+
+    const track = rail.querySelector("[data-scroll-track]");
+    const prevBtn = rail.querySelector("[data-scroll-prev]");
+    const nextBtn = rail.querySelector("[data-scroll-next]");
+    if (!track || !prevBtn || !nextBtn) return;
+
+    const updateArrows = () => {
+      const maxScroll = track.scrollWidth - track.clientWidth;
+      const atStart = track.scrollLeft <= 4;
+      const atEnd = track.scrollLeft >= maxScroll - 4;
+      prevBtn.classList.toggle("hidden", atStart);
+      prevBtn.classList.toggle("flex", !atStart);
+      nextBtn.classList.toggle("hidden", maxScroll <= 4 || atEnd);
+      nextBtn.classList.toggle("flex", maxScroll > 4 && !atEnd);
+    };
+    const page = (direction) => {
+      track.scrollBy({ left: direction * track.clientWidth * 0.8, behavior: "smooth" });
+    };
+
+    prevBtn.addEventListener("click", () => page(-1));
+    nextBtn.addEventListener("click", () => page(1));
+    track.addEventListener("scroll", updateArrows);
+    window.addEventListener("resize", updateArrows);
+    updateArrows();
+  });
+}
+
+// ------------------------------------------------------------------
 // Module: Category subcategory dropdowns
 // Each parent category's subcategories live in a <template>, kept
 // outside the horizontally-scrolling strip. Clicking a parent's chevron
@@ -1135,6 +1180,267 @@ function initProductCards() {
 }
 
 // ------------------------------------------------------------------
+// Module: Homepage Enhancements
+// Mode switcher, flash countdown, product tabs, quick view modal
+// ------------------------------------------------------------------
+function initHomeModeSwitcher() {
+  const switchBtns = document.querySelectorAll("[data-hero-mode]");
+  const productsPanel = document.getElementById("heroProductsPanel");
+  const handymanPanel = document.getElementById("heroHandymanPanel");
+  if (!switchBtns.length || !productsPanel || !handymanPanel) return;
+
+  switchBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const mode = btn.dataset.heroMode;
+      switchBtns.forEach(b => {
+        const isActive = b === btn;
+        b.classList.toggle("active", isActive);
+        b.setAttribute("aria-pressed", String(isActive));
+      });
+      if (mode === "products") {
+        productsPanel.classList.remove("hidden");
+        handymanPanel.classList.add("hidden");
+      } else {
+        productsPanel.classList.add("hidden");
+        handymanPanel.classList.remove("hidden");
+      }
+    });
+  });
+}
+
+function initFlashCountdown() {
+  const hoursEl = document.getElementById("flashHours");
+  const minsEl = document.getElementById("flashMins");
+  const secsEl = document.getElementById("flashSecs");
+  if (!hoursEl || !minsEl || !secsEl) return;
+
+  function update() {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    const diff = Math.max(0, Math.floor((midnight.getTime() - now.getTime()) / 1000));
+
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
+
+    hoursEl.textContent = String(h).padStart(2, "0");
+    minsEl.textContent = String(m).padStart(2, "0");
+    secsEl.textContent = String(s).padStart(2, "0");
+  }
+
+  update();
+  setInterval(update, 1000);
+}
+
+function initProductFilterTabs() {
+  const tabs = document.querySelectorAll("[data-product-filter]");
+  const productCards = document.querySelectorAll("[data-product-grid] [data-product-card]");
+  const noMatchesEl = document.getElementById("noProductMatches");
+  if (!tabs.length || !productCards.length) return;
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      const filter = tab.dataset.productFilter;
+
+      let visibleCount = 0;
+      productCards.forEach(card => {
+        let show = false;
+        if (filter === "all") {
+          show = true;
+        } else if (filter === "deals") {
+          show = card.dataset.hasDiscount === "true";
+        } else if (filter === "top-rated") {
+          show = parseFloat(card.dataset.rating || "0") >= 4.0;
+        } else {
+          show = card.dataset.category === filter || card.dataset.parentCategory === filter;
+        }
+
+        if (show) {
+          card.classList.remove("hidden");
+          visibleCount++;
+        } else {
+          card.classList.add("hidden");
+        }
+      });
+
+      if (noMatchesEl) {
+        noMatchesEl.classList.toggle("hidden", visibleCount > 0);
+      }
+    });
+  });
+}
+
+function initQuickViewModal() {
+  const modal = document.getElementById("quickViewModal");
+  if (!modal) return;
+
+  const closeBtns = modal.querySelectorAll("[data-close-quick-view]");
+  const qvImg = document.getElementById("qvImg");
+  const qvTitle = document.getElementById("qvTitle");
+  const qvPrice = document.getElementById("qvPrice");
+  const qvOldPrice = document.getElementById("qvOldPrice");
+  const qvDiscount = document.getElementById("qvDiscount");
+  const qvStore = document.getElementById("qvStore");
+  const qvRating = document.getElementById("qvRating");
+  const qvDesc = document.getElementById("qvDesc");
+  const qvStock = document.getElementById("qvStock");
+  const qvQty = document.getElementById("qvQtyInput");
+  const qvAddBtn = document.getElementById("qvAddToCartBtn");
+  const qvLink = document.getElementById("qvViewProductLink");
+
+  let currentProductId = null;
+  let currentProductData = {};
+
+  document.querySelectorAll("[data-quick-view]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      currentProductId = btn.dataset.id;
+      currentProductData = {
+        id: btn.dataset.id,
+        name: btn.dataset.name || "",
+        price: btn.dataset.price || "0",
+        originalPrice: btn.dataset.originalPrice || "",
+        discountPct: btn.dataset.discountPct || "",
+        image: btn.dataset.image || "",
+        store: btn.dataset.store || "",
+        storeUrl: btn.dataset.storeUrl || "",
+        rating: btn.dataset.rating || "0",
+        reviews: btn.dataset.reviews || "0",
+        description: btn.dataset.desc || "",
+        stock: parseInt(btn.dataset.stock || "1", 10),
+        url: btn.dataset.url || `/product/${btn.dataset.id}`,
+      };
+
+      if (qvImg) {
+        qvImg.src = currentProductData.image || "https://res.cloudinary.com/ni2pcrua/image/upload/v1788604601/samples/shoe.jpg";
+        qvImg.alt = currentProductData.name;
+      }
+      if (qvTitle) qvTitle.textContent = currentProductData.name;
+      if (qvPrice) qvPrice.textContent = `₵${parseFloat(currentProductData.price).toFixed(2)}`;
+      if (qvOldPrice) {
+        if (currentProductData.originalPrice && parseFloat(currentProductData.originalPrice) > parseFloat(currentProductData.price)) {
+          qvOldPrice.textContent = `₵${parseFloat(currentProductData.originalPrice).toFixed(2)}`;
+          qvOldPrice.classList.remove("hidden");
+        } else {
+          qvOldPrice.classList.add("hidden");
+        }
+      }
+      if (qvDiscount) {
+        if (currentProductData.discountPct && parseInt(currentProductData.discountPct, 10) > 0) {
+          qvDiscount.textContent = `-${currentProductData.discountPct}%`;
+          qvDiscount.classList.remove("hidden");
+        } else {
+          qvDiscount.classList.add("hidden");
+        }
+      }
+      if (qvStore) {
+        qvStore.textContent = currentProductData.store ? `Store: ${currentProductData.store}` : "Verified Seller";
+        if (qvStore.tagName === "A" && currentProductData.storeUrl) {
+          qvStore.href = currentProductData.storeUrl;
+        }
+      }
+      if (qvRating) {
+        qvRating.innerHTML = `★ ${parseFloat(currentProductData.rating).toFixed(1)} <span class="text-slate-400 font-normal">(${currentProductData.reviews} reviews)</span>`;
+      }
+      if (qvDesc) {
+        qvDesc.textContent = currentProductData.description || "High quality product from verified marketplace sellers with fast nationwide delivery.";
+      }
+      if (qvStock) {
+        if (currentProductData.stock > 0) {
+          qvStock.textContent = `${currentProductData.stock} in stock · Ready to dispatch`;
+          qvStock.className = "text-xs font-semibold text-brand-700";
+          if (qvAddBtn) qvAddBtn.disabled = false;
+        } else {
+          qvStock.textContent = "Out of stock";
+          qvStock.className = "text-xs font-semibold text-red-600";
+          if (qvAddBtn) qvAddBtn.disabled = true;
+        }
+      }
+      if (qvQty) {
+        qvQty.value = "1";
+        qvQty.max = String(Math.max(1, currentProductData.stock));
+      }
+      if (qvLink) qvLink.href = currentProductData.url;
+      if (qvAddBtn) {
+        qvAddBtn.innerHTML = '<i class="fas fa-shopping-cart mr-1.5"></i> Add to Cart';
+      }
+
+      if (typeof modal.showModal === "function") {
+        modal.showModal();
+      } else {
+        modal.setAttribute("open", "");
+      }
+    });
+  });
+
+  const closeModal = () => {
+    if (typeof modal.close === "function") {
+      modal.close();
+    } else {
+      modal.removeAttribute("open");
+    }
+  };
+
+  closeBtns.forEach(btn => btn.addEventListener("click", closeModal));
+
+  modal.addEventListener("click", (e) => {
+    const rect = modal.getBoundingClientRect();
+    const isInDialog = (
+      rect.top <= e.clientY &&
+      e.clientY <= rect.top + rect.height &&
+      rect.left <= e.clientX &&
+      e.clientX <= rect.left + rect.width
+    );
+    if (!isInDialog) {
+      closeModal();
+    }
+  });
+
+  if (qvAddBtn) {
+    qvAddBtn.addEventListener("click", async () => {
+      if (!currentProductId) return;
+      const qty = parseInt(qvQty?.value || "1", 10) || 1;
+
+      if (!Auth.isLoggedIn()) {
+        GuestCart.addItem({
+          product_id: currentProductId,
+          name: currentProductData.name,
+          price: currentProductData.price,
+          image_url: currentProductData.image,
+          quantity: qty,
+        });
+        showToast("Added to your cart");
+        qvAddBtn.innerHTML = '<i class="fas fa-check mr-1.5"></i> Added';
+        setTimeout(() => {
+          qvAddBtn.innerHTML = '<i class="fas fa-shopping-cart mr-1.5"></i> Add to Cart';
+        }, 2000);
+        return;
+      }
+
+      try {
+        await apiFetch("/cart/items", {
+          method: "POST",
+          body: { product_id: currentProductId, quantity: qty }
+        });
+        showToast("Added to your cart");
+        refreshCartBadge();
+        qvAddBtn.innerHTML = '<i class="fas fa-check mr-1.5"></i> Added';
+        setTimeout(() => {
+          qvAddBtn.innerHTML = '<i class="fas fa-shopping-cart mr-1.5"></i> Add to Cart';
+        }, 2000);
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    });
+  }
+}
+
+// ------------------------------------------------------------------
 // Boot
 // ------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
@@ -1149,10 +1455,16 @@ document.addEventListener("DOMContentLoaded", () => {
   initIcons();
   initPasswordToggles();
   initCategoryStrip();
+  initScrollRails();
   initCategoryDropdowns();
   initCardActions();
   initProductCards();
   hydrateWishlistHearts();
+  initHomeModeSwitcher();
+  initFlashCountdown();
+  initProductFilterTabs();
+  initQuickViewModal();
   ThemeSwitcher.init();
   UserSettings.init();
 });
+

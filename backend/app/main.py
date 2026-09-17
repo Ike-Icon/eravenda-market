@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session, selectinload
 from .database import Base, engine, get_db
 from .migrate import run_migrations
 from . import models  # noqa: F401 - registers models on Base before create_all
-from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter
+from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products
 
 app = FastAPI(title="Eravenda API", version="1.0.0")
 
@@ -80,6 +80,9 @@ app.include_router(services.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(delivery.router, prefix="/api")
 app.include_router(newsletter.router, prefix="/api")
+app.include_router(import_products.template_router, prefix="/api")
+app.include_router(import_products.seller_import_router, prefix="/api")
+app.include_router(import_products.admin_import_router, prefix="/api")
 
 
 @app.get("/api/health")
@@ -174,9 +177,51 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         .limit(6)
         .all()
     )
+    featured_handymen = (
+        db.query(models.HandymanProfile)
+        .options(selectinload(models.HandymanProfile.portfolio))
+        .filter(models.HandymanProfile.status == models.ServiceStatus.approved)
+        .order_by(models.HandymanProfile.average_rating.desc(), models.HandymanProfile.review_count.desc())
+        .limit(6)
+        .all()
+    )
+    # Distinct from flash_deals (which is recency-ordered for the countdown
+    # banner): this is the biggest absolute cedi savings across the catalog,
+    # feeding the horizontal-scroll "Top Deals" rail further down the page.
+    top_deals = (
+        db.query(models.Product)
+        .filter(
+            models.Product.status == models.ProductStatus.approved,
+            models.Product.discount_price.isnot(None),
+            models.Product.discount_price < models.Product.price,
+        )
+        .order_by((models.Product.price - models.Product.discount_price).desc())
+        .limit(14)
+        .all()
+    )
+    top_rated = (
+        db.query(models.Product)
+        .filter(
+            models.Product.status == models.ProductStatus.approved,
+            models.Product.average_rating >= 4,
+            models.Product.review_count > 0,
+        )
+        .order_by(models.Product.average_rating.desc(), models.Product.review_count.desc())
+        .limit(14)
+        .all()
+    )
     return templates.TemplateResponse(
         "index.html",
-        page_context(request, db, products=products_list, flash_deals=flash_deals, featured_stores=featured_stores),
+        page_context(
+            request,
+            db,
+            products=products_list,
+            flash_deals=flash_deals,
+            featured_stores=featured_stores,
+            featured_handymen=featured_handymen,
+            top_deals=top_deals,
+            top_rated=top_rated,
+        ),
     )
 
 
