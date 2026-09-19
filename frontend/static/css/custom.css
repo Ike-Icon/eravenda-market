@@ -1215,3 +1215,43 @@ dialog#quickViewModal[open] {
   border-color: #1c6b4f;
   color: #ffffff;
 }
+
+
+/* ============================================================
+   Responsive safety layer
+   Keeps controls usable on narrow screens, including legacy pages
+   and Tailwind layouts that contain long labels or wide controls.
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+img, svg, video, canvas { max-width: 100%; }
+button, a, input, select, textarea { max-width: 100%; }
+button, a { -webkit-tap-highlight-color: transparent; }
+
+@media (max-width: 767px) {
+  main, main > * { min-width: 0; }
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+  .flex:not(.no-mobile-wrap) { min-width: 0; }
+  input, select, textarea { min-width: 0; }
+  .mobile-stack, .mobile-stack > * { width: 100%; }
+  .mobile-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .mobile-actions > * { flex: 1 1 10rem; }
+}
+
+@media (max-width: 420px) {
+  .px-4 { padding-left: .875rem; padding-right: .875rem; }
+  .py-10 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+  .gap-10 { gap: 1.25rem; }
+  .gap-8 { gap: 1.25rem; }
+}
+
+
+/* Prevent long labels, product names, and action groups from pushing pages
+   wider than the viewport on phones. */
+.break-words, h1, h2, h3, p, label, td, th { overflow-wrap: anywhere; }
+#productsList .flex { min-width: 0; }
+#productsList a, #productsList button { white-space: normal; text-align: center; }
+@media (max-width: 767px) {
+  #productsList .grid { min-width: 0; }
+  #productsList .flex.items-start { align-items: flex-start; }
+  .seller-form-grid { grid-template-columns: minmax(0, 1fr) !important; }
+}
