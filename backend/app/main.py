@@ -514,6 +514,14 @@ def admin_dashboard_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("admin/dashboard.html", page_context(request, db))
 
 
+@app.get("/admin/edit-product.html", response_class=HTMLResponse)
+def admin_edit_product_page(request: Request, db: Session = Depends(get_db)):
+    # Same client-side auth-gating as the seller edit page: product_id comes
+    # from a ?id= query param, read in the template's script, using the
+    # signed-in admin's own JWT so /admin/products/{id} authorizes correctly.
+    return templates.TemplateResponse("admin/edit-product.html", page_context(request, db))
+
+
 # ============================================================
 # A couple of standalone legacy files that aren't part of the
 # Jinja2 migration yet, served as-is.

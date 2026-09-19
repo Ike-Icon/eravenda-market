@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError  # pyright: ignore[reportMissingImport
 from .. import models, schemas, auth
 from ..database import get_db
 from ..service_pricing import service_charge_for, service_commission_for
+from .products import _sync_stock_from_variants
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(auth.require_role(models.UserRole.admin))])
 
@@ -377,6 +378,51 @@ def set_product_status(product_id: str, payload: schemas.ProductStatusUpdate, db
     return product
 
 
+@router.put("/products/{product_id}", response_model=schemas.ProductOut)
+def admin_update_product(product_id: str, payload: schemas.ProductUpdate, db: Session = Depends(get_db)):
+    """Lets an admin edit any seller's product directly — for fixing a listing
+    (wrong price, bad description, broken sizes) without going back and forth
+    with the seller. Unlike the seller's own PUT /products/{id}, this isn't
+    restricted to products in the admin's own store."""
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    if payload.category_id is not None:
+        category = db.query(models.Category).filter(models.Category.id == payload.category_id).first()
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(product, field, value)
+
+    _sync_stock_from_variants(product)
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+@router.post("/products/{product_id}/images", response_model=schemas.ProductImageOut, status_code=201)
+def admin_add_product_image(product_id: str, image_url: str, is_primary: bool = False, db: Session = Depends(get_db)):
+    """Admin equivalent of the seller's own image-upload endpoint, without
+    the store-ownership restriction, so the admin edit page can add photos
+    to any seller's product."""
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    if is_primary:
+        db.query(models.ProductImage).filter(models.ProductImage.product_id == product_id).update(
+            {"is_primary": False}
+        )
+
+    image = models.ProductImage(product_id=product_id, image_url=image_url, is_primary=is_primary)
+    db.add(image)
+    db.commit()
+    db.refresh(image)
+    return image
+
+
 @router.delete("/products/{product_id}", status_code=204)
 def delete_product(product_id: str, db: Session = Depends(get_db)):
     """Admin hard-delete, distinct from the seller's own delete endpoint —
@@ -407,6 +453,17 @@ def product_tracking(db: Session = Depends(get_db)):
         "stock_quantity": p.stock_quantity, "status": p.status.value, "badge_keys": p.badge_keys or [],
         "updated_at": p.updated_at,
     } for p in products]
+
+
+@router.get("/products/{product_id}", response_model=schemas.ProductOut)
+def admin_get_product(product_id: str, db: Session = Depends(get_db)):
+    """Full product detail for the admin edit form — same shape as the
+    seller's own product page, so the same edit UI can be reused. Placed
+    after the fixed /products/tracking path so it doesn't shadow it."""
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
 
 
 @router.get("/payments/tracking")
@@ -626,6 +683,38 @@ def platform_stats(db: Session = Depends(get_db)):
         "service_reviews": service_reviews_count,
         "service_average_rating": float(service_average),
     }
+
+@router.get("/stats/top-stores")
+def top_stores_by_revenue(limit: int = 8, db: Session = Depends(get_db)):
+    """Stores ranked by paid product income, for the admin income/commission
+    analysis view. Only counts successful payments, same as /admin/stats."""
+    rows = (
+        db.query(
+            models.Store.id,
+            models.Store.store_name,
+            func.sum(models.Payment.amount).label("income"),
+            func.sum(models.Order.commission_amount).label("commission"),
+            func.count(func.distinct(models.Order.id)).label("orders"),
+        )
+        .join(models.Order, models.Order.store_id == models.Store.id)
+        .join(models.Payment, models.Payment.order_id == models.Order.id)
+        .filter(models.Payment.status == models.PaymentStatus.success)
+        .group_by(models.Store.id, models.Store.store_name)
+        .order_by(func.sum(models.Payment.amount).desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "store_id": r.id,
+            "store_name": r.store_name,
+            "income": float(r.income or 0),
+            "commission": float(r.commission or 0),
+            "orders": r.orders,
+        }
+        for r in rows
+    ]
+
 
 # -------------------- Publicity badges --------------------
 BADGE_CATALOG = {
