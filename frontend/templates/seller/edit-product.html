@@ -2,24 +2,24 @@
 {% block title %}Edit product — Eravenda Market{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-[200px_1fr] gap-8">
+<div class="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-[220px_1fr] gap-10">
   {% set active = "products" %}
   {% include "components/seller-nav.html" with context %}
 
-  <div class="border border-slate-200 rounded-md p-6 max-w-xl">
-    <h1 class="font-head text-2xl font-semibold mb-4">Edit product</h1>
+  <div class="border border-slate-200 rounded-md p-8 max-w-3xl">
+    <h1 class="font-head text-2xl font-semibold mb-6">Edit product</h1>
     <div id="formError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3 mb-4"></div>
     <div id="formSuccess" class="hidden text-sm text-brand-700 bg-brand-50 rounded-md p-3 mb-4"></div>
 
-    <form id="productForm" class="space-y-4">
+    <form id="productForm" class="space-y-6">
       <div>
-        <label class="block text-sm font-medium mb-1">Product name</label>
-        <input name="name" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+        <label class="block text-sm font-medium mb-1.5">Product name</label>
+        <input name="name" required class="w-full border border-slate-300 rounded-md px-3 py-2.5">
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Category</label>
-        <select name="category_id" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+        <label class="block text-sm font-medium mb-1.5">Category</label>
+        <select name="category_id" required class="w-full border border-slate-300 rounded-md px-3 py-2.5">
           {% for c in category_tree|default([]) %}
           <option value="{{ c.id }}">{{ c.name }}</option>
           {% for child in c.children %}
@@ -30,52 +30,57 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Description</label>
-        <textarea name="description" class="w-full border border-slate-300 rounded-md px-3 py-2"></textarea>
+        <label class="block text-sm font-medium mb-1.5">Description</label>
+        <textarea name="description" class="w-full border border-slate-300 rounded-md px-3 py-2.5"></textarea>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium mb-1">Price (₵)</label>
-          <input type="number" name="price" step="0.01" min="0" required class="w-full border border-slate-300 rounded-md px-3 py-2">
+          <label class="block text-sm font-medium mb-1.5">Price (₵)</label>
+          <input type="number" name="price" step="0.01" min="0" required class="w-full border border-slate-300 rounded-md px-3 py-2.5">
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Discount price (₵, optional)</label>
-          <input type="number" name="discount_price" step="0.01" min="0" class="w-full border border-slate-300 rounded-md px-3 py-2">
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-sm font-medium mb-1">Stock quantity</label>
-          <input type="number" name="stock_quantity" min="0" required class="w-full border border-slate-300 rounded-md px-3 py-2">
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Brand</label>
-          <input name="brand" class="w-full border border-slate-300 rounded-md px-3 py-2">
+          <label class="block text-sm font-medium mb-1.5">Discount price (₵, optional)</label>
+          <input type="number" name="discount_price" step="0.01" min="0" class="w-full border border-slate-300 rounded-md px-3 py-2.5">
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium mb-1">Condition</label>
-          <select name="condition" class="w-full border border-slate-300 rounded-md px-3 py-2">
+          <label class="block text-sm font-medium mb-1.5">Stock quantity</label>
+          <input type="number" name="stock_quantity" id="stockQuantityInput" min="0" required class="w-full border border-slate-300 rounded-md px-3 py-2.5 disabled:bg-slate-100 disabled:text-slate-500">
+          <p id="stockQuantityHint" class="text-xs text-slate-500 mt-1 hidden">Computed automatically from the stock you set below — add colors or sizes to unlock this.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Brand</label>
+          <input name="brand" class="w-full border border-slate-300 rounded-md px-3 py-2.5">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Condition</label>
+          <select name="condition" class="w-full border border-slate-300 rounded-md px-3 py-2.5">
             <option value="new">New</option>
             <option value="refurbished">Refurbished</option>
             <option value="used">Used</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">SKU / item code (optional)</label>
-          <input name="sku" class="w-full border border-slate-300 rounded-md px-3 py-2">
+          <label class="block text-sm font-medium mb-1.5">SKU / item code (optional)</label>
+          <input name="sku" class="w-full border border-slate-300 rounded-md px-3 py-2.5">
         </div>
       </div>
 
-      <fieldset class="border border-slate-200 rounded-lg p-4">
-        <legend class="px-1 text-sm font-semibold">Product color swatches (optional)</legend>
-        <p class="text-xs text-slate-500 mb-3">Define the exact HEX color buyers will see, whether it is currently available, and how many units are in stock. Variant stock becomes the product's total stock automatically.</p>
-        <div id="colorRows" class="space-y-3"></div>
-        <button type="button" id="addColor" class="mt-3 border border-slate-300 rounded-md px-3 py-2 text-sm font-semibold hover:border-brand-500">+ Add color</button>
+      <fieldset class="border border-slate-200 rounded-lg p-6">
+        <legend class="px-1 text-sm font-semibold text-slate-800">Product color swatches (optional)</legend>
+        <p class="text-xs text-slate-500 mb-3">Define the exact HEX color buyers will see, whether it is currently available, and how many units are in stock. Variant stock becomes the product's total stock automatically — the field above becomes read-only once you add a color here, unless you also set sizes below (sizes take priority).</p>
+        <div>
+          <p class="text-xs font-medium text-slate-600 mb-1.5">Quick add from palette</p>
+          <div id="colorPalette" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div id="colorRows" class="space-y-3 mt-4"></div>
+        <button type="button" id="addColor" class="mt-3 border border-slate-300 rounded-md px-3 py-2 text-sm font-semibold hover:border-brand-500">+ Add custom color</button>
         <input type="hidden" name="colorsJson" id="colorsJson" value="[]">
         <div class="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3" aria-live="polite">
           <div class="text-xs font-semibold text-slate-600 mb-2">Live product-page preview</div>
@@ -83,14 +88,38 @@
         </div>
       </fieldset>
 
+      <fieldset class="border border-slate-200 rounded-lg p-6">
+        <legend class="px-1 text-sm font-semibold text-slate-800">Sizes / options with their own price (optional)</legend>
+        <p class="text-xs text-slate-500 mb-3">Use this when the same product is sold in a few sizes or versions at different prices — e.g. 100ml, 250ml, 500ml. Buyers pick one option and pay that option's price instead of the base price above. Add a discount price per option to put that specific size on sale.</p>
+        <div id="optionRows" class="space-y-3"></div>
+        <button type="button" id="addOption" class="mt-3 border border-slate-300 rounded-md px-3 py-2 text-sm font-semibold hover:border-brand-500">+ Add option</button>
+        <input type="hidden" name="optionsJson" id="optionsJson" value="[]">
+        <div class="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3" aria-live="polite">
+          <div class="text-xs font-semibold text-slate-600 mb-2">Live product-page preview</div>
+          <div id="optionPreviewChoices" class="flex flex-wrap gap-3"></div>
+        </div>
+      </fieldset>
+
+      <fieldset class="border border-slate-200 rounded-lg p-6">
+        <legend class="px-1 text-sm font-semibold text-slate-800">Shoe / clothing sizes (optional)</legend>
+        <p class="text-xs text-slate-500 mb-3">Use this for footwear, clothing or any product where buyers pick a size at the <em>same</em> price — e.g. shoe sizes 38–45. Every size sells at the base price above (or its discount price, if set). Buyers must pick an available size before adding this to their cart. Size stock becomes the product's total stock automatically, and takes priority over color stock if you've set both.</p>
+        <div id="sizeRows" class="space-y-3"></div>
+        <button type="button" id="addSize" class="mt-3 border border-slate-300 rounded-md px-3 py-2 text-sm font-semibold hover:border-brand-500">+ Add size</button>
+        <input type="hidden" name="sizesJson" id="sizesJson" value="[]">
+        <div class="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3" aria-live="polite">
+          <div class="text-xs font-semibold text-slate-600 mb-2">Live product-page preview</div>
+          <div id="sizePreviewChoices" class="flex flex-wrap gap-2"></div>
+        </div>
+      </fieldset>
+
       <div>
-        <label class="block text-sm font-medium mb-1">Key specifications (optional)</label>
-        <textarea name="specifications" rows="4" placeholder="One feature per line" class="w-full border border-slate-300 rounded-md px-3 py-2"></textarea>
+        <label class="block text-sm font-medium mb-1.5">Key specifications (optional)</label>
+        <textarea name="specifications" rows="4" placeholder="One feature per line" class="w-full border border-slate-300 rounded-md px-3 py-2.5"></textarea>
         <p class="text-xs text-slate-500 mt-1">Each line becomes a bullet point on the product page.</p>
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Add more images</label>
+        <label class="block text-sm font-medium mb-1.5">Add more images</label>
         <input type="file" id="imageFile" accept="image/*" multiple class="text-sm">
         <p class="text-xs text-slate-500 mt-1" id="uploadHint"></p>
         <div class="flex gap-2 flex-wrap mt-2" id="existingImages"></div>
@@ -135,6 +164,8 @@
       form.sku.value = p.sku || "";
       form.specifications.value = (p.specifications || []).join("\n");
       setColors(p.colors || []);
+      setOptions(p.options || []);
+      setSizes(p.sizes || []);
 
       const preview = document.getElementById("existingImages");
       (p.images || []).forEach(img => {
@@ -156,6 +187,54 @@
 
   function validHex(value) { return /^#[0-9A-Fa-f]{6}$/.test(value.trim()); }
   function escapeHtml(value) { const d=document.createElement("div"); d.textContent=value; return d.innerHTML; }
+
+  // Stock quantity is only ever hand-typed when the product has no size or
+  // color variants; the moment either is used, the total is computed from
+  // that variant stock so the two numbers can never drift apart again (that
+  // drift is what silently disables Add to Cart / Buy Now on the product
+  // page). Sizes take priority over colors when both are set, matching the
+  // backend's own priority order.
+  function reconcileStockQuantity() {
+    const stockInput = document.getElementById("stockQuantityInput");
+    const hint = document.getElementById("stockQuantityHint");
+    const sizes = JSON.parse(document.getElementById("sizesJson")?.value || "[]");
+    const colors = JSON.parse(document.getElementById("colorsJson")?.value || "[]");
+    let total = null;
+    if (sizes.length) {
+      total = sizes.reduce((sum, s) => sum + (s.available ? s.stock : 0), 0);
+    } else if (colors.length) {
+      total = colors.reduce((sum, c) => sum + (c.available ? c.stock : 0), 0);
+    }
+    if (total !== null) {
+      stockInput.value = total;
+      stockInput.disabled = true;
+      hint.textContent = sizes.length
+        ? "Computed automatically as the total stock across all available sizes."
+        : "Computed automatically as the total stock across all available colors.";
+      hint.classList.remove("hidden");
+    } else {
+      stockInput.disabled = false;
+      hint.classList.add("hidden");
+    }
+  }
+
+  const PRESET_COLORS = [
+    {name:"Black",hex:"#000000"},{name:"White",hex:"#FFFFFF"},{name:"Red",hex:"#DC2626"},
+    {name:"Orange",hex:"#F97316"},{name:"Amber",hex:"#F59E0B"},{name:"Yellow",hex:"#EAB308"},
+    {name:"Lime",hex:"#84CC16"},{name:"Green",hex:"#16A34A"},{name:"Teal",hex:"#0D9488"},
+    {name:"Cyan",hex:"#06B6D4"},{name:"Sky Blue",hex:"#0EA5E9"},{name:"Blue",hex:"#2563EB"},
+    {name:"Navy",hex:"#1E3A8A"},{name:"Indigo",hex:"#4F46E5"},{name:"Purple",hex:"#7C3AED"},
+    {name:"Pink",hex:"#EC4899"},{name:"Rose",hex:"#F43F5E"},{name:"Brown",hex:"#78350F"},
+    {name:"Gray",hex:"#6B7280"},{name:"Silver",hex:"#D1D5DB"},{name:"Beige",hex:"#D6C7A1"},
+    {name:"Gold",hex:"#CA8A04"},
+  ];
+  function renderColorPalette() {
+    const palette = document.getElementById("colorPalette");
+    palette.innerHTML = PRESET_COLORS.map(c => `<button type="button" class="palette-swatch w-8 h-8 rounded-full border border-slate-300 hover:ring-2 hover:ring-brand-500 hover:scale-110 transition-transform" style="background-color:${c.hex}" data-name="${escapeHtml(c.name)}" data-hex="${c.hex}" title="${escapeHtml(c.name)}" aria-label="Add ${escapeHtml(c.name)} color"></button>`).join("");
+    palette.querySelectorAll(".palette-swatch").forEach(btn => btn.addEventListener("click", () => {
+      addColorRow({ name: btn.dataset.name, hex: btn.dataset.hex, stock: 0, available: false });
+    }));
+  }
   function syncColors() {
     const colors = [...colorRows.querySelectorAll(".color-row")].map(row => ({
       name: row.querySelector(".color-name").value.trim(),
@@ -164,11 +243,7 @@
       available: row.querySelector(".color-available").checked
     })).filter(c => c.name && validHex(c.hex));
     colorsJson.value = JSON.stringify(colors);
-    if (colors.length) {
-      const total = colors.reduce((sum, c) => sum + (c.available ? c.stock : 0), 0);
-      const stockInput = document.querySelector('[name="stock_quantity"]');
-      if (stockInput) stockInput.value = total;
-    }
+    reconcileStockQuantity();
     renderColorPreview();
   }
   function addColorRow(color={name:"",hex:"#000000"}) {
@@ -176,7 +251,7 @@
     const stock = Math.max(0, Number(color.stock ?? 0));
     const available = color.available !== false && stock > 0;
     const hex = validHex(String(color.hex || "")) ? String(color.hex).toUpperCase() : "#000000";
-    row.innerHTML=`<div><label class="block text-xs font-medium mb-1">Color name</label><input class="color-name w-full border border-slate-300 rounded-md px-3 py-2" value="${escapeHtml(color.name)}" placeholder="e.g. Ocean Blue" aria-label="Color name"></div><div><label class="block text-xs font-medium mb-1">Visual color picker</label><input type="color" class="color-picker h-10 w-16 p-1 border border-slate-300 rounded-md cursor-pointer" value="${hex}" aria-label="Choose visual color for ${escapeHtml(color.name||"color")}"></div><div><label class="block text-xs font-medium mb-1">Exact HEX</label><input type="text" class="color-hex w-28 border border-slate-300 rounded-md px-3 py-2 font-mono uppercase" value="${escapeHtml(hex)}" placeholder="#1D4ED8" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" aria-label="Exact HEX color code for ${escapeHtml(color.name||"color")}"></div><div><label class="block text-xs font-medium mb-1">Stock</label><input type="number" min="0" step="1" class="color-stock w-24 border border-slate-300 rounded-md px-3 py-2" value="${stock}" aria-label="Stock quantity for ${escapeHtml(color.name||"color")}"></div><label class="flex items-center gap-2 pb-2 text-xs font-medium whitespace-nowrap"><input type="checkbox" class="color-available h-4 w-4" ${available ? "checked" : ""} aria-label="${available ? "Color is available" : "Color is unavailable"}"> Available</label><button type="button" class="remove-color border border-slate-300 rounded-md px-3 py-2 text-sm hover:border-red-400 hover:text-red-600" aria-label="Remove color ${escapeHtml(color.name||"")}">Remove</button>`;
+    row.innerHTML=`<div><label class="block text-xs font-medium mb-1">Color name</label><input class="color-name w-full border border-slate-300 rounded-md px-3 py-2.5" value="${escapeHtml(color.name)}" placeholder="e.g. Ocean Blue" aria-label="Color name"></div><div><label class="block text-xs font-medium mb-1">Visual color picker</label><input type="color" class="color-picker h-10 w-16 p-1 border border-slate-300 rounded-md cursor-pointer" value="${hex}" aria-label="Choose visual color for ${escapeHtml(color.name||"color")}"></div><div><label class="block text-xs font-medium mb-1">Exact HEX</label><input type="text" class="color-hex w-28 border border-slate-300 rounded-md px-3 py-2 font-mono uppercase" value="${escapeHtml(hex)}" placeholder="#1D4ED8" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" aria-label="Exact HEX color code for ${escapeHtml(color.name||"color")}"></div><div><label class="block text-xs font-medium mb-1">Stock</label><input type="number" min="0" step="1" class="color-stock w-24 border border-slate-300 rounded-md px-3 py-2.5" value="${stock}" aria-label="Stock quantity for ${escapeHtml(color.name||"color")}"></div><label class="flex items-center gap-2 pb-2 text-xs font-medium whitespace-nowrap"><input type="checkbox" class="color-available h-4 w-4" ${available ? "checked" : ""} aria-label="${available ? "Color is available" : "Color is unavailable"}"> Available</label><button type="button" class="remove-color border border-slate-300 rounded-md px-3 py-2 text-sm hover:border-red-400 hover:text-red-600" aria-label="Remove color ${escapeHtml(color.name||"")}">Remove</button>`;
     const nameInput=row.querySelector(".color-name");
     const hexInput=row.querySelector(".color-hex");
     const picker=row.querySelector(".color-picker");
@@ -188,7 +263,7 @@
       syncColors();
     });
     nameInput.addEventListener("input",syncColors);
-    row.querySelector(".color-stock").addEventListener("input",syncColors);
+    row.querySelector(".color-stock").addEventListener("input",()=>{ const stockInput=row.querySelector(".color-stock"); if((parseInt(stockInput.value,10)||0) > 0 && !availableInput.checked) availableInput.checked=true; syncColors(); });
     availableInput.addEventListener("change",()=>{ availableInput.setAttribute("aria-label", availableInput.checked ? "Color is available" : "Color is unavailable"); syncColors(); });
     row.querySelector(".remove-color").addEventListener("click",()=>{row.remove();syncColors();});
     colorRows.appendChild(row); syncColors();
@@ -208,7 +283,92 @@
     }));
   }
   document.getElementById("addColor").addEventListener("click",()=>addColorRow());
+  renderColorPalette();
   renderColorPreview();
+
+  // ---- Priced options (e.g. sizes) ----
+  const optionRows = document.getElementById("optionRows");
+  const optionPreview = document.getElementById("optionPreviewChoices");
+  const optionsJson = document.getElementById("optionsJson");
+
+  function syncOptions() {
+    const options = [...optionRows.querySelectorAll(".option-row")].map(row => {
+      const price = Math.max(0, parseFloat(row.querySelector(".option-price").value) || 0);
+      const discountRaw = row.querySelector(".option-discount").value;
+      const discount = discountRaw === "" ? null : Math.max(0, parseFloat(discountRaw) || 0);
+      return {
+        label: row.querySelector(".option-label").value.trim(),
+        price,
+        discount_price: (discount !== null && discount > 0 && discount < price) ? discount : null,
+        stock: Math.max(0, parseInt(row.querySelector(".option-stock").value, 10) || 0),
+        available: row.querySelector(".option-available").checked
+      };
+    }).filter(o => o.label);
+    optionsJson.value = JSON.stringify(options);
+    renderOptionPreview();
+  }
+  function addOptionRow(option={label:"",price:"",discount_price:"",stock:0}) {
+    const row=document.createElement("div"); row.className="option-row grid sm:grid-cols-6 gap-2 items-end rounded-lg border border-slate-200 bg-white p-3";
+    const stock = Math.max(0, Number(option.stock ?? 0));
+    const available = option.available !== false && stock > 0;
+    row.innerHTML=`<div class="sm:col-span-2"><label class="block text-xs font-medium mb-1">Option label</label><input class="option-label w-full border border-slate-300 rounded-md px-3 py-2.5" value="${escapeHtml(option.label||"")}" placeholder="e.g. 250ml" aria-label="Option label"></div><div><label class="block text-xs font-medium mb-1">Price (₵)</label><input type="number" min="0" step="0.01" class="option-price w-full border border-slate-300 rounded-md px-3 py-2.5" value="${escapeHtml(String(option.price ?? ""))}" placeholder="53.00" aria-label="Price for ${escapeHtml(option.label||"option")}"></div><div><label class="block text-xs font-medium mb-1">Discount (₵)</label><input type="number" min="0" step="0.01" class="option-discount w-full border border-slate-300 rounded-md px-3 py-2.5" value="${escapeHtml(option.discount_price != null ? String(option.discount_price) : "")}" placeholder="Optional" aria-label="Discount price for ${escapeHtml(option.label||"option")}"></div><div><label class="block text-xs font-medium mb-1">Stock</label><input type="number" min="0" step="1" class="option-stock w-full border border-slate-300 rounded-md px-3 py-2.5" value="${stock}" aria-label="Stock for ${escapeHtml(option.label||"option")}"></div><div class="flex items-center justify-between gap-2"><label class="flex items-center gap-2 pb-2 text-xs font-medium whitespace-nowrap"><input type="checkbox" class="option-available h-4 w-4" ${available ? "checked" : ""} aria-label="${available ? "Option is available" : "Option is unavailable"}"> Available</label><button type="button" class="remove-option border border-slate-300 rounded-md px-3 py-2 text-sm hover:border-red-400 hover:text-red-600" aria-label="Remove option ${escapeHtml(option.label||"")}">Remove</button></div>`;
+    const optionStockInput=row.querySelector(".option-stock");
+    const optionAvailInput=row.querySelector(".option-available");
+    optionStockInput.addEventListener("input",()=>{ if((parseInt(optionStockInput.value,10)||0) > 0 && !optionAvailInput.checked) optionAvailInput.checked=true; });
+    row.querySelectorAll("input").forEach(i=>i.addEventListener("input",syncOptions));
+    row.querySelector(".remove-option").addEventListener("click",()=>{row.remove();syncOptions();});
+    optionRows.appendChild(row); syncOptions();
+  }
+  function setOptions(options) { optionRows.innerHTML=""; (options||[]).forEach(o=>addOptionRow(o)); if(!optionRows.children.length) renderOptionPreview(); }
+  function renderOptionPreview() {
+    const options=JSON.parse(optionsJson.value||"[]");
+    optionPreview.innerHTML=options.length ? options.map(o=>{
+      const hasDiscount = o.discount_price != null && o.discount_price > 0 && o.discount_price < o.price;
+      const shown = hasDiscount ? o.discount_price : o.price;
+      return `<span class="inline-flex items-center gap-2 border border-slate-300 rounded-full px-3 py-2 bg-white text-sm"><span class="font-semibold">${escapeHtml(o.label)}</span><span class="text-brand-700 font-bold">₵${Number(shown).toFixed(2)}</span>${hasDiscount ? `<span class="text-slate-400 line-through text-xs">₵${Number(o.price).toFixed(2)}</span>` : ""}<span class="text-[10px] ${o.available && o.stock ? "text-brand-700" : "text-red-500"}">${o.available && o.stock ? `${o.stock} in stock` : "Unavailable"}</span></span>`;
+    }).join("") : '<span class="text-xs text-slate-400">Add an option with a price to preview it here.</span>';
+  }
+  document.getElementById("addOption").addEventListener("click",()=>addOptionRow());
+  renderOptionPreview();
+
+  // ---- Shoe / clothing sizes (stock-only, no own price) ----
+  const sizeRows = document.getElementById("sizeRows");
+  const sizePreview = document.getElementById("sizePreviewChoices");
+  const sizesJson = document.getElementById("sizesJson");
+  const COMMON_SHOE_SIZES = ["36","37","38","39","40","41","42","43","44","45","46"];
+
+  function syncSizes() {
+    const sizes = [...sizeRows.querySelectorAll(".size-row")].map(row => ({
+      label: row.querySelector(".size-label").value.trim(),
+      stock: Math.max(0, parseInt(row.querySelector(".size-stock").value, 10) || 0),
+      available: row.querySelector(".size-available").checked
+    })).filter(s => s.label);
+    sizesJson.value = JSON.stringify(sizes);
+    reconcileStockQuantity();
+    renderSizePreview();
+  }
+  function addSizeRow(size={label:"",stock:0}) {
+    const row=document.createElement("div"); row.className="size-row grid sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end rounded-lg border border-slate-200 bg-white p-3";
+    const stock = Math.max(0, Number(size.stock ?? 0));
+    const available = size.available !== false && stock > 0;
+    row.innerHTML=`<div><label class="block text-xs font-medium mb-1">Size label</label><input class="size-label w-full border border-slate-300 rounded-md px-3 py-2" value="${escapeHtml(size.label||"")}" placeholder="e.g. 42 or M" aria-label="Size label"></div><div><label class="block text-xs font-medium mb-1">Stock</label><input type="number" min="0" step="1" class="size-stock w-24 border border-slate-300 rounded-md px-3 py-2" value="${stock}" aria-label="Stock for size ${escapeHtml(size.label||"")}"></div><label class="flex items-center gap-2 pb-2 text-xs font-medium whitespace-nowrap"><input type="checkbox" class="size-available h-4 w-4" ${available ? "checked" : ""} aria-label="${available ? "Size is available" : "Size is unavailable"}"> Available</label><button type="button" class="remove-size border border-slate-300 rounded-md px-3 py-2 text-sm hover:border-red-400 hover:text-red-600" aria-label="Remove size ${escapeHtml(size.label||"")}">Remove</button>`;
+    const sizeStockInput=row.querySelector(".size-stock");
+    const sizeAvailInput=row.querySelector(".size-available");
+    sizeStockInput.addEventListener("input",()=>{ if((parseInt(sizeStockInput.value,10)||0) > 0 && !sizeAvailInput.checked) sizeAvailInput.checked=true; syncSizes(); });
+    row.querySelector(".size-label").addEventListener("input",syncSizes);
+    sizeAvailInput.addEventListener("change",syncSizes);
+    row.querySelector(".remove-size").addEventListener("click",()=>{row.remove();syncSizes();});
+    sizeRows.appendChild(row); syncSizes();
+  }
+  function setSizes(sizes) { sizeRows.innerHTML=""; (sizes||[]).forEach(s=>addSizeRow(s)); if(!sizeRows.children.length) renderSizePreview(); }
+  function renderSizePreview() {
+    const sizes=JSON.parse(sizesJson.value||"[]");
+    sizePreview.innerHTML=sizes.length ? sizes.map(s=>`<span class="inline-flex items-center gap-1.5 border border-slate-300 rounded-md px-3 py-1.5 bg-white text-sm"><span class="font-semibold">${escapeHtml(s.label)}</span><span class="text-[10px] ${s.available && s.stock ? "text-brand-700" : "text-red-500"}">${s.available && s.stock ? `${s.stock} in stock` : "Unavailable"}</span></span>`).join("") : '<span class="text-xs text-slate-400">Add a size with stock to preview it here.</span>';
+  }
+  document.getElementById("addSize").addEventListener("click",()=>addSizeRow());
+  document.getElementById("sizeRows").insertAdjacentHTML("beforebegin", `<div class="flex flex-wrap gap-1.5 mb-1"><span class="text-xs font-medium text-slate-500 mr-1 self-center">Quick add:</span>${COMMON_SHOE_SIZES.map(s=>`<button type="button" class="quick-size border border-slate-300 rounded-md px-2.5 py-1 text-xs font-semibold hover:border-brand-500" data-size="${s}">${s}</button>`).join("")}</div>`);
+  document.querySelectorAll(".quick-size").forEach(btn=>btn.addEventListener("click",()=>addSizeRow({label:btn.dataset.size,stock:0,available:false})));
+  renderSizePreview();
 
   async function uploadToCloudinary(file) {
     const cloudName = window.CLOUDINARY_CLOUD_NAME;
@@ -266,9 +426,14 @@
       sku: fd.get("sku") || null,
       specifications: specText ? specText.split("\n").map(s => s.trim()).filter(Boolean) : null,
       colors: JSON.parse(document.getElementById("colorsJson").value || "[]"),
+      options: JSON.parse(document.getElementById("optionsJson").value || "[]"),
+      sizes: JSON.parse(document.getElementById("sizesJson").value || "[]"),
       price: parseFloat(fd.get("price")),
       discount_price: fd.get("discount_price") ? parseFloat(fd.get("discount_price")) : null,
-      stock_quantity: parseInt(fd.get("stock_quantity"), 10),
+      // A disabled stock-quantity field (once sizes/colors take over) is
+      // excluded from FormData, so read it directly — the backend also
+      // re-derives this from sizes/colors/options itself as a safety net.
+      stock_quantity: parseInt(document.getElementById("stockQuantityInput").value, 10) || 0,
     };
 
     const btn = document.getElementById("saveBtn");

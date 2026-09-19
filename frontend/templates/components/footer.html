@@ -4,6 +4,8 @@
      ============================================================ -->
 <footer class="bg-brand-900 text-brand-50 mt-16">
 
+
+
   <!-- Newsletter signup -->
   <div class="border-b border-brand-700">
     <div class="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -13,9 +15,9 @@
       </div>
       <form id="newsletterForm" class="flex w-full md:w-auto max-w-sm">
         <input type="email" name="email" required placeholder="you@example.com"
-               class="flex-1 min-w-0 px-3 py-2 rounded-l-md text-slate-900 text-sm focus:outline-none">
+          class="flex-1 min-w-0 px-3 py-2 rounded-l-md text-slate-900 text-sm focus:outline-none">
         <button type="submit"
-                class="bg-accent-500 hover:bg-accent-600 text-slate-900 font-semibold text-sm px-4 rounded-r-md transition-colors whitespace-nowrap">
+          class="bg-accent-500 hover:bg-accent-600 text-slate-900 font-semibold text-sm px-4 rounded-r-md transition-colors whitespace-nowrap">
           Subscribe
         </button>
       </form>
@@ -50,7 +52,8 @@
     <div>
       <h4 class="font-semibold mb-3 text-white">Delivery partners</h4>
       <ul class="space-y-2 text-brand-100">
-        <li id="deliveryFooterDashboard" style="display:none"><a href="/delivery/dashboard" class="hover:text-white">Delivery dashboard</a></li>
+        <li id="deliveryFooterDashboard" style="display:none"><a href="/delivery/dashboard"
+            class="hover:text-white">Delivery dashboard</a></li>
         <li><a href="/delivery/register" class="hover:text-white">Join as a delivery person</a></li>
         <li><a href="/delivery/terms" class="hover:text-white">Delivery terms</a></li>
       </ul>
@@ -77,6 +80,69 @@
     {% for label in ["Pay on delivery", "Mobile Money"] %}
     <span class="bg-brand-700 rounded px-2 py-1 font-medium">{{ label }}</span>
     {% endfor %}
+  </div>
+
+  <!-- Logo + contact details + social -->
+  <div class="border-t border-brand-700">
+    <div class="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+
+      <!-- Logo, left side -->
+      <a href="/"
+        class="group inline-flex items-center shrink-0 w-fit transition-transform duration-300 ease-in-out hover:scale-[1.02]">
+        <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg"
+          aria-label="EraVenda Logo" class="w-[180px] sm:w-[200px] h-auto overflow-visible">
+          <defs>
+            <linearGradient id="ev-green-grad-footer" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#14B8A6" />
+              <stop offset="100%" stop-color="#0F766E" />
+            </linearGradient>
+            <linearGradient id="ev-gold-grad-footer" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FBBF24" />
+              <stop offset="100%" stop-color="#F59E0B" />
+            </linearGradient>
+          </defs>
+          <g transform="translate(4, 4)">
+            <rect x="0" y="0" width="48" height="48" rx="14" fill="url(#ev-green-grad-footer)" />
+            <path d="M18 16 C18 11.5, 30 11.5, 30 16" stroke="url(#ev-gold-grad-footer)" stroke-width="3.5"
+              stroke-linecap="round" fill="none" />
+            <path d="M16 22 H32 M16 28 H27 M16 34 H32" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" />
+          </g>
+          <g transform="translate(62, 38)">
+            <text font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="28"
+              fill="#FFFFFF" letter-spacing="-0.5">Era</text>
+            <text x="41" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="28"
+              fill="url(#ev-gold-grad-footer)" letter-spacing="-0.5">Venda</text>
+            <circle cx="137" cy="-5" r="4" fill="#FBBF24" />
+          </g>
+        </svg>
+      </a>
+
+      <!-- Contact details + social icons, right side -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+        <div class="space-y-1.5 text-sm text-brand-100">
+          <a href="tel:+233 55 437 2279" class="flex items-center gap-2 hover:text-white">
+            <i class="fas fa-phone text-accent-400 w-4"></i> +233 55 437 2279
+          </a>
+          <a href="mailto:support@eravenda.com" class="flex items-center gap-2 hover:text-white">
+            <i class="fas fa-envelope text-accent-400 w-4"></i> support@eravenda.com
+          </a>
+          <p class="flex items-center gap-2">
+            <i class="fas fa-location-dot text-accent-400 w-4"></i> Sunyani, Bono Region, Ghana
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="https://wa.me/+233554372279" target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp"
+            class="w-9 h-9 flex items-center justify-center rounded-full bg-brand-700 hover:bg-[#25D366] transition-colors">
+            <i class="fab fa-whatsapp text-white"></i>
+          </a>
+          <a href="https://www.facebook.com/profile.php?id=61594438107592" target="_blank" rel="noopener"
+            aria-label="Follow us on Facebook"
+            class="w-9 h-9 flex items-center justify-center rounded-full bg-brand-700 hover:bg-[#1877F2] transition-colors">
+            <i class="fab fa-facebook-f text-white"></i>
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="border-t border-brand-700 px-4 py-4 text-xs text-brand-200 text-center">

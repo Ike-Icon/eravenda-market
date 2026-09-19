@@ -6,72 +6,26 @@
 {% block content %}
 
 <!-- ============================================================
-     1. HERO SPOTLIGHT & DUAL-INTENT CONSOLE
+     1. HERO BANNER (click-through to Handyman Hub)
      ============================================================ -->
-<section class="relative overflow-hidden bg-slate-950 text-white">
-  <!-- Background slideshow -->
-  <div id="hero-slideshow" class="absolute inset-0">
-    <div class="slide absolute inset-0 opacity-100 transition-opacity duration-1000 ease-in-out">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604593/samples/ecommerce/analog-classic.jpg"
-        alt="Eravenda Marketplace Products" fetchpriority="high"
-        class="w-full h-full object-cover object-center opacity-45">
-    </div>
-    <div class="slide absolute inset-0 opacity-0 transition-opacity duration-1000 ease-in-out">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081557/Gemini_Generated_Image_mlwywumlwywumlwy.jpg"
-        alt="EraVenda Handyman Hub" loading="lazy"
-        class="w-full h-full object-cover object-center opacity-40">
-    </div>
-    <div class="slide absolute inset-0 opacity-0 transition-opacity duration-1000 ease-in-out">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1788604601/samples/shoe.jpg"
-        alt="Quality items from Ghanaian sellers" loading="lazy"
-        class="w-full h-full object-cover object-center opacity-45">
-    </div>
+<section class="bg-white dark:bg-slate-950 pt-4 sm:pt-6" >
+  <div class="max-w-7xl mx-auto px-4">
+    <h1 class="sr-only">EraVenda — Ghana's Marketplace for Products & Handyman Services</h1>
+    <a href="/services" aria-label="Explore the Handyman Hub"
+      class="group relative block w-full overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl bg-slate-950" >
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789761496/eravenda-handyman-hero.jpg"
+        alt="Explore EraVenda Handyman Hub" fetchpriority="high"
+        class="w-full h-auto block transition-transform duration-700 group-hover:scale-[1.02]">
+    </a>
   </div>
+</section>
 
-  <!-- Subtle overlay gradients -->
-  <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent pointer-events-none"></div>
-  <div class="absolute inset-0 hidden md:block bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent pointer-events-none"></div>
-
-  <!-- Hero Content -->
-  <div class="relative z-10 max-w-7xl mx-auto px-4 pt-12 pb-8 sm:pt-16 sm:pb-12 md:pt-20 md:pb-16 w-full">
-    <div class="max-w-3xl">
-      <!-- Badge -->
-      <div class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-bold tracking-[0.16em] text-emerald-300 uppercase backdrop-blur-sm">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        Shop it. Fix it. EraVenda.
-      </div>
-
-      <!-- Main Headline -->
-      <h1 class="font-head text-3xl sm:text-5xl md:text-6xl font-bold leading-[1.08] mt-4 tracking-tight">
-        Ghana's all-in-one marketplace for <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-emerald-300 to-teal-200">products & verified pros</span>.
-      </h1>
-
-      <p class="mt-4 text-base sm:text-lg md:text-xl text-slate-200 leading-relaxed max-w-2xl font-normal">
-        Buy top items from independent sellers or hire certified tradespeople for repairs and installations — all with escrow security, genuine reviews, and doorstep tracking.
-      </p>
-
-      <!-- Primary Action Buttons -->
-      <div class="mt-6 sm:mt-8 flex flex-wrap items-center gap-3">
-        <a href="/products"
-          class="inline-flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg hover:shadow-accent-500/25 text-sm sm:text-base">
-          <i class="fas fa-bag-shopping"></i>
-          <span>Shop Products</span>
-        </a>
-        <a href="/services"
-          class="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-3.5 rounded-xl transition-all shadow-lg hover:shadow-emerald-600/25 text-sm sm:text-base">
-          <i class="fas fa-screwdriver-wrench"></i>
-          <span>Book a Handyman</span>
-        </a>
-        <a href="/seller/dashboard.html"
-          class="inline-flex items-center justify-center gap-2 border border-white/25 hover:border-white/50 text-white hover:bg-white/10 font-semibold px-5 py-3.5 rounded-xl transition-colors text-sm sm:text-base backdrop-blur-sm">
-          <i class="fas fa-store"></i>
-          <span>Sell with Us</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- Dual Mode Action Console (Quick Finder for Products & Handymen) -->
-    <div class="mt-10 sm:mt-12 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/20 dark:border-slate-800 shadow-2xl text-slate-900 dark:text-white max-w-4xl">
+<!-- ============================================================
+     1B. DUAL-INTENT SEARCH CONSOLE — sits below the hero banner
+     ============================================================ -->
+<section class="bg-white dark:bg-slate-950 pt-4 pb-6 sm:pt-6 sm:pb-8">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-lg text-slate-900 dark:text-white max-w-4xl mx-auto">
       <!-- Mode Switcher Tabs -->
       <div class="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit mb-4">
         <button type="button" data-hero-mode="products" aria-pressed="true"
@@ -162,13 +116,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Slideshow Dots -->
-  <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10" aria-label="Hero Slides Navigation">
-    <button onclick="goToSlide(0)" class="dot w-2 h-2 rounded-full bg-white opacity-100 transition-opacity" aria-label="Slide 1"></button>
-    <button onclick="goToSlide(1)" class="dot w-2 h-2 rounded-full bg-white opacity-40 transition-opacity" aria-label="Slide 2"></button>
-    <button onclick="goToSlide(2)" class="dot w-2 h-2 rounded-full bg-white opacity-40 transition-opacity" aria-label="Slide 3"></button>
-  </div>
 </section>
 
 
@@ -225,37 +172,6 @@
   </div>
 </section>
 
-
-<!-- ============================================================
-     3. VISUAL DEPARTMENTS & CATEGORIES CAROUSEL
-     ============================================================ -->
-{% if category_tree|default([]) %}
-<section class="max-w-7xl mx-auto px-4 py-8">
-  <div class="flex items-end justify-between mb-4">
-    <div>
-      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Departments</span>
-      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Shop by Category</h2>
-    </div>
-    <a href="/products" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group">
-      <span>All Categories</span>
-      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
-    </a>
-  </div>
-
-  <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-    {% for c in category_tree %}
-    <a href="/products?category_id={{ c.id }}"
-      class="group border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 text-center bg-white dark:bg-slate-900 hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all flex flex-col items-center justify-center min-h-[110px]">
-      <div class="w-11 h-11 rounded-full bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-        <i data-lucide="{{ c.icon_url or 'shopping-bag' }}" class="w-5 h-5"></i>
-      </div>
-      <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 line-clamp-1 w-full">{{ c.name }}</span>
-      <span class="text-[10px] text-slate-400 mt-0.5">{{ c.children|length if c.children else 'Browse' }} items</span>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
 
 
 <!-- ============================================================
@@ -400,6 +316,37 @@
 </section>
 {% endif %}
 
+<!-- ============================================================
+     3. VISUAL DEPARTMENTS & CATEGORIES CAROUSEL
+     ============================================================ -->
+{% if category_tree|default([]) %}
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <div class="flex items-end justify-between mb-4">
+    <div>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Departments</span>
+      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Shop by Category</h2>
+    </div>
+    <a href="/products" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group">
+      <span>All Categories</span>
+      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+    </a>
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+    {% for c in category_tree %}
+    <a href="/products?category_id={{ c.id }}"
+      class="group border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 text-center bg-white dark:bg-slate-900 hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all flex flex-col items-center justify-center min-h-[110px]">
+      <div class="w-11 h-11 rounded-full bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+        <i data-lucide="{{ c.icon_url or 'shopping-bag' }}" class="w-5 h-5"></i>
+      </div>
+      <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 line-clamp-1 w-full">{{ c.name }}</span>
+      <span class="text-[10px] text-slate-400 mt-0.5">{{ c.children|length if c.children else 'Browse' }} items</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 
 <!-- ============================================================
      4B. TOP DEALS — horizontal-scroll rail, compact cards
@@ -474,7 +421,7 @@
 
 
 <!-- ============================================================
-     5. DEDICATED HANDYMAN HUB SHOWCASE — "Shop it. Fix it. EraVenda."
+     5. DEDICATED HANDYMAN HUB SHOWCASE — "Trusted help, right when you need it."
      ============================================================ -->
 <section class="max-w-7xl mx-auto px-4 py-12">
   <div class="rounded-3xl border border-teal-200 dark:border-teal-900 bg-gradient-to-br from-teal-900 via-teal-950 to-slate-950 text-white p-6 sm:p-8 md:p-10 shadow-xl relative overflow-hidden">
@@ -922,54 +869,30 @@
 
   <div class="grid sm:grid-cols-3 gap-4">
     <!-- Banner 1: Local Ghana Sellers -->
-    <a href="/products"
-      class="group relative rounded-2xl overflow-hidden min-h-[220px] flex flex-col justify-end p-5 text-white shadow-md">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081195/Gemini_Generated_Image_1xyv7m1xyv7m1xyv.jpg"
+    <a href="/products" aria-label="Made in Ghana products"
+      class="campaign-flash group relative block rounded-2xl overflow-hidden min-h-[220px] shadow-md hover:shadow-xl transition-shadow duration-300">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789765535/shop_now.png"
         alt="Made in Ghana products" loading="lazy"
         class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
-      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"></div>
-      <div class="relative z-10">
-        <span class="text-[10px] font-bold tracking-widest text-accent-300 uppercase">LOCAL MERCHANTS</span>
-        <h3 class="font-head text-lg font-bold mt-1">Made In Ghana & Authentic Brands</h3>
-        <p class="text-xs text-slate-200 mt-1 line-clamp-2">Support local craftsmanship with safe payments and delivery to your doorstep.</p>
-        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 mt-2 group-hover:translate-x-1 transition-transform">
-          Shop Now <i class="fas fa-arrow-right text-[10px]"></i>
-        </span>
-      </div>
+      <span class="campaign-flash-sweep" aria-hidden="true"></span>
     </a>
 
     <!-- Banner 2: Handyman Service -->
-    <a href="/services"
-      class="group relative rounded-2xl overflow-hidden min-h-[220px] flex flex-col justify-end p-5 text-white shadow-md">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081557/Gemini_Generated_Image_mlwywumlwywumlwy.jpg"
+    <a href="/services" aria-label="Handyman Hub services"
+      class="campaign-flash group relative block rounded-2xl overflow-hidden min-h-[220px] shadow-md hover:shadow-xl transition-shadow duration-300">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789765535/handyman-hub.png"
         alt="Handyman Hub Services" loading="lazy"
         class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
-      <div class="absolute inset-0 bg-gradient-to-t from-teal-950/90 via-teal-950/40 to-transparent"></div>
-      <div class="relative z-10">
-        <span class="text-[10px] font-bold tracking-widest text-teal-300 uppercase">HANDYMAN ON DEMAND</span>
-        <h3 class="font-head text-lg font-bold mt-1">Fix, Install & Renovate with Confidence</h3>
-        <p class="text-xs text-slate-200 mt-1 line-clamp-2">Book electrical, plumbing, carpentry, or masonry services with escrow protection.</p>
-        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-teal-300 mt-2 group-hover:translate-x-1 transition-transform">
-          Find a Pro <i class="fas fa-arrow-right text-[10px]"></i>
-        </span>
-      </div>
+      <span class="campaign-flash-sweep" aria-hidden="true"></span>
     </a>
 
     <!-- Banner 3: Vendor Onboarding -->
-    <a href="/seller/dashboard.html"
-      class="group relative rounded-2xl overflow-hidden min-h-[220px] flex flex-col justify-end p-5 text-white shadow-md">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789081367/Gemini_Generated_Image_h8fvveh8fvveh8fv.jpg"
+    <a href="/seller/dashboard.html" aria-label="Sell on EraVenda"
+      class="campaign-flash group relative block rounded-2xl overflow-hidden min-h-[220px] shadow-md hover:shadow-xl transition-shadow duration-300">
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789765539/sell_with_us.png"
         alt="Sell on EraVenda" loading="lazy"
         class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
-      <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"></div>
-      <div class="relative z-10">
-        <span class="text-[10px] font-bold tracking-widest text-accent-400 uppercase">SELL ON ERAVENDA</span>
-        <h3 class="font-head text-lg font-bold mt-1">Grow Your Business Across All Ghana</h3>
-        <p class="text-xs text-slate-200 mt-1 line-clamp-2">Open your verified store in minutes. Zero upfront fees and fast payouts.</p>
-        <span class="inline-flex items-center gap-1.5 text-xs font-bold text-accent-300 mt-2 group-hover:translate-x-1 transition-transform">
-          Open Store <i class="fas fa-arrow-right text-[10px]"></i>
-        </span>
-      </div>
+      <span class="campaign-flash-sweep" aria-hidden="true"></span>
     </a>
   </div>
 </section>
@@ -1138,36 +1061,5 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Hero Carousel Logic & Icon Initialization -->
-<script>
-  (function () {
-    let currentSlide = 0;
-    const slides = document.querySelectorAll('#hero-slideshow .slide');
-    const dots = document.querySelectorAll('.dot');
-    const totalSlides = slides.length;
-    if (!totalSlides) return;
 
-    function showSlide(index) {
-      slides.forEach((slide, i) => {
-        slide.classList.toggle('opacity-100', i === index);
-        slide.classList.toggle('opacity-0', i !== index);
-      });
-      dots.forEach((dot, i) => {
-        dot.style.opacity = i === index ? '1' : '0.4';
-      });
-      currentSlide = index;
-    }
-
-    function nextSlide() {
-      showSlide((currentSlide + 1) % totalSlides);
-    }
-
-    let timer = setInterval(nextSlide, 5000);
-    window.goToSlide = function (index) {
-      showSlide(index);
-      clearInterval(timer);
-      timer = setInterval(nextSlide, 5000);
-    };
-  })();
-</script>
 {% endblock %}

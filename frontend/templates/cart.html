@@ -49,6 +49,7 @@
         ${item.image_url ? `<img src="${item.image_url}" class="w-16 h-16 object-cover rounded">` : `<div class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center text-2xl text-slate-300">🛍️</div>`}
         <div class="flex-1">
           <div class="font-medium">${item.name || "Product"}</div>
+          ${(item.option || item.color || item.size) ? `<div class="text-xs text-slate-500 mt-0.5">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}${(item.color || item.option) && item.size ? " · " : ""}${item.size ? `Size: ${item.size}` : ""}</div>` : ""}
           <div class="text-sm text-slate-500">${money(item.price)} each</div>
         </div>
         <input type="number" class="guest-qty-input w-16 border border-slate-300 rounded px-2 py-1 text-center" value="${item.quantity}" min="1" data-product-id="${item.product_id}">
@@ -86,16 +87,20 @@
 
       el.innerHTML = cart.items.map(item => {
         const p = item.product;
-        const price = Number(p.discount_price ?? p.price);
+        const optionMatch = (item.option && p.options) ? p.options.find(o => o.label === item.option) : null;
+        const colorMatch = (item.color && p.colors) ? p.colors.find(c => c.name === item.color) : null;
+        const price = optionMatch ? Number(optionMatch.price) : Number(p.discount_price ?? p.price);
+        const maxStock = optionMatch ? Number(optionMatch.stock) || 0 : colorMatch ? Number(colorMatch.stock) || 0 : p.stock_quantity;
         const img = (p.images || []).find(i => i.is_primary) || (p.images || [])[0];
         return `
           <div class="flex items-center gap-4 border border-slate-200 rounded-md p-3" data-item-id="${item.id}">
             ${img ? `<img src="${img.image_url}" class="w-16 h-16 object-cover rounded">` : `<div class="w-16 h-16 bg-slate-100 rounded"></div>`}
             <div class="flex-1">
               <div class="font-medium">${p.name}</div>
+              ${(item.option || item.color) ? `<div class="text-xs text-slate-500 mt-0.5">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}</div>` : ""}
               <div class="text-sm text-slate-500">${money(price)} each</div>
             </div>
-            <input type="number" class="qty-input w-16 border border-slate-300 rounded px-2 py-1 text-center" value="${item.quantity}" min="1" max="${p.stock_quantity}" data-item-id="${item.id}">
+            <input type="number" class="qty-input w-16 border border-slate-300 rounded px-2 py-1 text-center" value="${item.quantity}" min="1" max="${maxStock}" data-item-id="${item.id}">
             <div class="text-right">
               <div class="font-semibold">${money(price * item.quantity)}</div>
               <button class="text-xs text-red-600 hover:underline mt-1" data-remove="${item.id}">Remove</button>

@@ -187,6 +187,63 @@ def _normalize_product_colors(value):
     return normalized
 
 
+def _normalize_product_options(value):
+    if value is None:
+        return None
+    normalized = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("label", "")).strip()
+        if not label:
+            continue
+        try:
+            price = round(float(item.get("price", 0)), 2)
+        except (TypeError, ValueError):
+            price = 0.0
+        discount_price = None
+        raw_discount = item.get("discount_price")
+        if raw_discount not in (None, ""):
+            try:
+                candidate = round(float(raw_discount), 2)
+                if 0 < candidate < price:
+                    discount_price = candidate
+            except (TypeError, ValueError):
+                discount_price = None
+        try:
+            stock = max(0, int(item.get("stock", 0)))
+        except (TypeError, ValueError):
+            stock = 0
+        available = bool(item.get("available", stock > 0)) and stock > 0
+        normalized.append({
+            "label": label, "price": price, "discount_price": discount_price,
+            "stock": stock, "available": available,
+        })
+    return normalized
+
+
+def _normalize_product_sizes(value):
+    """Sizes are a stock-only variant — no own price, unlike options — used
+    for shoes, clothing, etc. where every size sells at the product's base
+    (or discount) price."""
+    if value is None:
+        return None
+    normalized = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("label", "")).strip()
+        if not label:
+            continue
+        try:
+            stock = max(0, int(item.get("stock", 0)))
+        except (TypeError, ValueError):
+            stock = 0
+        available = bool(item.get("available", stock > 0)) and stock > 0
+        normalized.append({"label": label, "stock": stock, "available": available})
+    return normalized
+
+
 class ProductCreate(BaseModel):
     name: str
     category_id: str
@@ -199,11 +256,23 @@ class ProductCreate(BaseModel):
     discount_price: Optional[float] = None
     stock_quantity: int = 0
     colors: Optional[List[Any]] = None
+    options: Optional[List[Any]] = None
+    sizes: Optional[List[Any]] = None
 
     @field_validator("colors")
     @classmethod
     def normalize_colors(cls, value):
         return _normalize_product_colors(value)
+
+    @field_validator("options")
+    @classmethod
+    def normalize_options(cls, value):
+        return _normalize_product_options(value)
+
+    @field_validator("sizes")
+    @classmethod
+    def normalize_sizes(cls, value):
+        return _normalize_product_sizes(value)
 
 
 class ProductUpdate(BaseModel):
@@ -218,11 +287,23 @@ class ProductUpdate(BaseModel):
     discount_price: Optional[float] = None
     stock_quantity: Optional[int] = None
     colors: Optional[List[Any]] = None
+    options: Optional[List[Any]] = None
+    sizes: Optional[List[Any]] = None
 
     @field_validator("colors")
     @classmethod
     def normalize_colors(cls, value):
         return _normalize_product_colors(value)
+
+    @field_validator("options")
+    @classmethod
+    def normalize_options(cls, value):
+        return _normalize_product_options(value)
+
+    @field_validator("sizes")
+    @classmethod
+    def normalize_sizes(cls, value):
+        return _normalize_product_sizes(value)
 
 
 class ProductOut(BaseModel):
@@ -245,6 +326,8 @@ class ProductOut(BaseModel):
     average_rating: float
     review_count: int
     colors: Optional[List[Any]] = None
+    options: Optional[List[Any]] = None
+    sizes: Optional[List[Any]] = None
     badge_keys: Optional[List[str]] = None
     images: List[ProductImageOut] = []
     created_at: datetime
@@ -263,6 +346,8 @@ class CartItemIn(BaseModel):
     product_id: str
     quantity: int = Field(gt=0)
     color: Optional[str] = None
+    option: Optional[str] = None
+    size: Optional[str] = None
 
 
 class CartItemOut(BaseModel):
@@ -271,6 +356,8 @@ class CartItemOut(BaseModel):
     product: ProductOut
     quantity: int
     color: Optional[str] = None
+    option: Optional[str] = None
+    size: Optional[str] = None
 
 
 class CartOut(BaseModel):
@@ -304,6 +391,8 @@ class OrderItemOut(BaseModel):
     commission_rate: float = 0
     commission_amount: float = 0
     color: Optional[str] = None
+    option: Optional[str] = None
+    size: Optional[str] = None
 
 
 class OrderOut(BaseModel):

@@ -7,34 +7,105 @@
     {% if search_query %}Results for "{{ search_query }}"{% else %}All products{% endif %}
   </h1>
 
-  <form method="get" action="/products" class="flex flex-wrap gap-3 items-center bg-slate-50 border border-slate-200 rounded-md p-3 mb-6">
-    <input type="hidden" name="q" value="{{ search_query|default('') }}">
-    <select name="category_id" class="border border-slate-300 rounded-md px-3 py-2 text-sm">
-      <option value="">All categories</option>
-      {% for c in category_tree|default([]) %}
-      <option value="{{ c.id }}" {% if selected_category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
-      {% for child in c.children %}
-      <option value="{{ child.id }}" {% if selected_category_id == child.id %}selected{% endif %}>&nbsp;&nbsp;&nbsp;{{ child.name }}</option>
-      {% endfor %}
-      {% endfor %}
-    </select>
-    <select name="sort" class="border border-slate-300 rounded-md px-3 py-2 text-sm">
-      <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest</option>
-      <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>Price: low to high</option>
-      <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Price: high to low</option>
-    </select>
-    <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-md">Apply</button>
-  </form>
+  <!-- Mobile-only quick filter bar: Filters button + search-within-results -->
+  <div class="lg:hidden flex items-center gap-2 mb-3">
+    <button type="button" id="openFilters" class="relative flex items-center gap-2 border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-semibold bg-white shrink-0">
+      <i class="fas fa-sliders-h text-slate-500"></i> Filters
+      <span id="activeFilterBadge" class="hidden absolute -top-1.5 -right-1.5 bg-brand-500 text-white text-[10px] font-bold rounded-full w-4.5 h-4.5 min-w-[18px] h-[18px] flex items-center justify-center px-1">0</span>
+    </button>
+    <div class="relative flex-1">
+      <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+      <input type="search" id="quickSearch" placeholder="Search within these results…"
+        class="w-full pl-8 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+    </div>
+  </div>
 
-  <p class="text-sm text-slate-500 mb-4">{{ products|default([])|length }} product(s) found</p>
+  <!-- Mobile-only quick category chips, one tap to filter -->
+  {% if category_tree|default([]) %}
+  <div class="lg:hidden flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 mb-4 -mx-4 px-4">
+    <button type="button" class="quick-chip active shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap" data-quick-category="">All</button>
+    {% for c in category_tree|default([]) %}
+    <button type="button" class="quick-chip shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap" data-quick-category="{{ c.id }}">{{ c.name }}</button>
+    {% endfor %}
+  </div>
+  {% endif %}
 
+  <div class="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-6 items-start">
+    <!-- Backdrop behind the mobile filter drawer -->
+    <div id="filterBackdrop" class="hidden fixed inset-0 bg-black/40 z-40 lg:hidden"></div>
+
+    <aside id="filterAside"
+      class="fixed inset-y-0 left-0 z-50 w-[85%] max-w-xs bg-white p-4 shadow-2xl overflow-y-auto -translate-x-full transition-transform duration-300 ease-out lg:static lg:translate-x-0 lg:z-auto lg:w-auto lg:max-w-none lg:shadow-none lg:transition-none lg:overflow-visible lg:rounded-2xl lg:border lg:border-slate-200 lg:sticky lg:top-24"
+      aria-label="Filter products by category">
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <h2 class="font-head font-semibold text-base">Filter categories</h2>
+        <div class="flex items-center gap-3">
+          <button type="button" id="clearCategoryFilters" class="text-xs font-semibold text-brand-600 hover:underline">Clear</button>
+          <button type="button" id="closeFilters" class="lg:hidden text-slate-400 hover:text-slate-700 text-lg leading-none" aria-label="Close filters">&times;</button>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500 mb-3">Select one or more categories to narrow the products shown.</p>
+      <div id="categoryFilters" class="space-y-3 text-sm">
+        {% for c in category_tree|default([]) %}
+        <div>
+          <label class="flex items-center gap-2 font-semibold text-slate-700 cursor-pointer">
+            <input type="checkbox" class="category-filter rounded border-slate-300 text-brand-600 focus:ring-brand-500" value="{{ c.id }}" data-category-filter>
+            <span>{{ c.name }}</span>
+          </label>
+          {% if c.children %}
+          <div class="ml-6 mt-2 space-y-2">
+            {% for child in c.children %}
+            <label class="flex items-center gap-2 text-slate-600 cursor-pointer">
+              <input type="checkbox" class="category-filter rounded border-slate-300 text-brand-600 focus:ring-brand-500" value="{{ child.id }}" data-category-filter>
+              <span>{{ child.name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="mt-5 pt-4 border-t border-slate-200">
+        <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+          <input type="checkbox" id="inStockOnly" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+          In stock only
+        </label>
+      </div>
+
+      <button type="button" id="applyFiltersMobile" class="lg:hidden mt-5 w-full bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold py-2.5 rounded-md">
+        Show results
+      </button>
+    </aside>
+
+    <div class="min-w-0">
+      <form method="get" action="/products" class="flex flex-wrap gap-3 items-center bg-slate-50 border border-slate-200 rounded-xl p-3 mb-6">
+        <input type="hidden" name="q" value="{{ search_query|default('') }}">
+        <select name="category_id" class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+          <option value="">All categories</option>
+          {% for c in category_tree|default([]) %}
+          <option value="{{ c.id }}" {% if selected_category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+          {% for child in c.children %}
+          <option value="{{ child.id }}" {% if selected_category_id == child.id %}selected{% endif %}>&nbsp;&nbsp;&nbsp;{{ child.name }}</option>
+          {% endfor %}
+          {% endfor %}
+        </select>
+        <select name="sort" class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+          <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest</option>
+          <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>Price: low to high</option>
+          <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Price: high to low</option>
+        </select>
+        <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-md">Apply</button>
+      </form>
+
+      <p id="productResultCount" class="text-sm text-slate-500 mb-4">{{ products|default([])|length }} product(s) found</p>
   {% if products|default([]) %}
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
     {% for p in products %}
     {% set price = p.discount_price if p.discount_price else p.price %}
     {% set has_discount = p.discount_price and p.discount_price < p.price %}
     {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
-    <article data-product-card data-product-url="/product/{{ p.id }}" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
+    <article data-product-card data-product-url="/product/{{ p.id }}" data-category="{{ p.category_id }}" data-parent-category="{{ p.category.parent_id if p.category else '' }}" data-stock="{{ p.stock_quantity }}" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
       <div class="relative aspect-square bg-slate-100 lazy-img">
         {% if has_discount %}
         <span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">
@@ -65,9 +136,100 @@
   {% else %}
   <div class="text-center py-16 text-slate-500">No products match those filters.</div>
   {% endif %}
+    </div>
+  </div>
 </div>
 {% endblock %}
 {% block scripts %}<script>
+const categoryFilterInputs = [...document.querySelectorAll('[data-category-filter]')];
+const productCards = [...document.querySelectorAll('[data-product-card]')];
+const resultCount = document.getElementById('productResultCount');
+const quickSearchInput = document.getElementById('quickSearch');
+const inStockOnly = document.getElementById('inStockOnly');
+const quickChips = [...document.querySelectorAll('.quick-chip')];
+const activeFilterBadge = document.getElementById('activeFilterBadge');
+
+function applyCategoryFilters() {
+  const selectedCategories = categoryFilterInputs.filter(input => input.checked).map(input => String(input.value));
+  const searchTerm = (quickSearchInput?.value || '').trim().toLowerCase();
+  const stockOnly = inStockOnly?.checked;
+  let visible = 0;
+
+  productCards.forEach(card => {
+    const categoryMatch = !selectedCategories.length || selectedCategories.includes(String(card.dataset.category)) || selectedCategories.includes(String(card.dataset.parentCategory));
+    const nameEl = card.querySelector('.line-clamp-2');
+    const searchMatch = !searchTerm || (nameEl?.textContent || '').toLowerCase().includes(searchTerm);
+    const stockMatch = !stockOnly || parseInt(card.dataset.stock, 10) > 0;
+    const matches = categoryMatch && searchMatch && stockMatch;
+    card.classList.toggle('hidden', !matches);
+    if (matches) visible += 1;
+  });
+  if (resultCount) resultCount.textContent = `${visible} product(s) found`;
+
+  // Keep the mobile quick chips in sync with whichever categories are checked.
+  quickChips.forEach(chip => {
+    const isAll = chip.dataset.quickCategory === '';
+    const isActive = isAll ? !selectedCategories.length : selectedCategories.includes(chip.dataset.quickCategory);
+    chip.classList.toggle('active', isActive);
+  });
+
+  if (activeFilterBadge) {
+    const count = selectedCategories.length + (stockOnly ? 1 : 0);
+    activeFilterBadge.textContent = count;
+    activeFilterBadge.classList.toggle('hidden', count === 0);
+  }
+}
+
+categoryFilterInputs.forEach(input => input.addEventListener('change', applyCategoryFilters));
+document.getElementById('clearCategoryFilters')?.addEventListener('click', () => {
+  categoryFilterInputs.forEach(input => { input.checked = false; });
+  if (inStockOnly) inStockOnly.checked = false;
+  if (quickSearchInput) quickSearchInput.value = '';
+  applyCategoryFilters();
+});
+inStockOnly?.addEventListener('change', applyCategoryFilters);
+let searchDebounce;
+quickSearchInput?.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(applyCategoryFilters, 150);
+});
+
+// One-tap category chips (mobile) — toggle the matching checkbox and re-filter.
+quickChips.forEach(chip => {
+  chip.addEventListener('click', () => {
+    const value = chip.dataset.quickCategory;
+    if (!value) {
+      categoryFilterInputs.forEach(input => { input.checked = false; });
+    } else {
+      const input = categoryFilterInputs.find(i => String(i.value) === String(value));
+      if (input) {
+        const wasOnlyOneChecked = input.checked && categoryFilterInputs.filter(i => i.checked).length === 1;
+        categoryFilterInputs.forEach(i => { i.checked = false; });
+        input.checked = !wasOnlyOneChecked;
+      }
+    }
+    applyCategoryFilters();
+  });
+});
+
+// Mobile filter drawer
+const filterAside = document.getElementById('filterAside');
+const filterBackdrop = document.getElementById('filterBackdrop');
+function openFilterDrawer() {
+  filterAside?.classList.remove('-translate-x-full');
+  filterBackdrop?.classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+}
+function closeFilterDrawer() {
+  filterAside?.classList.add('-translate-x-full');
+  filterBackdrop?.classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+}
+document.getElementById('openFilters')?.addEventListener('click', openFilterDrawer);
+document.getElementById('closeFilters')?.addEventListener('click', closeFilterDrawer);
+document.getElementById('applyFiltersMobile')?.addEventListener('click', closeFilterDrawer);
+filterBackdrop?.addEventListener('click', closeFilterDrawer);
+
 document.querySelectorAll('[data-cart]').forEach(b => {
   const productId = b.dataset.cart;
   b.setAttribute('data-cart-add', productId);

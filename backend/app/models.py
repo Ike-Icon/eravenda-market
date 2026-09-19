@@ -207,6 +207,8 @@ class Product(Base):
     average_rating = Column(Numeric(3, 2), nullable=False, default=0)
     review_count = Column(Integer, nullable=False, default=0)
     colors = Column(JSON, nullable=True)
+    options = Column(JSON, nullable=True)  # e.g. [{"label":"250ml","price":53.0,"stock":10,"available":true}]
+    sizes = Column(JSON, nullable=True)  # e.g. [{"label":"42","stock":6,"available":true}] — no own price; shares product.price
     badge_keys = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -243,13 +245,17 @@ class Cart(Base):
 
 class CartItem(Base):
     __tablename__ = "cart_items"
-    __table_args__ = (UniqueConstraint("cart_id", "product_id", "color", name="uq_cart_product_color"),)
+    __table_args__ = (
+        UniqueConstraint("cart_id", "product_id", "color", "option", "size", name="uq_cart_product_color_option_size"),
+    )
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     cart_id = Column(UUID(as_uuid=False), ForeignKey("carts.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(UUID(as_uuid=False), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
     quantity = Column(Integer, nullable=False)
     color = Column(String(60), nullable=True)
+    option = Column(String(80), nullable=True)  # matches an entry in product.options[].label
+    size = Column(String(60), nullable=True)  # matches an entry in product.sizes[].label
     created_at = Column(DateTime, default=datetime.utcnow)
 
     cart = relationship("Cart", back_populates="items")
@@ -328,6 +334,8 @@ class OrderItem(Base):
     commission_rate = Column(Numeric(5, 2), nullable=False, default=0)
     commission_amount = Column(Numeric(12, 2), nullable=False, default=0)
     color = Column(String(60), nullable=True)
+    option = Column(String(80), nullable=True)
+    size = Column(String(60), nullable=True)
 
     order = relationship("Order", back_populates="items")
 

@@ -13,6 +13,31 @@ from ..product_pricing import launch_policy_summary
 router = APIRouter(prefix="/products", tags=["products"])
 
 
+def _variant_stock_sum(entries) -> int:
+    total = 0
+    for entry in entries or []:
+        if isinstance(entry, dict):
+            try:
+                total += max(0, int(entry.get("stock", 0)))
+            except (TypeError, ValueError):
+                pass
+    return total
+
+
+def _sync_stock_from_variants(product: models.Product) -> None:
+    """Keep product.stock_quantity truthful whenever variant stock is used,
+    instead of trusting a separately-typed number that can drift from the
+    color/size stock the seller actually configured. Sizes take priority
+    (most specific to fit), then colors, then priced options — matching the
+    same priority orders.py already uses when decrementing stock on sale."""
+    if product.sizes:
+        product.stock_quantity = _variant_stock_sum(product.sizes)
+    elif product.colors:
+        product.stock_quantity = _variant_stock_sum(product.colors)
+    elif product.options:
+        product.stock_quantity = _variant_stock_sum(product.options)
+
+
 @router.get("/commission-policy", response_model=schemas.ProductCommissionPolicyOut)
 def commission_policy():
     return launch_policy_summary()
@@ -111,6 +136,7 @@ def create_product(
         slug = f"{base_slug}-{random_suffix(4)}"
 
     product = models.Product(store_id=store.id, slug=slug, **payload.model_dump())
+    _sync_stock_from_variants(product)
     db.add(product)
     db.commit()
     db.refresh(product)
@@ -134,6 +160,7 @@ def update_product(
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(product, field, value)
 
+    _sync_stock_from_variants(product)
     db.commit()
     db.refresh(product)
     return product

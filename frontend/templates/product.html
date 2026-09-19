@@ -2,93 +2,276 @@
 {% block title %}{{ product.name }} — Eravenda Market{% endblock %}
 {% block meta_description %}{{ (product.description or product.name)[:155] }}{% endblock %}
 
-{% block content %}
 {% set price = product.discount_price if product.discount_price else product.price %}
 {% set has_discount = product.discount_price and product.discount_price < product.price %}
 {% set discount_pct = (((1 - (product.discount_price / product.price)) * 100) | round | int) if has_discount else 0 %}
 {% set images = product.images if product.images else [] %}
 {% set primary_image = (images | selectattr("is_primary") | list | first) or (images | first) %}
+{% set has_options = product.options and product.options|length > 0 %}
+{% set has_sizes = product.sizes and product.sizes|length > 0 %}
+{% set option_prices = (product.options | map(attribute='price') | list) if has_options else [] %}
+{% set min_price = option_prices | min if option_prices else price %}
+{% set max_price = option_prices | max if option_prices else price %}
 
-<div class="max-w-7xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-10">
-  <div>
-    <div class="product-gallery-stage aspect-square bg-slate-100 border border-slate-200 rounded-md overflow-hidden flex items-center justify-center" data-product-gallery aria-label="Product image preview">
-      {% if primary_image %}
-      <button type="button" class="product-main-image w-full h-full" data-gallery-open aria-label="Open high-resolution image of {{ product.name }}">
-        <img id="mainImg" src="{{ primary_image.image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover" data-gallery-image>
-      </button>
-      {% else %}
-      <span class="text-4xl text-slate-300">🛍️</span>
-      {% endif %}
-    </div>
-    {% if primary_image %}<p class="mt-2 text-xs text-slate-500">Hover to explore, drag to pan, or click to view the full-size image.</p>{% endif %}
-    {% if images|length > 1 %}
-    <div class="flex gap-2 mt-3">
-      {% for img in images %}
-      <button type="button" data-gallery-thumbnail data-image-src="{{ img.image_url }}" aria-label="Show image {{ loop.index }} of {{ product.name }}"
-              class="w-16 h-16 rounded border border-slate-200 overflow-hidden cursor-pointer hover:border-brand-500 focus:ring-2 focus:ring-brand-500">
-        <img src="{{ img.image_url }}" alt="" class="w-full h-full object-cover">
-      </button>
-      {% endfor %}
-    </div>
+{% block content %}
+
+<div class="max-w-7xl mx-auto px-4 py-6">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="Breadcrumb" class="flex items-center gap-1.5 text-sm text-slate-500 mb-5 overflow-x-auto whitespace-nowrap">
+    <a href="/" class="hover:text-brand-600 shrink-0">Home</a>
+    {% if product.category %}
+    <i class="fas fa-chevron-right text-[9px] text-slate-300 shrink-0"></i>
+    {% if product.category.parent %}
+    <a href="/products?category_id={{ product.category.parent.id }}" class="hover:text-brand-600 shrink-0">{{ product.category.parent.name }}</a>
+    <i class="fas fa-chevron-right text-[9px] text-slate-300 shrink-0"></i>
     {% endif %}
-  </div>
-
-  <div>
-    <h1 class="font-head text-2xl font-semibold">{{ product.name }}</h1>
-    <div class="flex items-center gap-2 mt-1 text-sm text-slate-500">
-      {% if store %}
-      <a href="/store/{{ store.id }}" class="hover:text-brand-600 hover:underline">Sold by {{ store.store_name }}</a>
-      {% else %}
-      <span>Sold on Eravenda Market</span>
-      {% endif %}
-      {% if product.brand %}<span class="text-slate-300">·</span><span>{{ product.brand }}</span>{% endif %}
-      {% if product.condition and product.condition.value != "new" %}
-      <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 capitalize">{{ product.condition.value }}</span>
-      {% endif %}
-    </div>
-    {% if product.sku %}<p class="text-xs text-slate-400 mt-1">SKU: {{ product.sku }}</p>{% endif %}
-
-    <div id="ratingSummary" class="relative inline-flex items-center gap-2 text-sm text-accent-600 mt-2 cursor-help" title="Loading review statistics…">★ {{ "%.1f"|format(product.average_rating) }} <span class="text-slate-400">({{ product.review_count }} reviews)</span><span class="text-xs text-slate-400 underline decoration-dotted">Review stats</span><div id="ratingStats" class="hidden absolute left-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-xl p-3 z-30 text-xs text-slate-600"></div></div>
-
-    <div class="mt-4 flex items-baseline gap-2">
-      <span class="text-2xl font-bold">₵{{ "%.2f"|format(price) }}</span>
-      {% if has_discount %}<span class="text-slate-400 line-through">₵{{ "%.2f"|format(product.price) }}</span><span class="text-xs font-bold bg-red-50 text-red-600 px-2 py-1 rounded-full">{{ discount_pct }}% OFF</span>{% endif %}
-    </div>
-
-    <p class="mt-4 text-slate-600">{{ product.description or "No description provided for this product yet." }}</p>
-
-    {% if product.specifications %}
-    <ul class="mt-3 space-y-1 text-sm text-slate-600 list-disc list-inside">
-      {% for spec in product.specifications %}
-      <li>{{ spec }}</li>
-      {% endfor %}
-    </ul>
+    <a href="/products?category_id={{ product.category.id }}" class="hover:text-brand-600 shrink-0">{{ product.category.name }}</a>
     {% endif %}
+    <i class="fas fa-chevron-right text-[9px] text-slate-300 shrink-0"></i>
+    <span class="text-slate-800 font-medium truncate">{{ product.name }}</span>
+  </nav>
 
-    {% if product.badge_keys %}<div class="flex flex-wrap gap-2 mt-4">{% for badge in product.badge_keys %}<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-3 h-3"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}
+  <div class="grid lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)_320px] gap-8 items-start">
 
-    {% if product.colors %}<fieldset class="mt-5"><legend class="block text-sm font-semibold mb-2">Choose a color when buying <span class="font-normal text-slate-500">(optional for cart and wishlist)</span></legend><div id="colorChoices" class="flex flex-wrap gap-3" role="group" aria-label="Available product colors">{% for color in product.colors %}{% if color is string %}{% set cname=color %}{% set chex="#000000" %}{% set cstock=0 %}{% set cavail=false %}{% else %}{% set cname=color.name %}{% set chex=color.hex %}{% set cstock=color.stock|default(0)|int %}{% set cavail=color.available|default(cstock > 0) and cstock > 0 %}{% endif %}<button type="button" data-color="{{ cname }}" data-color-hex="{{ chex }}" data-color-stock="{{ cstock }}" data-color-available="{{ 'true' if cavail else 'false' }}" class="color-choice inline-flex items-center gap-2 border border-slate-300 rounded-full px-3 py-2 hover:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="{{ 'Select' if cavail else 'Unavailable' }} {{ cname }}{% if chex %} ({{ chex }}){% endif %}{% if cavail %}, {{ cstock }} in stock{% endif %}" aria-pressed="false" {% if not cavail %}disabled{% endif %}><span class="w-6 h-6 rounded-full border border-slate-300" style="background-color: {{ chex }}" aria-hidden="true"></span><span>{{ cname }}</span><span class="text-xs {% if cavail %}text-brand-700{% else %}text-red-500{% endif %}">{% if cavail %}{{ cstock }} left{% else %}Unavailable{% endif %}</span></button>{% endfor %}</div><p id="selectedColor" class="text-xs text-slate-500 mt-2" aria-live="polite">Color is optional until you buy.</p></fieldset>{% endif %}
-
-    <p class="mt-4 text-sm {% if product.stock_quantity > 0 %}text-brand-700{% else %}text-red-600{% endif %}">
-      {% if product.stock_quantity > 0 %}{{ product.stock_quantity }} items left in stock{% else %}Out of stock{% endif %}
-    </p>
-
-    <div class="mt-4 flex flex-wrap items-center gap-3">
-      <input type="number" id="qtyInput" value="1" min="1" max="{{ product.stock_quantity }}"
-             class="w-16 border border-slate-300 rounded-md px-2 py-2 text-center">
-      <button id="addToCartBtn" data-product-id="{{ product.id }}"
-              {% if product.stock_quantity == 0 %}disabled{% endif %}
-              class="bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-semibold px-6 py-2 rounded-md transition-colors">
-        <i class="fas fa-shopping-cart"></i> Add to cart
-      </button>
-      <button id="buyNowBtn" data-product-id="{{ product.id }}"
-              {% if product.stock_quantity == 0 %}disabled{% endif %}
-              class="bg-accent-500 hover:bg-accent-600 disabled:opacity-50 text-slate-950 font-semibold px-6 py-2 rounded-md transition-colors">
-        <i class="fas fa-bolt"></i> Buy this
-      </button>
-      <button id="wishlistBtn" data-product-id="{{ product.id }}" class="border border-red-200 text-red-500 hover:bg-red-50 p-2 rounded-md" aria-label="Add to wishlist"><i class="far fa-heart"></i></button>
+    <!-- COLUMN 1 — Gallery -->
+    <div>
+      <div class="product-gallery-stage aspect-square bg-slate-100 border border-slate-200 rounded-md overflow-hidden flex items-center justify-center" data-product-gallery aria-label="Product image preview">
+        {% if primary_image %}
+        <button type="button" class="product-main-image w-full h-full" data-gallery-open aria-label="Open high-resolution image of {{ product.name }}">
+          <img id="mainImg" src="{{ primary_image.image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover" data-gallery-image>
+        </button>
+        {% else %}
+        <span class="text-4xl text-slate-300">🛍️</span>
+        {% endif %}
+      </div>
+      {% if primary_image %}<p class="mt-2 text-xs text-slate-500">Hover to explore, drag to pan, or click to view the full-size image.</p>{% endif %}
+      {% if images|length > 1 %}
+      <div class="flex gap-2 mt-3">
+        {% for img in images %}
+        <button type="button" data-gallery-thumbnail data-image-src="{{ img.image_url }}" aria-label="Show image {{ loop.index }} of {{ product.name }}"
+                class="w-16 h-16 rounded border border-slate-200 overflow-hidden cursor-pointer hover:border-brand-500 focus:ring-2 focus:ring-brand-500">
+          <img src="{{ img.image_url }}" alt="" class="w-full h-full object-cover">
+        </button>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
-    <div id="pdpMessage" class="mt-3 text-sm"></div>
+
+    <!-- COLUMN 2 — Product info -->
+    <div class="min-w-0">
+      {% if product.badge_keys %}
+      <div class="flex flex-wrap gap-2 mb-3">
+        {% for badge in product.badge_keys %}
+        <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+          <i class="fas fa-star text-amber-500 text-[10px]"></i>{{ badge|replace('-', ' ')|title }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <h1 class="font-head text-2xl font-semibold leading-snug">{{ product.name }}</h1>
+      <div class="flex items-center flex-wrap gap-2 mt-1.5 text-sm text-slate-500">
+        {% if product.brand %}<span class="font-medium text-slate-700">{{ product.brand }}</span><span class="text-slate-300">·</span>{% endif %}
+        {% if store %}
+        <a href="/store/{{ store.id }}" class="hover:text-brand-600 hover:underline">{{ store.store_name }}</a>
+        {% else %}
+        <span>Sold on Eravenda Market</span>
+        {% endif %}
+        {% if product.condition and product.condition.value != "new" %}
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 capitalize">{{ product.condition.value }}</span>
+        {% endif %}
+      </div>
+
+      <div id="ratingSummary" class="relative inline-flex items-center gap-2 text-sm text-accent-600 mt-2 cursor-help" title="Loading review statistics…">★ {{ "%.1f"|format(product.average_rating) }} <span class="text-slate-400">({{ product.review_count }} reviews)</span><span class="text-xs text-slate-400 underline decoration-dotted">Review stats</span><div id="ratingStats" class="hidden absolute left-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-xl p-3 z-30 text-xs text-slate-600"></div></div>
+
+      <!-- Payment options -->
+      <div class="mt-5">
+        <p class="text-xs font-bold tracking-wide text-slate-400 uppercase mb-2">Payment options</p>
+        <div class="flex flex-wrap gap-2">
+          <span class="inline-flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700"><i class="fas fa-credit-card text-brand-600"></i> Mobile Money / Card</span>
+          <span class="inline-flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700"><i class="fas fa-money-bill-wave text-brand-600"></i> Pay on Delivery</span>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Pay on delivery depends on your delivery area, and is confirmed at checkout.</p>
+      </div>
+
+      {% if not has_options and not has_sizes and product.stock_quantity > 0 and product.stock_quantity <= 5 %}
+      <div class="mt-4 flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold rounded-lg px-3 py-2.5">
+        <i class="fas fa-bolt text-amber-500"></i> Only {{ product.stock_quantity }} left — order soon!
+      </div>
+      {% endif %}
+
+      <div class="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-slate-600">
+        {% if product.brand %}<div><span class="text-slate-400">Brand:</span> <span class="font-semibold text-slate-800">{{ product.brand }}</span></div>{% endif %}
+        {% if product.sku %}<div><span class="text-slate-400">SKU:</span> <span class="font-semibold text-slate-800">{{ product.sku }}</span></div>{% endif %}
+        {% if not has_options and not has_sizes %}
+        <div><span class="text-slate-400">Stock:</span> <span class="font-semibold {% if product.stock_quantity > 0 %}text-brand-700{% else %}text-red-600{% endif %}">{% if product.stock_quantity > 0 %}{{ product.stock_quantity }} left{% else %}Out of stock{% endif %}</span></div>
+        {% endif %}
+      </div>
+
+      <div class="mt-5 pt-5 border-t border-slate-100">
+        <div class="flex items-baseline gap-2 flex-wrap">
+          {% if has_options %}
+          <span class="text-2xl font-bold" id="priceValue">{% if min_price == max_price %}₵{{ "%.2f"|format(min_price) }}{% else %}₵{{ "%.2f"|format(min_price) }} – ₵{{ "%.2f"|format(max_price) }}{% endif %}</span>
+          {% else %}
+          <span class="text-2xl font-bold" id="priceValue">₵{{ "%.2f"|format(price) }}</span>
+          {% if has_discount %}<span class="text-slate-400 line-through">₵{{ "%.2f"|format(product.price) }}</span><span class="text-xs font-bold bg-red-50 text-red-600 px-2 py-1 rounded-full">{{ discount_pct }}% OFF</span>{% endif %}
+          {% endif %}
+        </div>
+        {% if has_options %}<p id="optionPriceHint" class="text-xs text-slate-500 mt-1">Select an option below to see its exact price.</p>{% endif %}
+        <p id="saveLine" class="text-sm font-semibold text-red-600 mt-1.5 {% if not has_discount or has_options %}hidden{% endif %}">{% if has_discount and not has_options %}You save ₵{{ "%.2f"|format(product.price - product.discount_price) }} on this order!{% endif %}</p>
+      </div>
+
+      <p class="mt-4 text-slate-600">{{ product.description or "No description provided for this product yet." }}</p>
+
+      {% if product.specifications %}
+      <ul class="mt-3 space-y-1 text-sm text-slate-600 list-disc list-inside">
+        {% for spec in product.specifications %}
+        <li>{{ spec }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if product.colors %}
+      <fieldset class="mt-5">
+        <legend class="block text-sm font-semibold mb-2">Choose a color when buying <span class="font-normal text-slate-500">(optional for cart and wishlist)</span></legend>
+        <div id="colorChoices" class="flex flex-wrap gap-3" role="group" aria-label="Available product colors">
+          {% for color in product.colors %}
+          {% if color is string %}{% set cname=color %}{% set chex="#000000" %}{% set cstock=0 %}{% set cavail=false %}
+          {% else %}{% set cname=color.name %}{% set chex=color.hex %}{% set cstock=color.stock|default(0)|int %}{% set cavail=color.available|default(cstock > 0) and cstock > 0 %}{% endif %}
+          <div class="relative group/swatch">
+            <button type="button" data-color="{{ cname }}" data-color-hex="{{ chex }}" data-color-stock="{{ cstock }}" data-color-available="{{ 'true' if cavail else 'false' }}"
+              class="color-choice w-9 h-9 rounded-full border-2 border-slate-200 hover:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed transition-transform hover:scale-110"
+              style="background-color: {{ chex }}"
+              aria-label="{{ 'Select' if cavail else 'Unavailable' }} {{ cname }}{% if chex %} ({{ chex }}){% endif %}{% if cavail %}, {{ cstock }} in stock{% endif %}"
+              aria-pressed="false" {% if not cavail %}disabled{% endif %}>
+              {% if not cavail %}<span class="absolute inset-0 flex items-center justify-center text-white text-xs" aria-hidden="true"><i class="fas fa-slash"></i></span>{% endif %}
+            </button>
+            <div class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 whitespace-nowrap rounded-md bg-slate-900 text-white text-xs px-2 py-1 opacity-0 group-hover/swatch:opacity-100 transition-opacity z-10">
+              {{ cname }}{% if cavail %} · {{ cstock }} left{% else %} · Unavailable{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <p id="selectedColor" class="text-xs text-slate-500 mt-2" aria-live="polite">Color is optional until you buy.</p>
+      </fieldset>
+      {% endif %}
+
+      {% if has_options %}
+      <fieldset class="mt-5">
+        <legend class="block text-sm font-semibold mb-2">Options <span class="font-normal text-slate-500">(optional for cart — select one to see and lock in the exact price)</span></legend>
+        <div id="optionChoices" class="flex flex-wrap gap-3" role="group" aria-label="Available product options">
+          {% for opt in product.options %}
+          {% set ostock = opt.stock|default(0)|int %}
+          {% set oavail = opt.available|default(ostock > 0) and ostock > 0 %}
+          {% set has_opt_discount = opt.discount_price and opt.discount_price|float > 0 and opt.discount_price|float < opt.price|float %}
+          {% set opt_effective_price = opt.discount_price|float if has_opt_discount else opt.price|float %}
+          <button type="button" data-option="{{ opt.label }}" data-option-price="{{ opt_effective_price }}" data-option-list-price="{{ opt.price }}" data-option-stock="{{ ostock }}" data-option-available="{{ 'true' if oavail else 'false' }}"
+            class="option-choice inline-flex items-center gap-2 border border-slate-300 rounded-full px-3 py-2 hover:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="{{ 'Select' if oavail else 'Unavailable' }} {{ opt.label }}, ₵{{ '%.2f'|format(opt_effective_price) }}{% if oavail %}, {{ ostock }} in stock{% endif %}"
+            aria-pressed="false" {% if not oavail %}disabled{% endif %}>
+            <span class="font-semibold">{{ opt.label }}</span>
+            <span class="text-brand-700 font-bold">₵{{ '%.2f'|format(opt_effective_price) }}</span>
+            {% if has_opt_discount %}<span class="text-slate-400 line-through text-xs">₵{{ '%.2f'|format(opt.price|float) }}</span>{% endif %}
+            <span class="text-xs {% if oavail %}text-brand-700{% else %}text-red-500{% endif %}">{% if oavail %}{{ ostock }} left{% else %}Unavailable{% endif %}</span>
+          </button>
+          {% endfor %}
+        </div>
+        <p id="selectedOption" class="text-xs text-slate-500 mt-2" aria-live="polite">Select an option to lock in its exact price — or add to cart without one and confirm the price at checkout.</p>
+      </fieldset>
+      {% endif %}
+
+      {% if has_sizes %}
+      <fieldset class="mt-5">
+        <legend class="block text-sm font-semibold mb-2">Size <span class="font-normal text-slate-500">(optional for cart — pick a size before buying)</span></legend>
+        <div id="sizeChoices" class="flex flex-wrap gap-2" role="group" aria-label="Available sizes">
+          {% for sz in product.sizes %}
+          {% set sstock = sz.stock|default(0)|int %}
+          {% set savail = sz.available|default(sstock > 0) and sstock > 0 %}
+          <button type="button" data-size="{{ sz.label }}" data-size-stock="{{ sstock }}" data-size-available="{{ 'true' if savail else 'false' }}"
+            class="size-choice min-w-[2.75rem] inline-flex items-center justify-center border border-slate-300 rounded-md px-3 py-2 text-sm font-semibold hover:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-slate-300"
+            aria-label="{{ 'Select size' if savail else 'Unavailable size' }} {{ sz.label }}{% if savail %}, {{ sstock }} in stock{% endif %}"
+            aria-pressed="false" {% if not savail %}disabled{% endif %}>
+            {{ sz.label }}
+          </button>
+          {% endfor %}
+        </div>
+        <p id="selectedSize" class="text-xs text-slate-500 mt-2" aria-live="polite">Size is optional until you buy.</p>
+      </fieldset>
+      {% endif %}
+    </div>
+
+    <!-- COLUMN 3 — Buy box / trust sidebar -->
+    <aside class="border border-slate-200 rounded-xl p-5 bg-white shadow-sm lg:sticky lg:top-24">
+      <div class="flex items-center gap-3">
+        {% if store and store.logo_url %}
+        <img src="{{ store.logo_url }}" alt="{{ store.store_name }}" class="w-10 h-10 rounded-full object-cover shrink-0">
+        {% else %}
+        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
+          {{ (store.store_name[:1] if store else "E")|upper }}
+        </div>
+        {% endif %}
+        <div class="flex-1 min-w-0">
+          <p class="text-xs text-slate-400">Sold by</p>
+          <p class="font-semibold text-sm truncate">{{ store.store_name if store else "Eravenda Market" }}</p>
+          {% if store and store.status.value == "approved" %}
+          <p class="text-xs text-brand-600 font-semibold mt-0.5"><i class="fas fa-circle-check"></i> Verified Seller</p>
+          {% endif %}
+        </div>
+        {% if store %}<a href="/store/{{ store.id }}" class="text-xs font-semibold border border-slate-300 rounded-lg px-3 py-1.5 hover:border-brand-500 shrink-0">View Shop</a>{% endif %}
+      </div>
+
+      <dl class="mt-4 pt-4 border-t border-slate-100 space-y-3 text-sm">
+        <div class="flex justify-between items-start gap-3">
+          <dt class="text-slate-500 shrink-0">Price</dt>
+          <dd id="sidebarPrice" class="font-bold text-red-600 text-right">
+            {% if has_options %}{% if min_price == max_price %}₵{{ "%.2f"|format(min_price) }}{% else %}₵{{ "%.2f"|format(min_price) }}–₵{{ "%.2f"|format(max_price) }}{% endif %}{% else %}₵{{ "%.2f"|format(price) }}{% endif %}
+          </dd>
+        </div>
+        <div class="flex justify-between items-start gap-3">
+          <dt class="text-slate-500 shrink-0">Delivery</dt>
+          <dd class="text-right text-slate-700">Calculated at checkout<br><span class="text-xs text-slate-400">Based on your address</span></dd>
+        </div>
+        {# {% if store and store.city %}
+        <div class="flex justify-between items-start gap-3">
+          <dt class="text-slate-500 shrink-0">Pickup</dt>
+          <dd class="text-right text-slate-700">{{ store.city }}{% if store.region %}, {{ store.region }}{% endif %}</dd>
+        </div>
+        {% endif %} #}
+        <div class="flex justify-between items-start gap-3">
+          <dt class="text-slate-500 shrink-0">Availability</dt>
+          <dd id="sidebarAvailability" class="text-right font-semibold {% if has_options or has_sizes %}text-slate-500{% elif product.stock_quantity > 0 %}text-brand-700{% else %}text-red-600{% endif %}">
+            {% if has_options %}Select an option{% elif has_sizes %}Select a size{% elif product.stock_quantity > 0 %}{{ product.stock_quantity }} left{% else %}Out of stock{% endif %}
+          </dd>
+        </div>
+      </dl>
+
+      <div class="mt-4 pt-4 border-t border-slate-100 space-y-2.5">
+        <div class="flex items-center gap-2">
+          <input type="number" id="qtyInput" value="1" min="1" max="{{ product.stock_quantity }}"
+                 class="w-16 border border-slate-300 rounded-md px-2 py-2.5 text-center">
+          <button id="addToCartBtn" data-product-id="{{ product.id }}"
+                  {% if product.stock_quantity == 0 %}disabled{% endif %}
+                  class="flex-1 bg-accent-500 hover:bg-accent-600 disabled:opacity-50 text-slate-950 font-semibold px-4 py-2.5 rounded-md transition-colors text-sm">
+            <i class="fas fa-shopping-cart"></i> Add to Cart
+          </button>
+        </div>
+        <button id="buyNowBtn" data-product-id="{{ product.id }}"
+                {% if product.stock_quantity == 0 %}disabled{% endif %}
+                class="w-full border-2 border-accent-500 text-accent-600 hover:bg-accent-50 disabled:opacity-50 font-semibold px-4 py-2.5 rounded-md transition-colors text-sm">
+          <i class="fas fa-bolt"></i> Buy Now
+        </button>
+        <button id="wishlistBtn" data-product-id="{{ product.id }}"
+                class="w-full border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold px-4 py-2.5 rounded-md transition-colors text-sm">
+          <i class="far fa-heart text-red-500"></i> Add to Wishlist
+        </button>
+      </div>
+      <div id="pdpMessage" class="mt-3 text-sm"></div>
+
+      <a href="/contact" class="mt-4 flex items-center gap-2 justify-center bg-brand-50 text-brand-700 text-sm font-semibold rounded-lg px-3 py-2.5 hover:bg-brand-100 transition-colors">
+        <i class="fas fa-comment-dots"></i> Need help with this order?
+      </a>
+    </aside>
   </div>
 </div>
 
@@ -156,13 +339,38 @@
 
 {% block scripts %}
 <script>
+  function selectedVariants() {
+    const colorBtn = document.querySelector(".color-choice[aria-pressed=\"true\"]");
+    const optionBtn = document.querySelector(".option-choice[aria-pressed=\"true\"]");
+    const sizeBtn = document.querySelector(".size-choice[aria-pressed=\"true\"]");
+    return {
+      color: colorBtn?.dataset.color || null,
+      colorBtn,
+      option: optionBtn?.dataset.option || null,
+      optionBtn,
+      size: sizeBtn?.dataset.size || null,
+      sizeBtn,
+    };
+  }
+
+  function stockForSelection({ optionBtn, colorBtn, sizeBtn }) {
+    if (sizeBtn) return parseInt(sizeBtn.dataset.sizeStock, 10) || 0;
+    if (optionBtn) return parseInt(optionBtn.dataset.optionStock, 10) || 0;
+    if (colorBtn) return parseInt(colorBtn.dataset.colorStock, 10) || 0;
+    return {{ product.stock_quantity }};
+  }
+
   document.getElementById("addToCartBtn").addEventListener("click", async (e) => {
     const msg = document.getElementById("pdpMessage");
     const productId = e.currentTarget.dataset.productId;
     const quantity = parseInt(document.getElementById("qtyInput").value, 10) || 1;
-    const selectedButton = document.querySelector(".color-choice[aria-pressed=\"true\"]");
-    const selectedColor = selectedButton?.dataset.color || null;
-    const availableStock = selectedButton ? parseInt(selectedButton.dataset.colorStock, 10) : {{ product.stock_quantity }};
+    const { color: selectedColor, option: selectedOption, size: selectedSize, optionBtn } = selectedVariants();
+
+    // Color, size and option are all optional here — a guest, or anyone
+    // who hasn't picked a variant yet, can still add the item; unpicked
+    // options fall back to the product's base price and overall stock.
+    const unitPrice = optionBtn ? parseFloat(optionBtn.dataset.optionPrice) : {{ price }};
+    const availableStock = stockForSelection(selectedVariants());
     if (quantity > availableStock) {
       msg.textContent = `Only ${availableStock} unit${availableStock === 1 ? "" : "s"} available for this selection.`;
       msg.className = "mt-3 text-sm text-red-600";
@@ -170,7 +378,7 @@
     }
 
     if (!Auth.isLoggedIn()) {
-      GuestCart.addItem({ product_id: productId, name: {{ product.name|tojson }}, price: "{{ price }}", image_url: "{% if primary_image %}{{ primary_image.image_url }}{% endif %}", quantity, color: selectedColor });
+      GuestCart.addItem({ product_id: productId, name: {{ product.name|tojson }}, price: String(unitPrice), image_url: "{% if primary_image %}{{ primary_image.image_url }}{% endif %}", quantity, color: selectedColor, option: selectedOption, size: selectedSize });
       msg.textContent = "Added to your cart.";
       msg.className = "mt-3 text-sm text-brand-700";
       refreshCartBadge();
@@ -178,7 +386,7 @@
     }
 
     try {
-      await apiFetch("/cart/items", { method: "POST", body: { product_id: productId, quantity, color: selectedColor } });
+      await apiFetch("/cart/items", { method: "POST", body: { product_id: productId, quantity, color: selectedColor, option: selectedOption, size: selectedSize } });
       msg.textContent = "Added to your cart.";
       msg.className = "mt-3 text-sm text-brand-700";
       refreshCartBadge();
@@ -192,14 +400,26 @@
     const msg = document.getElementById("pdpMessage");
     const productId = e.currentTarget.dataset.productId;
     const quantity = parseInt(document.getElementById("qtyInput").value, 10) || 1;
-    const selectedButton = document.querySelector(".color-choice[aria-pressed=\"true\"]");
-    const selectedColor = selectedButton?.dataset.color || null;
-    if (document.querySelector(".color-choice") && !selectedButton) {
+    const { color: selectedColor, option: selectedOption, size: selectedSize, colorBtn, optionBtn, sizeBtn } = selectedVariants();
+
+    if (document.querySelector(".color-choice") && !colorBtn) {
       msg.textContent = "Please select an available color before buying.";
       msg.className = "mt-3 text-sm text-red-600";
       return;
     }
-    const availableStock = selectedButton ? parseInt(selectedButton.dataset.colorStock, 10) : {{ product.stock_quantity }};
+    if (document.querySelector(".size-choice") && !sizeBtn) {
+      msg.textContent = "Please select a size before buying.";
+      msg.className = "mt-3 text-sm text-red-600";
+      return;
+    }
+    if (document.querySelector(".option-choice") && !optionBtn) {
+      msg.textContent = "Please select an option first.";
+      msg.className = "mt-3 text-sm text-red-600";
+      return;
+    }
+
+    const unitPrice = optionBtn ? parseFloat(optionBtn.dataset.optionPrice) : {{ price }};
+    const availableStock = stockForSelection(selectedVariants());
     if (quantity > availableStock) {
       msg.textContent = `Only ${availableStock} unit${availableStock === 1 ? "" : "s"} available for this selection.`;
       msg.className = "mt-3 text-sm text-red-600";
@@ -207,13 +427,13 @@
     }
 
     if (!Auth.isLoggedIn()) {
-      GuestCart.addItem({ product_id: productId, name: {{ product.name|tojson }}, price: "{{ price }}", image_url: "{% if primary_image %}{{ primary_image.image_url }}{% endif %}", quantity, color: selectedColor });
+      GuestCart.addItem({ product_id: productId, name: {{ product.name|tojson }}, price: String(unitPrice), image_url: "{% if primary_image %}{{ primary_image.image_url }}{% endif %}", quantity, color: selectedColor, option: selectedOption, size: selectedSize });
       window.location.href = "/cart";
       return;
     }
 
     try {
-      await apiFetch("/cart/items", { method: "POST", body: { product_id: productId, quantity, color: selectedColor } });
+      await apiFetch("/cart/items", { method: "POST", body: { product_id: productId, quantity, color: selectedColor, option: selectedOption, size: selectedSize } });
       window.location.href = "/cart";
     } catch (err) {
       msg.textContent = err.message;
@@ -221,9 +441,49 @@
     }
   });
 
-  document.querySelectorAll('.color-choice').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.color-choice').forEach(b => b.setAttribute('aria-pressed','false')); btn.setAttribute('aria-pressed','true'); const stock=parseInt(btn.dataset.colorStock,10)||0; const qty=document.getElementById('qtyInput'); qty.max=stock; if(parseInt(qty.value,10)>stock) qty.value=stock||1; document.getElementById('selectedColor').textContent = `Selected: ${btn.dataset.color} — ${stock} in stock`; }));
+  document.querySelectorAll('.color-choice').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.color-choice').forEach(b => b.setAttribute('aria-pressed','false')); btn.setAttribute('aria-pressed','true'); const stock=parseInt(btn.dataset.colorStock,10)||0; const qty=document.getElementById('qtyInput'); qty.max=stock; if(parseInt(qty.value,10)>stock) qty.value=stock||1; document.getElementById('selectedColor').textContent = `Selected: ${btn.dataset.color} — ${stock} in stock`; if (!document.querySelector('.option-choice') && !document.querySelector('.size-choice')) { const avail=document.getElementById('sidebarAvailability'); if (avail) { avail.textContent = stock > 0 ? `${stock} left` : "Out of stock"; avail.className = `text-right font-semibold ${stock > 0 ? "text-brand-700" : "text-red-600"}`; } } }));
   const initialQty = document.getElementById('qtyInput');
   document.querySelectorAll('.color-choice').forEach(btn => btn.addEventListener('click', () => { initialQty.max = btn.dataset.colorStock || 1; }));
+
+  document.querySelectorAll('.size-choice').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.size-choice').forEach(b => b.setAttribute('aria-pressed','false'));
+    btn.setAttribute('aria-pressed','true');
+    const stock = parseInt(btn.dataset.sizeStock, 10) || 0;
+    const qty = document.getElementById('qtyInput');
+    qty.max = stock;
+    if (parseInt(qty.value, 10) > stock) qty.value = stock || 1;
+    document.getElementById('selectedSize').textContent = `Selected size: ${btn.dataset.size} — ${stock} in stock`;
+    if (!document.querySelector('.option-choice')) {
+      const avail = document.getElementById('sidebarAvailability');
+      if (avail) { avail.textContent = stock > 0 ? `${stock} left` : "Out of stock"; avail.className = `text-right font-semibold ${stock > 0 ? "text-brand-700" : "text-red-600"}`; }
+    }
+  }));
+
+  document.querySelectorAll('.option-choice').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.option-choice').forEach(b => b.setAttribute('aria-pressed','false'));
+    btn.setAttribute('aria-pressed','true');
+    const stock = parseInt(btn.dataset.optionStock, 10) || 0;
+    const price = parseFloat(btn.dataset.optionPrice);
+    const listPrice = parseFloat(btn.dataset.optionListPrice || btn.dataset.optionPrice);
+    const qty = document.getElementById('qtyInput');
+    qty.max = stock;
+    if (parseInt(qty.value, 10) > stock) qty.value = stock || 1;
+    document.getElementById('priceValue').textContent = `₵${price.toFixed(2)}`;
+    const hint = document.getElementById('optionPriceHint');
+    if (hint) hint.classList.add('hidden');
+    document.getElementById('selectedOption').textContent = `Selected: ${btn.dataset.option} — ₵${price.toFixed(2)} — ${stock} in stock`;
+    const sidebarPrice = document.getElementById('sidebarPrice');
+    if (sidebarPrice) sidebarPrice.textContent = `₵${price.toFixed(2)}`;
+    const avail = document.getElementById('sidebarAvailability');
+    if (avail) { avail.textContent = stock > 0 ? `${stock} left` : "Out of stock"; avail.className = `text-right font-semibold ${stock > 0 ? "text-brand-700" : "text-red-600"}`; }
+    const saveLine = document.getElementById('saveLine');
+    if (listPrice > price) {
+      if (saveLine) { saveLine.textContent = `You save ₵${(listPrice - price).toFixed(2)} on this order!`; saveLine.classList.remove('hidden'); }
+    } else if (saveLine) {
+      saveLine.classList.add('hidden');
+    }
+  }));
+
   document.querySelectorAll('.product-tab').forEach(btn => btn.addEventListener('click', () => { const tab=btn.dataset.productTab; document.querySelectorAll('.product-tab').forEach(b=>{b.classList.toggle('text-brand-700',b===btn);b.classList.toggle('border-b-2',b===btn);b.classList.toggle('border-brand-500',b===btn);b.classList.toggle('text-slate-500',b!==btn);});document.querySelectorAll('[data-product-panel]').forEach(p=>p.classList.toggle('hidden',p.dataset.productPanel!==tab)); }));
   (async()=>{const summary=document.getElementById('ratingSummary'), tip=document.getElementById('ratingStats'); if(!summary)return; summary.addEventListener('mouseenter',()=>tip.classList.remove('hidden'));summary.addEventListener('mouseleave',()=>tip.classList.add('hidden')); try{const st=await apiFetch('/reviews/product/{{ product.id }}/stats',{auth:false}); tip.innerHTML=`<div class="font-semibold mb-2">Review statistics</div>${[5,4,3,2,1].map(n=>`<div class="flex items-center gap-2"><span>${n}★</span><div class="h-1.5 bg-slate-200 rounded flex-1"><div class="h-1.5 bg-amber-400 rounded" style="width:${st.total?(st.distribution[n]/st.total*100):0}%"></div></div><span>${st.distribution[n]}</span></div>`).join('')}<div class="mt-2 text-slate-500">${st.comments} written comment${st.comments===1?'':'s'}</div>`; }catch(e){}})();
   (async()=>{if(!Auth.isLoggedIn())return; try{const e=await apiFetch('/reviews/product/{{ product.id }}/eligibility'); if(e.eligible){document.getElementById('reviewFormWrap').classList.remove('hidden'); let rating=0;document.querySelectorAll('#starPicker button').forEach(b=>b.onclick=()=>{rating=+b.dataset.rating;document.querySelectorAll('#starPicker button').forEach(x=>x.classList.toggle('text-amber-500',+x.dataset.rating<=rating));});document.getElementById('submitReview').onclick=async()=>{if(!rating)return;try{await apiFetch('/reviews',{method:'POST',body:{product_id:'{{ product.id }}',order_item_id:e.order_item_id,rating,comment:document.getElementById('reviewComment').value||null}});location.reload();}catch(err){document.getElementById('reviewMessage').textContent=err.message;}};}}catch(e){}})();

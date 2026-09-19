@@ -144,7 +144,7 @@ const GuestCart = {
   },
   addItem(product) {
     const items = this.getItems();
-    const existing = items.find(i => i.product_id === product.product_id && i.color === (product.color || null));
+    const existing = items.find(i => i.product_id === product.product_id && i.color === (product.color || null) && i.option === (product.option || null) && i.size === (product.size || null));
     if (existing) {
       existing.quantity += product.quantity || 1;
     } else {
@@ -155,6 +155,8 @@ const GuestCart = {
         image_url: product.image_url || "",
         quantity: product.quantity || 1,
         color: product.color || null,
+        option: product.option || null,
+        size: product.size || null,
       });
     }
     this._save(items);
@@ -179,11 +181,13 @@ const GuestCart = {
     this._updateBadge();
   },
   _updateBadge() {
-    const badge = document.getElementById("cartCountBadge");
-    if (!badge) return;
     const count = this.getCount();
-    badge.textContent = count;
-    badge.classList.toggle("hidden", count === 0);
+    ["cartCountBadge", "mobileCartCountBadge"].forEach(id => {
+      const badge = document.getElementById(id);
+      if (!badge) return;
+      badge.textContent = count;
+      badge.classList.toggle("hidden", count === 0);
+    });
   },
 };
 
@@ -235,20 +239,25 @@ const GuestWishlist = {
 // from localStorage; for logged-in users, fetches from the server.
 // ------------------------------------------------------------------
 function refreshWishlistBadge() {
-  const badge = document.getElementById("wishlistCountBadge");
-  if (!badge) return;
+  const badges = ["wishlistCountBadge", "mobileWishlistCountBadge"]
+    .map(id => document.getElementById(id)).filter(Boolean);
+  if (!badges.length) return;
 
   if (!Auth.isLoggedIn()) {
     const count = GuestWishlist.getCount();
-    badge.textContent = count;
-    badge.classList.toggle("hidden", count === 0);
+    badges.forEach(badge => {
+      badge.textContent = count;
+      badge.classList.toggle("hidden", count === 0);
+    });
     return;
   }
 
   apiFetch("/wishlist").then(items => {
     const count = Array.isArray(items) ? items.length : 0;
-    badge.textContent = count;
-    badge.classList.toggle("hidden", count === 0);
+    badges.forEach(badge => {
+      badge.textContent = count;
+      badge.classList.toggle("hidden", count === 0);
+    });
   }).catch(() => {});
 }
 
@@ -344,7 +353,7 @@ async function mergeGuestData() {
   const localCart = GuestCart.getItems();
   for (const item of localCart) {
     try {
-      await apiFetch("/cart/items", { method: "POST", body: { product_id: item.product_id, quantity: item.quantity, color: item.color || null } });
+      await apiFetch("/cart/items", { method: "POST", body: { product_id: item.product_id, quantity: item.quantity, color: item.color || null, option: item.option || null, size: item.size || null } });
     } catch (_) { /* individual item failures shouldn't block the rest */ }
   }
   GuestCart.clear();

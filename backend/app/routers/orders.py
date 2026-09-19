@@ -80,6 +80,77 @@ def _variant_stock(product: models.Product, color: str | None):
     raise HTTPException(status_code=400, detail=f"Selected color is unavailable for {product.name}")
 
 
+def _size_variant(product: models.Product, size: str | None):
+    """Sizes are optional at cart/checkout time, same as colors — a size
+    isn't required just because the product has size variants configured."""
+    if not product.sizes:
+        return None
+    if not size:
+        return None
+    for variant in product.sizes:
+        if isinstance(variant, dict) and str(variant.get("label", "")).strip() == size.strip():
+            try:
+                stock = max(0, int(variant.get("stock", 0)))
+            except (TypeError, ValueError):
+                stock = 0
+            return variant, stock if bool(variant.get("available", stock > 0)) else 0
+    raise HTTPException(status_code=400, detail=f"Selected size is unavailable for {product.name}")
+
+
+def _resync_stock_quantity(product: models.Product) -> None:
+    """Same priority order as products.py's create/update sync: sizes, then
+    colors, then options, else leave stock_quantity as the plain manual
+    number. Keeps color/size stock and the main stock figure from ever
+    drifting apart again after a sale or a cancellation."""
+    if product.sizes:
+        product.stock_quantity = sum(max(0, int(v.get("stock", 0))) for v in product.sizes if isinstance(v, dict))
+    elif product.colors:
+        product.stock_quantity = sum(max(0, int(v.get("stock", 0))) for v in product.colors if isinstance(v, dict))
+    elif product.options:
+        product.stock_quantity = sum(max(0, int(o.get("stock", 0))) for o in product.options if isinstance(o, dict))
+
+
+def _priced_option(product: models.Product, option: str | None):
+    """Look up a priced option (e.g. '250ml') on a product. Returns
+    (option_dict, price, available_stock), or None if the product has no
+    priced options at all, or none was picked — options are optional at
+    cart/checkout time, same as colors and sizes; an item with no option
+    picked just checks out at the product's base price and stock."""
+    if not product.options:
+        return None
+    if not option:
+        return None
+    for entry in product.options:
+        if isinstance(entry, dict) and str(entry.get("label", "")).strip() == option.strip():
+            try:
+                stock = max(0, int(entry.get("stock", 0)))
+            except (TypeError, ValueError):
+                stock = 0
+            try:
+                price = float(entry.get("price", 0))
+            except (TypeError, ValueError):
+                price = 0.0
+            discount = entry.get("discount_price")
+            if discount not in (None, ""):
+                try:
+                    discount_val = float(discount)
+                    if 0 < discount_val < price:
+                        price = discount_val
+                except (TypeError, ValueError):
+                    pass
+            available_stock = stock if bool(entry.get("available", stock > 0)) else 0
+            return entry, price, available_stock
+    raise HTTPException(status_code=400, detail=f"Selected option is unavailable for {product.name}")
+
+
+def _unit_price_for(item) -> float:
+    option_info = _priced_option(item.product, item.option)
+    if option_info is not None:
+        _, option_price, _ = option_info
+        return option_price
+    return float(item.product.discount_price or item.product.price)
+
+
 @router.post("/checkout", response_model=list[schemas.OrderOut], status_code=201)
 def checkout(
     payload: schemas.CheckoutRequest,
@@ -99,12 +170,25 @@ def checkout(
     # Group items by store, since each seller gets a separate order
     items_by_store = defaultdict(list)
     for item in cart.items:
+        option_info = _priced_option(item.product, item.option)
+        if option_info is not None:
+            _, _, option_stock = option_info
+            if option_stock < item.quantity:
+                raise HTTPException(status_code=400, detail=f"{item.product.name} no longer has enough stock for {item.option}")
+
         variant_info = _variant_stock(item.product, item.color)
         if variant_info is not None:
             _, variant_stock = variant_info
             if variant_stock < item.quantity:
                 raise HTTPException(status_code=400, detail=f"{item.product.name} no longer has enough stock in {item.color}")
-        elif item.product.stock_quantity < item.quantity:
+
+        size_info = _size_variant(item.product, item.size)
+        if size_info is not None:
+            _, size_stock = size_info
+            if size_stock < item.quantity:
+                raise HTTPException(status_code=400, detail=f"{item.product.name} no longer has enough stock in size {item.size}")
+
+        if variant_info is None and size_info is None and option_info is None and item.product.stock_quantity < item.quantity:
             raise HTTPException(status_code=400, detail=f"{item.product.name} no longer has enough stock")
         items_by_store[item.product.store_id].append(item)
 
@@ -112,10 +196,10 @@ def checkout(
 
     for store_id, items in items_by_store.items():
         store = db.query(models.Store).filter(models.Store.id == store_id).first()
-        subtotal = sum(float(item.product.discount_price or item.product.price) * item.quantity for item in items)
+        subtotal = sum(_unit_price_for(item) * item.quantity for item in items)
         delivery_fee = delivery_fee_for(address, store)
         commission_amount = round(sum(
-            float(item.product.discount_price or item.product.price) * item.quantity
+            _unit_price_for(item) * item.quantity
             * product_commission_rate(item.product, store, db) / 100
             for item in items
         ), 2)
@@ -137,7 +221,7 @@ def checkout(
         db.flush()  # get order.id before inserting items
 
         for item in items:
-            unit_price = float(item.product.discount_price or item.product.price)
+            unit_price = _unit_price_for(item)
             rate = product_commission_rate(item.product, store, db)
             line_total = round(unit_price * item.quantity, 2)
             db.add(models.OrderItem(
@@ -150,17 +234,37 @@ def checkout(
                 commission_rate=rate,
                 commission_amount=round(line_total * rate / 100, 2),
                 color=item.color,
+                option=item.option,
+                size=item.size,
             ))
+
+            option_info = _priced_option(item.product, item.option)
+            if option_info is not None:
+                option_entry, _, _ = option_info
+                option_entry["stock"] = max(0, int(option_entry.get("stock", 0)) - item.quantity)
+                option_entry["available"] = option_entry["stock"] > 0
+                item.product.options = list(item.product.options)
+
             variant_info = _variant_stock(item.product, item.color)
             if variant_info is not None:
                 variant, _ = variant_info
                 variant["stock"] = max(0, int(variant.get("stock", 0)) - item.quantity)
                 variant["available"] = variant["stock"] > 0
-                # Keep the legacy aggregate stock field in sync with variant inventory.
                 item.product.colors = list(item.product.colors)
-                item.product.stock_quantity = sum(max(0, int(v.get("stock", 0))) for v in item.product.colors if isinstance(v, dict))
-            else:
+
+            size_info = _size_variant(item.product, item.size)
+            if size_info is not None:
+                size_variant, _ = size_info
+                size_variant["stock"] = max(0, int(size_variant.get("stock", 0)) - item.quantity)
+                size_variant["available"] = size_variant["stock"] > 0
+                item.product.sizes = list(item.product.sizes)
+
+            if option_info is None and variant_info is None and size_info is None:
                 item.product.stock_quantity -= item.quantity
+            else:
+                # Keep the legacy aggregate stock field in sync with whichever
+                # variant dimension is authoritative (sizes > colors > options).
+                _resync_stock_quantity(item.product)
             db.delete(item)
 
         created_orders.append(order)
@@ -214,15 +318,39 @@ def cancel_pending_order(
     for item in order.items:
         product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if product:
+            option_match = None
+            if product.options and item.option:
+                for entry in product.options:
+                    if isinstance(entry, dict) and str(entry.get("label", "")).strip() == item.option.strip():
+                        option_match = entry
+                        break
+            if option_match is not None:
+                option_match["stock"] = max(0, int(option_match.get("stock", 0))) + item.quantity
+                option_match["available"] = option_match["stock"] > 0
+                product.options = list(product.options)
+
             variant_info = _variant_stock(product, item.color) if product.colors else None
             if variant_info is not None:
                 variant, _ = variant_info
                 variant["stock"] = max(0, int(variant.get("stock", 0))) + item.quantity
                 variant["available"] = variant["stock"] > 0
                 product.colors = list(product.colors)
-                product.stock_quantity = sum(max(0, int(v.get("stock", 0))) for v in product.colors if isinstance(v, dict))
-            else:
+
+            size_match = None
+            if product.sizes and item.size:
+                for entry in product.sizes:
+                    if isinstance(entry, dict) and str(entry.get("label", "")).strip() == item.size.strip():
+                        size_match = entry
+                        break
+            if size_match is not None:
+                size_match["stock"] = max(0, int(size_match.get("stock", 0))) + item.quantity
+                size_match["available"] = size_match["stock"] > 0
+                product.sizes = list(product.sizes)
+
+            if option_match is None and variant_info is None and size_match is None:
                 product.stock_quantity += item.quantity
+            else:
+                _resync_stock_quantity(product)
 
     order.status = models.OrderStatus.cancelled
     db.commit()
