@@ -292,13 +292,98 @@ async function loadBadgeManager(){
     'community-favorite':'users',
     'quality-pick':'sparkles'
   };
-  const options=Object.entries(catalog).map(([k,v])=>`<label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer hover:border-brand-300 hover:bg-brand-50/40"><input type="checkbox" value="${k}" class="badge-key h-4 w-4 rounded border-slate-300"><i data-lucide="${badgeIcons[k]||'badge-check'}" class="w-4 h-4 text-brand-600 shrink-0" aria-hidden="true"></i><span>${esc(v.label)}</span></label>`).join('');
+  const options=Object.entries(catalog).map(([k,v])=>`<label class="flex items-center gap-2 min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50/60"><input type="checkbox" value="${k}" class="badge-key h-4 w-4 rounded border-slate-300 shrink-0"><i data-lucide="${badgeIcons[k]||'badge-check'}" class="w-4 h-4 text-brand-600 shrink-0" aria-hidden="true"></i><span class="truncate">${esc(v.label)}</span></label>`).join('');
   const products=allProductsCache.length?allProductsCache:await apiFetch('/admin/products/tracking');
   const workers=await apiFetch('/admin/services/workers');
-  el.innerHTML=`<div><h3 class="font-semibold mb-2">Product badges</h3><div class="grid md:grid-cols-[1fr_2fr_auto] gap-3 items-start"><select id="badgeProduct" class="border border-slate-300 rounded-lg px-3 py-2"><option value="">Choose product</option>${products.map(p=>`<option value="${p.id}">${esc(p.name)} — ${esc(p.store_name)}</option>`).join('')}</select><div id="badgeProductKeys" class="grid sm:grid-cols-2 gap-2" role="group" aria-label="Product trust badges">${options}</div><button id="saveProductBadges" class="bg-brand-500 text-white rounded-lg px-4 py-2 font-semibold">Apply</button></div></div><div><h3 class="font-semibold mb-2">Professional badges & safety rating</h3><div class="grid md:grid-cols-[1fr_2fr_120px_auto] gap-3 items-start"><select id="badgeWorker" class="border border-slate-300 rounded-lg px-3 py-2"><option value="">Choose professional</option>${workers.map(w=>`<option value="${w.id}">${esc(w.professional_name||w.job_title)}</option>`).join('')}</select><div id="badgeWorkerKeys" class="grid sm:grid-cols-2 gap-2" role="group" aria-label="Professional trust badges">${options}</div><input id="workerSafety" type="number" min="0" max="5" step="0.1" placeholder="Safety /5" class="border border-slate-300 rounded-lg px-3 py-2"><button id="saveWorkerBadges" class="bg-brand-500 text-white rounded-lg px-4 py-2 font-semibold">Apply</button></div></div>`;
+  const productOptionsHtml = products.length
+    ? `<option value="">Choose product</option>${products.map(p=>`<option value="${p.id}">${esc(p.name)} — ${esc(p.store_name)}</option>`).join('')}`
+    : `<option value="">No products yet</option>`;
+  const workerOptionsHtml = workers.length
+    ? `<option value="">Choose professional</option>${workers.map(w=>`<option value="${w.id}">${esc(w.professional_name||w.job_title)}</option>`).join('')}`
+    : `<option value="">No professionals yet</option>`;
+
+  el.innerHTML=`
+  <div class="border border-slate-200 rounded-xl p-4 sm:p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="package" class="w-4 h-4 text-brand-600 shrink-0" aria-hidden="true"></i>
+      <h3 class="font-semibold text-sm">Product badges</h3>
+    </div>
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,260px)_1fr]">
+      <div class="min-w-0">
+        <label for="badgeProduct" class="block text-xs font-semibold text-slate-500 mb-1.5">Product</label>
+        <select id="badgeProduct" ${products.length?'':'disabled'} class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400">${productOptionsHtml}</select>
+      </div>
+      <div class="min-w-0">
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">Badges to apply</label>
+        <div id="badgeProductKeys" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2" role="group" aria-label="Product trust badges">${options}</div>
+      </div>
+    </div>
+    <div class="mt-4 flex justify-end">
+      <button id="saveProductBadges" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors"><i data-lucide="check" class="w-4 h-4" aria-hidden="true"></i> Apply badges</button>
+    </div>
+  </div>
+  <div class="border border-slate-200 rounded-xl p-4 sm:p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="user-check" class="w-4 h-4 text-brand-600 shrink-0" aria-hidden="true"></i>
+      <h3 class="font-semibold text-sm">Professional badges &amp; safety rating</h3>
+    </div>
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,260px)_1fr]">
+      <div class="min-w-0 space-y-4">
+        <div>
+          <label for="badgeWorker" class="block text-xs font-semibold text-slate-500 mb-1.5">Professional</label>
+          <select id="badgeWorker" ${workers.length?'':'disabled'} class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400">${workerOptionsHtml}</select>
+        </div>
+        <div>
+          <label for="workerSafety" class="block text-xs font-semibold text-slate-500 mb-1.5">Safety rating (out of 5)</label>
+          <input id="workerSafety" type="number" min="0" max="5" step="0.1" placeholder="e.g. 4.5" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+      </div>
+      <div class="min-w-0">
+        <label class="block text-xs font-semibold text-slate-500 mb-1.5">Badges to apply</label>
+        <div id="badgeWorkerKeys" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2" role="group" aria-label="Professional trust badges">${options}</div>
+      </div>
+    </div>
+    <div class="mt-4 flex justify-end">
+      <button id="saveWorkerBadges" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors"><i data-lucide="check" class="w-4 h-4" aria-hidden="true"></i> Apply badges</button>
+    </div>
+  </div>`;
   if(window.lucide) lucide.createIcons();
-  document.getElementById('saveProductBadges').onclick=async()=>{const id=document.getElementById('badgeProduct').value;if(!id)return;const keys=[...document.querySelectorAll('#badgeProductKeys input.badge-key:checked')].map(o=>o.value);await apiFetch(`/admin/products/${id}/badges`,{method:'PATCH',body:{badge_keys:keys}});alert('Product badges updated.');};
-  document.getElementById('saveWorkerBadges').onclick=async()=>{const id=document.getElementById('badgeWorker').value;if(!id)return;const keys=[...document.querySelectorAll('#badgeWorkerKeys input.badge-key:checked')].map(o=>o.value);await apiFetch(`/admin/professionals/${id}/badges`,{method:'PATCH',body:{badge_keys:keys}});const safety=document.getElementById('workerSafety').value;if(safety)await apiFetch(`/admin/professionals/${id}/safety-rating`,{method:'PATCH',body:{safety_rating:parseFloat(safety)}});alert('Professional badges updated.');};
+
+  // Pre-check a product's / professional's already-applied badges when picked, so
+  // Apply doesn't silently wipe out badges that aren't re-checked in the UI.
+  const badgeProductSelect = document.getElementById('badgeProduct');
+  const badgeWorkerSelect = document.getElementById('badgeWorker');
+  const workerSafetyInput = document.getElementById('workerSafety');
+  const applyCheckedState = (containerId, keys) => {
+    document.querySelectorAll(`#${containerId} input.badge-key`).forEach(cb => { cb.checked = (keys || []).includes(cb.value); });
+  };
+  badgeProductSelect.onchange = () => {
+    const product = products.find(p => p.id === badgeProductSelect.value);
+    applyCheckedState('badgeProductKeys', product ? product.badge_keys : []);
+  };
+  badgeWorkerSelect.onchange = () => {
+    const worker = workers.find(w => w.id === badgeWorkerSelect.value);
+    applyCheckedState('badgeWorkerKeys', worker ? worker.badge_keys : []);
+    workerSafetyInput.value = worker && worker.safety_rating ? Number(worker.safety_rating) : '';
+  };
+
+  document.getElementById('saveProductBadges').onclick=async()=>{
+    const id=badgeProductSelect.value; if(!id) return;
+    const keys=[...document.querySelectorAll('#badgeProductKeys input.badge-key:checked')].map(o=>o.value);
+    try { await apiFetch(`/admin/products/${id}/badges`,{method:'PATCH',body:{badge_keys:keys}}); const p=products.find(x=>x.id===id); if(p) p.badge_keys=keys; showToast('Product badges updated.'); }
+    catch(e){ showToast(e.message || 'Failed to update product badges.', 'error'); }
+  };
+  document.getElementById('saveWorkerBadges').onclick=async()=>{
+    const id=badgeWorkerSelect.value; if(!id) return;
+    const keys=[...document.querySelectorAll('#badgeWorkerKeys input.badge-key:checked')].map(o=>o.value);
+    try {
+      await apiFetch(`/admin/professionals/${id}/badges`,{method:'PATCH',body:{badge_keys:keys}});
+      const w=workers.find(x=>x.id===id); if(w) w.badge_keys=keys;
+      const safety=workerSafetyInput.value;
+      if(safety){ await apiFetch(`/admin/professionals/${id}/safety-rating`,{method:'PATCH',body:{safety_rating:parseFloat(safety)}}); if(w) w.safety_rating=parseFloat(safety); }
+      showToast('Professional badges updated.');
+    } catch(e){ showToast(e.message || 'Failed to update professional badges.', 'error'); }
+  };
 }
 
 // -------------------- Overview --------------------
@@ -764,13 +849,45 @@ document.getElementById('userSearch').oninput = e => renderUsers(allUsers.filter
 
 // -------------------- Boot --------------------
 async function refresh() {
-  try {
-    await Promise.all([
-      loadStats(), loadPendingStores(), loadAllStores(), loadPendingProducts(), loadProducts(),
-      loadCategories(), loadPending(), loadWorkers(), loadRequests(), loadReviews(), loadUsers(), loadPayments(), loadCODPending(),
-      loadDeliveryPeople(), loadDeliveryOrders(),
-    ]);
-  } catch (e) { console.error(e); }
+  const btn = document.getElementById('refreshAll');
+  const restoreLabel = btn.innerHTML;
+  btn.disabled = true;
+  btn.setAttribute('aria-busy', 'true');
+  btn.innerHTML = '<i class="fas fa-rotate-right mr-1 fa-spin"></i> Refreshing…';
+
+  const tasks = {
+    'Overview stats': loadStats(),
+    'Pending stores': loadPendingStores(),
+    'All stores': loadAllStores(),
+    'Pending products': loadPendingProducts(),
+    'Product tracking': loadProducts(),
+    'Categories': loadCategories(),
+    'Pending professionals': loadPending(),
+    'Professionals': loadWorkers(),
+    'Badges': loadBadgeManager(),
+    'Service requests': loadRequests(),
+    'Reviews': loadReviews(),
+    'Accounts': loadUsers(),
+    'Payments': loadPayments(),
+    'COD pending': loadCODPending(),
+    'Delivery people': loadDeliveryPeople(),
+    'Delivery orders': loadDeliveryOrders(),
+  };
+  const entries = Object.entries(tasks);
+  // allSettled so one failing endpoint can't stop the rest of the dashboard from updating.
+  const results = await Promise.allSettled(entries.map(([, promise]) => promise));
+  const failed = entries.filter((_, i) => results[i].status === 'rejected');
+  failed.forEach(([name], i) => console.error(`Refresh failed — ${name}:`, results[entries.findIndex(e => e[0] === name)].reason));
+
+  btn.disabled = false;
+  btn.removeAttribute('aria-busy');
+  btn.innerHTML = restoreLabel;
+
+  if (failed.length) {
+    showToast(`Refreshed, but ${failed.length} section${failed.length > 1 ? 's' : ''} couldn't update. Check your connection and try again.`, 'error');
+  } else {
+    showToast('Dashboard refreshed.');
+  }
 }
 document.getElementById('refreshAll').onclick = refresh;
 initTabs();

@@ -26,12 +26,18 @@ def _validate_job(job_title, custom_job_title):
 
 
 async def _save_resume(resume: UploadFile | None):
-    if not resume:
+    # Browsers may submit an empty UploadFile even when the optional file
+    # input was left untouched. Treat missing/blank uploads as no resume.
+    if resume is None or not (resume.filename or "").strip():
         return None
-    suffix = Path(resume.filename or "").suffix.lower()
+
+    content = await resume.read()
+    if not content:
+        return None
+
+    suffix = Path(resume.filename).suffix.lower()
     if suffix not in {".pdf", ".doc", ".docx"}:
         raise HTTPException(status_code=400, detail="Resume must be a PDF, DOC, or DOCX file")
-    content = await resume.read()
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Resume must be 5 MB or smaller")
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

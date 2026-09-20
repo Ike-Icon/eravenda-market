@@ -84,7 +84,8 @@ function initLocationSelects(root = document) {
 // ------------------------------------------------------------------
 async function apiFetch(path, { method = "GET", body, auth = true } = {}) {
   const headers = { "Content-Type": "application/json" };
-  if (auth && Auth.getToken()) {
+  const sentAuthHeader = auth && Boolean(Auth.getToken());
+  if (sentAuthHeader) {
     headers["Authorization"] = `Bearer ${Auth.getToken()}`;
   }
   const res = await fetch(`${API_BASE}${path}`, {
@@ -92,6 +93,15 @@ async function apiFetch(path, { method = "GET", body, auth = true } = {}) {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (res.status === 401 && sentAuthHeader) {
+    // The token we sent was rejected (expired/invalid) — every other widget on the
+    // page would otherwise fail silently forever. Send the user back to log in
+    // instead of leaving a half-loaded, permanently-stuck dashboard.
+    Auth.clearSession();
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/login?next=${next}&reason=session_expired`;
+    return new Promise(() => {}); // navigation is underway; don't let callers act on a rejected promise
+  }
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error((data && data.detail) || `Request failed (${res.status})`);

@@ -47,6 +47,12 @@
   const loginNext = new URLSearchParams(window.location.search).get("next") || "/";
   initSocialAuth({ errorBoxId: "loginError", redirectTo: loginNext });
 
+  if (new URLSearchParams(window.location.search).get("reason") === "session_expired") {
+    const errBox = document.getElementById("loginError");
+    errBox.textContent = "Your session expired. Please log in again.";
+    errBox.classList.remove("hidden");
+  }
+
   document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const errBox = document.getElementById("loginError");
