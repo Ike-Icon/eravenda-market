@@ -6,10 +6,12 @@ This document explains the commission policy for product sellers and handyman pr
 
 | Area | Who pays the commission | Current enforced rate | Basis |
 |---|---|---:|---|
-| Products | Seller | Category-based; 8% default | Product sale value |
+| Products | Seller | Category-based; 8% default; **10% hard cap** | Product sale value |
 | Handyman services | Professional | 10% | Completed job value |
 
 Buyer-facing product prices do not include a separate EraVenda product commission line. The product commission is recorded on the order and deducted from the seller's product proceeds.
+
+**Platform-wide rule: no product category commission rate may ever exceed 10%.** This is enforced in code, not just documented — `standard_product_rate()` in `product_pricing.py` clamps every category rate (including any added in the future) to a 10% ceiling before it is used in a calculation.
 
 ## Product Commission Policy
 
@@ -22,10 +24,10 @@ The current product pricing module uses these rates:
 | Groceries and perishables | 4.5% |
 | Electronics and phones | 6.5% |
 | Home, kitchen, household goods and furniture | 9.5% |
-| Fashion, beauty, clothing, shoes and accessories | 13% |
+| Fashion, beauty, clothing, shoes and accessories | 10% |
 | Other or unclassified products | 8% |
 
-The 8% rate is the recommended launch rate and the fallback rate for products that do not match a recognized category.
+The 8% rate is the recommended launch rate and the fallback rate for products that do not match a recognized category. Fashion previously stood at 13%; it has been capped at 10% so that no category exceeds the platform-wide ceiling.
 
 Category detection checks the product category and its parent categories. It uses category names containing terms such as:
 
@@ -40,9 +42,9 @@ A category that does not match one of those groups receives the 8% default rate.
 
 Eligible early vendors receive half of their applicable standard category rate:
 
-- Start date: **14 September 2026**
+- Start date: **14 October 2026**
 - Duration: **90 days**
-- End date: **13 December 2026**
+- End date: **12 January 2027**
 - Vendor cap: **first 20 vendors**
 - The discount ends when the date window expires or the vendor cap is reached, whichever comes first.
 
@@ -53,7 +55,7 @@ Examples during the launch offer:
 | Groceries | 4.5% | 2.25% |
 | Electronics | 6.5% | 3.25% |
 | Home goods | 9.5% | 4.75% |
-| Fashion and beauty | 13% | 6.5% |
+| Fashion and beauty | 10% | 5% |
 | Other categories | 8% | 4% |
 
 The vendor rank is based on store creation order. The first 20 registered stores are the launch cohort. The rate is evaluated at checkout and stored on each order item.
@@ -118,7 +120,7 @@ The code stores the rate as a decimal fraction. Therefore:
 0.10 = 10%
 ```
 
-The supported strategic range is 10%–15%; the current implementation uses the conservative 10% starting rate.
+The supported range for this setting is 0%–10%, in line with the platform-wide 10% commission ceiling described above; the current implementation uses the full 10% rate.
 
 ### Handyman calculation
 
@@ -176,7 +178,7 @@ This returns the standard rate, category rates, launch dates, vendor cap and dis
 ### Environment settings
 
 ```env
-COMMISSION_LAUNCH_START_DATE=2026-09-14
+COMMISSION_LAUNCH_START_DATE=2026-10-14
 COMMISSION_LAUNCH_DURATION_DAYS=90
 COMMISSION_LAUNCH_VENDOR_CAP=20
 SERVICE_COMMISSION_RATE=0.10
@@ -201,7 +203,7 @@ The product launch settings are also defined in `render.yaml` for deployment.
 
 Before changing a commission rate:
 
-1. Update the backend pricing module.
+1. Update the backend pricing module, and keep it within the 10% category-rate ceiling enforced by `standard_product_rate()`.
 2. Update the Render environment configuration if the setting is environment-controlled.
 3. Update seller onboarding terms and payout examples.
 4. Update the FAQ and public terms.

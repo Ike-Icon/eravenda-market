@@ -67,6 +67,33 @@ UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
 
 Full request/response shapes are in the auto-generated docs at `/docs`.
 
+## Commission policy
+
+EraVenda charges sellers a product commission on each completed sale, deducted from
+the seller's proceeds before payout. The rate depends on the product's category, and
+**no category rate may ever exceed 10%** — this is enforced in code by
+`standard_product_rate()` in `app/product_pricing.py`, not just documented here.
+
+| Category | Standard rate |
+| -------- | -------------:|
+| Groceries and perishables | 4.5% |
+| Electronics and phones | 6.5% |
+| Home, kitchen and household goods | 9.5% |
+| Fashion, beauty, clothing and accessories | 10% |
+| Other / unclassified | 8% (default) |
+
+Handyman/professional bookings use a separate flat **10%** service commission
+(`app/service_pricing.py`), which sits at the same 10% ceiling.
+
+**Launch discount:** early vendors pay half the standard category rate for the first
+90 days starting **14 October 2026** (ending 12 January 2027), or for the first 20
+vendors, whichever comes first. Configured via `COMMISSION_LAUNCH_START_DATE`,
+`COMMISSION_LAUNCH_DURATION_DAYS`, and `COMMISSION_LAUNCH_VENDOR_CAP` in `.env` /
+`render.yaml`.
+
+See [`docs/commission-rates.md`](../docs/commission-rates.md) for the full policy,
+calculation examples, and the checklist to follow before changing any rate.
+
 ## Image uploads
 
 Products store image URLs, not files. The frontend uploads directly to
