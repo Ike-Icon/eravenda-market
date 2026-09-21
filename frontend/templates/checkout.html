@@ -28,7 +28,12 @@
 
     <div class="border border-slate-200 rounded-md p-5 h-fit">
       <h3 class="font-semibold mb-3">Order summary</h3>
-      <fieldset class="mb-4 text-sm space-y-2"><legend class="font-semibold mb-2">Payment method</legend><label class="flex gap-2"><input type="radio" name="payment_method" value="mobile_money" checked> Mobile Money (secure online payment)</label><label class="flex gap-2"><input type="radio" name="payment_method" value="cash_on_delivery"> Pay on delivery</label></fieldset>
+      <fieldset class="mb-4 text-sm space-y-2">
+        <legend class="font-semibold mb-2">Payment method</legend>
+        <label class="flex gap-2"><input type="radio" name="payment_method" value="mobile_money" checked> Mobile Money (secure online payment)</label>
+        <label id="codOptionLabel" class="flex gap-2"><input type="radio" name="payment_method" id="codRadio" value="cash_on_delivery"> Pay on delivery</label>
+        <p id="codBlockedNote" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-2 mt-1"></p>
+      </fieldset>
       <div id="checkoutSummary" class="text-sm space-y-1"><p class="text-slate-500">Loading…</p></div>
       <div id="checkoutError" class="hidden text-sm text-red-600 mt-2"></div>
       <button id="placeOrderBtn" disabled
@@ -83,6 +88,26 @@
       document.getElementById("placeOrderBtn").classList.add("hidden");
       return;
     }
+
+    // Pay on delivery is opt-in per product — if anything in the cart isn't
+    // COD-eligible, the whole order has to go through online payment.
+    const codBlockers = cart.items.filter(i => !i.product.cod_eligible).map(i => i.product.name);
+    const codRadio = document.getElementById("codRadio");
+    const codOptionLabel = document.getElementById("codOptionLabel");
+    const codBlockedNote = document.getElementById("codBlockedNote");
+    if (codBlockers.length) {
+      codRadio.disabled = true;
+      codRadio.checked = false;
+      document.querySelector('[name="payment_method"][value="mobile_money"]').checked = true;
+      codOptionLabel.classList.add("opacity-50", "cursor-not-allowed");
+      codBlockedNote.textContent = `Pay on delivery isn't available this time — ${[...new Set(codBlockers)].join(", ")} ${codBlockers.length > 1 ? "are" : "is"} online-payment-only. Remove ${codBlockers.length > 1 ? "those items" : "it"} to pay on delivery instead.`;
+      codBlockedNote.classList.remove("hidden");
+    } else {
+      codRadio.disabled = false;
+      codOptionLabel.classList.remove("opacity-50", "cursor-not-allowed");
+      codBlockedNote.classList.add("hidden");
+    }
+
     let delivery = 0;
     let deliveryNote = "Choose a delivery address to see the delivery fee.";
     const storeCount = new Set(cart.items.map(i => i.product.store_id)).size;

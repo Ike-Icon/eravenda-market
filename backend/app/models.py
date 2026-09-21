@@ -210,12 +210,13 @@ class Product(Base):
     options = Column(JSON, nullable=True)  # e.g. [{"label":"250ml","price":53.0,"stock":10,"available":true}]
     sizes = Column(JSON, nullable=True)  # e.g. [{"label":"42","stock":6,"available":true}] — no own price; shares product.price
     badge_keys = Column(JSON, nullable=True)
+    cod_eligible = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     store = relationship("Store", back_populates="products")
     category = relationship("Category")
-    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
+    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan", order_by="ProductImage.sort_order")
     wishlisted_by = relationship("Wishlist", back_populates="product", cascade="all, delete-orphan")
 
 

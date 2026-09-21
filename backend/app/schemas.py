@@ -163,6 +163,11 @@ class ProductImageOut(BaseModel):
     id: str
     image_url: str
     is_primary: bool
+    sort_order: int = 0
+
+
+class ProductImageReorder(BaseModel):
+    image_ids: List[str]  # full ordered list of this product's image IDs; position 0 becomes primary
 
 
 def _normalize_product_colors(value):
@@ -258,6 +263,7 @@ class ProductCreate(BaseModel):
     colors: Optional[List[Any]] = None
     options: Optional[List[Any]] = None
     sizes: Optional[List[Any]] = None
+    cod_eligible: bool = True
 
     @field_validator("colors")
     @classmethod
@@ -289,6 +295,7 @@ class ProductUpdate(BaseModel):
     colors: Optional[List[Any]] = None
     options: Optional[List[Any]] = None
     sizes: Optional[List[Any]] = None
+    cod_eligible: Optional[bool] = None
 
     @field_validator("colors")
     @classmethod
@@ -329,6 +336,7 @@ class ProductOut(BaseModel):
     options: Optional[List[Any]] = None
     sizes: Optional[List[Any]] = None
     badge_keys: Optional[List[str]] = None
+    cod_eligible: bool = True
     images: List[ProductImageOut] = []
     created_at: datetime
 

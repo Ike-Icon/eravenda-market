@@ -9,6 +9,7 @@
 {% set primary_image = (images | selectattr("is_primary") | list | first) or (images | first) %}
 {% set has_options = product.options and product.options|length > 0 %}
 {% set has_sizes = product.sizes and product.sizes|length > 0 %}
+{% set out_of_stock = product.stock_quantity <= 0 %}
 {% set option_prices = (product.options | map(attribute='price') | list) if has_options else [] %}
 {% set min_price = option_prices | min if option_prices else price %}
 {% set max_price = option_prices | max if option_prices else price %}
@@ -36,10 +37,15 @@
 
     <!-- COLUMN 1 — Gallery -->
     <div>
-      <div class="product-gallery-stage aspect-square bg-slate-100 border border-slate-200 rounded-md overflow-hidden flex items-center justify-center" data-product-gallery aria-label="Product image preview">
+      <div class="product-gallery-stage aspect-square bg-slate-100 border border-slate-200 rounded-md overflow-hidden flex items-center justify-center relative" data-product-gallery aria-label="Product image preview">
+        {% if out_of_stock %}
+        <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
+          <span class="bg-slate-900/85 text-white text-xs font-bold tracking-wider uppercase px-4 py-2 rounded-full">Out of Stock</span>
+        </div>
+        {% endif %}
         {% if primary_image %}
         <button type="button" class="product-main-image w-full h-full" data-gallery-open aria-label="Open high-resolution image of {{ product.name }}">
-          <img id="mainImg" src="{{ primary_image.image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover" data-gallery-image>
+          <img id="mainImg" src="{{ primary_image.image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}" data-gallery-image>
         </button>
         {% else %}
         <span class="text-4xl text-slate-300">🛍️</span>
@@ -60,8 +66,13 @@
 
     <!-- COLUMN 2 — Product info -->
     <div class="min-w-0">
-      {% if product.badge_keys %}
+      {% if product.badge_keys or product.cod_eligible %}
       <div class="flex flex-wrap gap-2 mb-3">
+        {% if product.cod_eligible %}
+        <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <i class="fas fa-truck text-emerald-600 text-[10px]"></i>Pay on Delivery
+        </span>
+        {% endif %}
         {% for badge in product.badge_keys %}
         <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
           <i class="fas fa-star text-amber-500 text-[10px]"></i>{{ badge|replace('-', ' ')|title }}
@@ -90,9 +101,15 @@
         <p class="text-xs font-bold tracking-wide text-slate-400 uppercase mb-2">Payment options</p>
         <div class="flex flex-wrap gap-2">
           <span class="inline-flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700"><i class="fas fa-credit-card text-brand-600"></i> Mobile Money / Card</span>
+          {% if product.cod_eligible %}
           <span class="inline-flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700"><i class="fas fa-money-bill-wave text-brand-600"></i> Pay on Delivery</span>
+          {% endif %}
         </div>
-        <p class="text-xs text-slate-400 mt-2">Pay on delivery depends on your delivery area, and is confirmed at checkout.</p>
+        {% if product.cod_eligible %}
+        <p class="text-xs text-slate-400 mt-2">Pay on delivery is confirmed at checkout. If your cart mixes this with an online-payment-only item, you'll need to pay online for the whole order.</p>
+        {% else %}
+        <p class="text-xs text-slate-400 mt-2">This item is online-payment-only — the seller doesn't offer pay on delivery for it.</p>
+        {% endif %}
       </div>
 
       {% if not has_options and not has_sizes and product.stock_quantity > 0 and product.stock_quantity <= 5 %}
@@ -294,7 +311,7 @@
   </div>
 </section>
 
-{% if related_products %}<section class="max-w-7xl mx-auto px-4 pb-12"><h2 class="font-head text-xl font-semibold mb-4">Related products</h2><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">{% for p in related_products %}{% set rp_price=p.discount_price if p.discount_price else p.price %}{% set rp_img=(p.images | selectattr('is_primary') | list | first) or (p.images | first) %}<article data-product-card data-product-url="/product/{{ p.id }}" tabindex="0" role="link" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"><div class="aspect-square bg-slate-100">{% if rp_img %}<img src="{{ rp_img.image_url }}" class="w-full h-full object-cover" loading="lazy" alt="{{ p.name }}">{% endif %}</div><div class="p-2"><div class="text-xs line-clamp-2">{{ p.name }}</div><div class="text-xs text-amber-600 mt-1">★ {{ '%.1f'|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>{% if p.badge_keys %}<div class="flex flex-wrap gap-1 mt-1">{% for badge in p.badge_keys[:2] %}<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}<div class="font-semibold text-sm mt-1">₵{{ '%.2f'|format(rp_price) }}</div></div></article>{% endfor %}</div></section>{% endif %}
+{% if related_products %}<section class="max-w-7xl mx-auto px-4 pb-12"><h2 class="font-head text-xl font-semibold mb-4">Related products</h2><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">{% for p in related_products %}{% set rp_price=p.discount_price if p.discount_price else p.price %}{% set rp_img=(p.images | selectattr('is_primary') | list | first) or (p.images | first) %}{% set rp_oos = p.stock_quantity <= 0 %}<article data-product-card data-product-url="/product/{{ p.id }}" tabindex="0" role="link" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"><div class="relative aspect-square bg-slate-100">{% if rp_oos %}<div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none"><span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span></div>{% endif %}{% if rp_img %}<img src="{{ rp_img.image_url }}" class="w-full h-full object-cover{% if rp_oos %} blur-[2px] grayscale opacity-70{% endif %}" loading="lazy" alt="{{ p.name }}">{% endif %}</div><div class="p-2"><div class="text-xs line-clamp-2">{{ p.name }}</div><div class="text-xs text-amber-600 mt-1">★ {{ '%.1f'|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>{% if p.badge_keys %}<div class="flex flex-wrap gap-1 mt-1">{% for badge in p.badge_keys[:2] %}<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}<div class="font-semibold text-sm mt-1">₵{{ '%.2f'|format(rp_price) }}</div></div></article>{% endfor %}</div></section>{% endif %}
 
 {% if more_from_store %}
 <div class="max-w-7xl mx-auto px-4 pb-12">

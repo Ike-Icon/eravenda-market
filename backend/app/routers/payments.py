@@ -8,14 +8,13 @@ from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
 from .. import models, schemas, auth
 from ..database import get_db
-from ..email_utils import ADMIN_NOTIFICATION_EMAIL, send_email
+from ..email_utils import ADMIN_NOTIFICATION_EMAIL, send_email, SITE_URL
 from ..service_pricing import service_commission_for
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
 PAYSTACK_BASE_URL = "https://api.paystack.co"
-SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
 logger = logging.getLogger("eravenda.payments")
 
 

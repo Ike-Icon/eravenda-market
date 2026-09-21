@@ -73,6 +73,16 @@
         </div>
       </div>
 
+      <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="cod_eligible" id="codEligibleInput" checked class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+          <span>
+            <span class="block text-sm font-semibold text-slate-800">Accept Pay on Delivery for this product</span>
+            <span class="block text-xs text-slate-500 mt-0.5">Buyers can choose to pay in cash when this item arrives. Uncheck this for high-value or easily-disputed items you'd rather sell online-payment-only — you can change this any time.</span>
+          </span>
+        </label>
+      </div>
+
       <fieldset class="border border-slate-200 rounded-lg p-6">
         <legend class="px-1 text-sm font-semibold text-slate-800">Product color swatches (optional)</legend>
         <p class="text-xs text-slate-500 mb-3">Define the exact HEX color buyers will see, whether it is currently available, and how many units are in stock. Variant stock becomes the product's total stock automatically — the field above becomes read-only once you add a color here, unless you also set sizes below (sizes take priority).</p>
@@ -375,6 +385,7 @@
       sizes: JSON.parse(document.getElementById("sizesJson").value || "[]"),
       price: parseFloat(fd.get("price")),
       discount_price: fd.get("discount_price") ? parseFloat(fd.get("discount_price")) : null,
+      cod_eligible: document.getElementById("codEligibleInput").checked,
       // A disabled stock-quantity field (once sizes/colors take over) is
       // excluded from FormData, so read it directly — the backend also
       // re-derives this from sizes/colors/options itself as a safety net.

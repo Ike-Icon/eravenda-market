@@ -3,7 +3,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 from .. import models, schemas, auth
 from ..database import get_db
@@ -51,6 +51,7 @@ def list_products(
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     brand: Optional[str] = None,
+    cod_eligible: Optional[bool] = Query(None, description="Filter to products that accept Pay on Delivery"),
     sort: str = Query("newest", pattern="^(newest|price_asc|price_desc|rating)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -71,6 +72,8 @@ def list_products(
         query = query.filter(models.Product.price <= max_price)
     if brand:
         query = query.filter(models.Product.brand.ilike(f"%{brand}%"))
+    if cod_eligible is not None:
+        query = query.filter(models.Product.cod_eligible == cod_eligible)
 
     if sort == "price_asc":
         query = query.order_by(models.Product.price.asc())
@@ -202,8 +205,71 @@ def add_product_image(
             {"is_primary": False}
         )
 
-    image = models.ProductImage(product_id=product_id, image_url=image_url, is_primary=is_primary)
+    next_order = (db.query(func.max(models.ProductImage.sort_order))
+                  .filter(models.ProductImage.product_id == product_id).scalar() or 0) + 1
+    image = models.ProductImage(product_id=product_id, image_url=image_url, is_primary=is_primary, sort_order=next_order)
     db.add(image)
     db.commit()
     db.refresh(image)
     return image
+
+
+@router.delete("/{product_id}/images/{image_id}", status_code=204)
+def delete_product_image(
+    product_id: str,
+    image_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_role(models.UserRole.seller)),
+):
+    store = _get_owned_store(current_user)
+    product = db.query(models.Product).filter(
+        models.Product.id == product_id, models.Product.store_id == store.id
+    ).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    image = db.query(models.ProductImage).filter(
+        models.ProductImage.id == image_id, models.ProductImage.product_id == product_id
+    ).first()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+    was_primary = image.is_primary
+    db.delete(image)
+    db.flush()
+
+    # Deleting the cover photo shouldn't leave the product with no primary
+    # image — promote whichever image is now first in display order.
+    if was_primary:
+        next_image = (db.query(models.ProductImage)
+                      .filter(models.ProductImage.product_id == product_id)
+                      .order_by(models.ProductImage.sort_order).first())
+        if next_image:
+            next_image.is_primary = True
+    db.commit()
+
+
+@router.put("/{product_id}/images/reorder", response_model=list[schemas.ProductImageOut])
+def reorder_product_images(
+    product_id: str,
+    payload: schemas.ProductImageReorder,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.require_role(models.UserRole.seller)),
+):
+    store = _get_owned_store(current_user)
+    product = db.query(models.Product).filter(
+        models.Product.id == product_id, models.Product.store_id == store.id
+    ).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    images = {img.id: img for img in db.query(models.ProductImage).filter(models.ProductImage.product_id == product_id).all()}
+    if set(payload.image_ids) != set(images.keys()):
+        raise HTTPException(status_code=400, detail="image_ids must include every image on this product, exactly once")
+
+    for position, image_id in enumerate(payload.image_ids):
+        images[image_id].sort_order = position
+        images[image_id].is_primary = (position == 0)
+    db.commit()
+    return (db.query(models.ProductImage).filter(models.ProductImage.product_id == product_id)
+            .order_by(models.ProductImage.sort_order).all())
+

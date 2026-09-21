@@ -54,7 +54,7 @@ services:
       - key: COMMISSION_LAUNCH_VENDOR_CAP
         value: "20"
       - key: SERVICE_COMMISSION_RATE
-        value: "0.10"
+        value: "0.04"
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

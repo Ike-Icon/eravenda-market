@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException  # pyright: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # pyright: ignore[reportMissingImports]
+import logging
 
 from .. import models, schemas, auth
 from ..database import get_db
 from ..utils import slugify, random_suffix
+from ..email_utils import send_role_welcome_email
 
 router = APIRouter(prefix="/stores", tags=["stores"])
+logger = logging.getLogger("eravenda.stores")
 
 
 @router.post("", response_model=schemas.StoreOut, status_code=201)
@@ -27,6 +30,20 @@ def create_store(
 
     db.commit()
     db.refresh(store)
+
+    try:
+        send_role_welcome_email(
+            current_user.email, current_user.full_name, "seller",
+            [
+                "Our team reviews your store details, usually within 1-2 business days.",
+                "Once approved, add your products and they'll go live after a quick review.",
+                "You'll get an email as soon as your store is approved.",
+            ],
+            "/seller/dashboard.html",
+        )
+    except Exception:
+        logger.exception("Could not send seller welcome email to %s", current_user.email)
+
     return store
 
 

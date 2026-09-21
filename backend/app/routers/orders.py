@@ -167,6 +167,18 @@ def checkout(
     if not cart or not cart.items:
         raise HTTPException(status_code=400, detail="Your cart is empty")
 
+    if payload.payment_method == models.PaymentMethod.cash_on_delivery:
+        ineligible_names = [item.product.name for item in cart.items if not item.product.cod_eligible]
+        if ineligible_names:
+            names = ", ".join(dict.fromkeys(ineligible_names))  # de-duplicate, keep order
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Pay on delivery isn't available for: {names}. "
+                    "Remove those items or pay with Mobile Money for this order."
+                ),
+            )
+
     # Group items by store, since each seller gets a separate order
     items_by_store = defaultdict(list)
     for item in cart.items:

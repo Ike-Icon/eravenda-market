@@ -22,11 +22,10 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session, selectinload  # type: ignore[reportMissingImports]
 
 from . import models
-from .email_utils import send_email
+from .email_utils import send_email, SITE_URL
 
 logger = logging.getLogger("eravenda.newsletter")
 
-SITE_URL = os.getenv("SITE_URL", "https://www.eravenda.com")
 DIGEST_WINDOW_DAYS = 7
 MAX_ITEMS_PER_SECTION = 6
 

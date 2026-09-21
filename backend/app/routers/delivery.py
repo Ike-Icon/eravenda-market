@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from .. import auth, models, schemas
 from ..database import get_db
-from ..email_utils import ADMIN_NOTIFICATION_EMAIL, send_email
+from ..email_utils import ADMIN_NOTIFICATION_EMAIL, send_email, send_role_welcome_email
 
 router = APIRouter(prefix="/delivery", tags=["delivery"])
 logger = logging.getLogger("eravenda.delivery")
@@ -81,6 +81,20 @@ def register_delivery_person(
     db.add(profile)
     db.commit()
     db.refresh(profile)
+
+    try:
+        send_role_welcome_email(
+            current_user.email, current_user.full_name, "delivery partner",
+            [
+                "Our team reviews your delivery partner details, usually within 1-2 business days.",
+                "Once approved, you'll be able to accept and manage deliveries from your dashboard.",
+                "You'll get an email as soon as your profile is approved.",
+            ],
+            "/delivery-dashboard.html",
+        )
+    except Exception:
+        logger.exception("Could not send delivery partner welcome email to %s", current_user.email)
+
     return profile
 
 

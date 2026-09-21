@@ -2,7 +2,7 @@ import os
 
 
 # Separate from product commission: charged to the professional on completed jobs.
-SERVICE_COMMISSION_RATE = float(os.getenv("SERVICE_COMMISSION_RATE", "0.10"))
+SERVICE_COMMISSION_RATE = float(os.getenv("SERVICE_COMMISSION_RATE", "0.04"))
 
 
 def service_commission_for(base_amount: float) -> float:

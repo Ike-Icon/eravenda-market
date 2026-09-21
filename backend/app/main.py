@@ -20,6 +20,7 @@ from .database import Base, engine, get_db
 from .migrate import run_migrations
 from . import models  # noqa: F401 - registers models on Base before create_all
 from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products
+from .email_utils import SITE_URL
 
 app = FastAPI(title="Eravenda API", version="1.0.0")
 
@@ -210,6 +211,18 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         .limit(14)
         .all()
     )
+    # Feeds the "Pay on Delivery" rail — sellers opt individual products in or
+    # out of COD (Product.cod_eligible), so this only shows ones they've kept eligible.
+    pay_on_delivery = (
+        db.query(models.Product)
+        .filter(
+            models.Product.status == models.ProductStatus.approved,
+            models.Product.cod_eligible.is_(True),
+        )
+        .order_by(models.Product.created_at.desc())
+        .limit(14)
+        .all()
+    )
     return templates.TemplateResponse(
         "index.html",
         page_context(
@@ -221,6 +234,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
             featured_handymen=featured_handymen,
             top_deals=top_deals,
             top_rated=top_rated,
+            pay_on_delivery=pay_on_delivery,
         ),
     )
 
@@ -231,6 +245,7 @@ def products_page(
     q: str = "",
     category_id: str = "",
     sort: str = "newest",
+    cod: str = "",
     db: Session = Depends(get_db),
 ):
     query = db.query(models.Product).filter(models.Product.status == models.ProductStatus.approved)
@@ -240,6 +255,9 @@ def products_page(
         query = query.filter(models.Product.name.ilike(like))
     if category_id:
         query = query.filter(models.Product.category_id.in_(_category_and_child_ids(db, category_id)))
+    cod_only = cod in ("1", "true", "yes")
+    if cod_only:
+        query = query.filter(models.Product.cod_eligible.is_(True))
 
     if sort == "price_asc":
         query = query.order_by(models.Product.price.asc())
@@ -258,6 +276,7 @@ def products_page(
             search_query=q,
             selected_category_id=category_id,
             sort=sort,
+            cod_only=cod_only,
         ),
     )
 
@@ -559,10 +578,6 @@ def favicon():
     # Browsers and crawlers request this by convention, regardless of the
     # <link rel="icon"> tags in base.html — this covers that fallback.
     return FileResponse(FRONTEND_DIR / "static" / "img" / "favicon.ico")
-
-
-# Set this in your .env once you have a real domain, e.g. https://www.eravenda.com
-SITE_URL = os.getenv("SITE_URL", "https://www.eravenda.com")
 
 
 @app.get("/sitemap.xml")

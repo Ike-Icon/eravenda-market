@@ -9,7 +9,7 @@ from sqlalchemy import func
 
 from .. import auth, models, schemas
 from ..database import get_db
-from ..email_utils import ADMIN_NOTIFICATION_EMAIL, send_email
+from ..email_utils import ADMIN_NOTIFICATION_EMAIL, send_email, send_role_welcome_email
 from ..service_pricing import service_charge_for, service_commission_for
 
 router = APIRouter(prefix="/services", tags=["services"])
@@ -109,6 +109,20 @@ async def register_worker(
     resume_path = await _save_resume(resume)
     profile = models.HandymanProfile(user_id=current_user.id, job_title=job_title or custom_job_title or "Service professional", custom_job_title=custom_job_title, professional_name=professional_name, company_name=(company_name or "").strip() or None, work_experience=work_experience, education=(education or "").strip() or None, qualifications=(qualifications or "").strip() or "Details to be completed during verification.", resume_path=resume_path)
     db.add(profile); db.commit(); db.refresh(profile)
+
+    try:
+        send_role_welcome_email(
+            current_user.email, current_user.full_name, "handyman professional",
+            [
+                "Our team reviews your profile and qualifications, usually within 1-2 business days.",
+                "Once approved, your profile goes live and clients can find and book you.",
+                "You'll get an email as soon as your profile is approved.",
+            ],
+            "/professional/dashboard.html",
+        )
+    except Exception:
+        logger.exception("Could not send handyman welcome email to %s", current_user.email)
+
     return profile
 
 

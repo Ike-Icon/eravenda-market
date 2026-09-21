@@ -10,10 +10,9 @@ from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
 from .. import models, schemas, auth, social_auth
 from ..database import get_db
-from ..email_utils import send_email
+from ..email_utils import send_email, SITE_URL
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
 logger = logging.getLogger("eravenda.auth")
 _attempts: dict[str, deque[float]] = defaultdict(deque)
 

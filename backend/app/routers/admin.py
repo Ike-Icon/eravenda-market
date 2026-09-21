@@ -416,11 +416,50 @@ def admin_add_product_image(product_id: str, image_url: str, is_primary: bool = 
             {"is_primary": False}
         )
 
-    image = models.ProductImage(product_id=product_id, image_url=image_url, is_primary=is_primary)
+    next_order = (db.query(func.max(models.ProductImage.sort_order))
+                  .filter(models.ProductImage.product_id == product_id).scalar() or 0) + 1
+    image = models.ProductImage(product_id=product_id, image_url=image_url, is_primary=is_primary, sort_order=next_order)
     db.add(image)
     db.commit()
     db.refresh(image)
     return image
+
+
+@router.delete("/products/{product_id}/images/{image_id}", status_code=204)
+def admin_delete_product_image(product_id: str, image_id: str, db: Session = Depends(get_db)):
+    """Admin equivalent of the seller's own image-delete endpoint — no
+    store-ownership restriction, so admins can clean up any product's photos."""
+    image = db.query(models.ProductImage).filter(
+        models.ProductImage.id == image_id, models.ProductImage.product_id == product_id
+    ).first()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+    was_primary = image.is_primary
+    db.delete(image)
+    db.flush()
+    if was_primary:
+        next_image = (db.query(models.ProductImage)
+                      .filter(models.ProductImage.product_id == product_id)
+                      .order_by(models.ProductImage.sort_order).first())
+        if next_image:
+            next_image.is_primary = True
+    db.commit()
+
+
+@router.put("/products/{product_id}/images/reorder", response_model=list[schemas.ProductImageOut])
+def admin_reorder_product_images(product_id: str, payload: schemas.ProductImageReorder, db: Session = Depends(get_db)):
+    images = {img.id: img for img in db.query(models.ProductImage).filter(models.ProductImage.product_id == product_id).all()}
+    if not images:
+        raise HTTPException(status_code=404, detail="Product not found or has no images")
+    if set(payload.image_ids) != set(images.keys()):
+        raise HTTPException(status_code=400, detail="image_ids must include every image on this product, exactly once")
+
+    for position, image_id in enumerate(payload.image_ids):
+        images[image_id].sort_order = position
+        images[image_id].is_primary = (position == 0)
+    db.commit()
+    return (db.query(models.ProductImage).filter(models.ProductImage.product_id == product_id)
+            .order_by(models.ProductImage.sort_order).all())
 
 
 @router.delete("/products/{product_id}", status_code=204)
@@ -445,12 +484,17 @@ def delete_product(product_id: str, db: Session = Depends(get_db)):
 def product_tracking(db: Session = Depends(get_db)):
     products = (db.query(models.Product)
                 .join(models.Store, models.Product.store_id == models.Store.id)
+                .options(__import__("sqlalchemy.orm", fromlist=["joinedload"]).joinedload(models.Product.store).joinedload(models.Store.owner))
                 .order_by(models.Product.updated_at.desc())
                 .limit(300).all())
     return [{
         "id": p.id, "name": p.name, "sku": p.sku, "store_name": p.store.store_name if p.store else "",
+        "seller_name": p.store.owner.full_name if p.store and p.store.owner else "",
+        "seller_email": p.store.owner.email if p.store and p.store.owner else "",
+        "seller_phone": p.store.owner.phone if p.store and p.store.owner else "",
         "price": float(p.discount_price if p.discount_price is not None else p.price),
         "stock_quantity": p.stock_quantity, "status": p.status.value, "badge_keys": p.badge_keys or [],
+        "cod_eligible": p.cod_eligible,
         "updated_at": p.updated_at,
     } for p in products]
 

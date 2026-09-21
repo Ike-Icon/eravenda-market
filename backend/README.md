@@ -82,8 +82,8 @@ the seller's proceeds before payout. The rate depends on the product's category,
 | Fashion, beauty, clothing and accessories | 10% |
 | Other / unclassified | 8% (default) |
 
-Handyman/professional bookings use a separate flat **10%** service commission
-(`app/service_pricing.py`), which sits at the same 10% ceiling.
+Handyman/professional bookings use a separate flat **4%** service commission
+(`app/service_pricing.py`), well inside the 10% product-category ceiling above.
 
 **Launch discount:** early vendors pay half the standard category rate for the first
 90 days starting **14 October 2026** (ending 12 January 2027), or for the first 20

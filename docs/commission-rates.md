@@ -7,7 +7,7 @@ This document explains the commission policy for product sellers and handyman pr
 | Area | Who pays the commission | Current enforced rate | Basis |
 |---|---|---:|---|
 | Products | Seller | Category-based; 8% default; **10% hard cap** | Product sale value |
-| Handyman services | Professional | 10% | Completed job value |
+| Handyman services | Professional | 4% | Completed job value |
 
 Buyer-facing product prices do not include a separate EraVenda product commission line. The product commission is recorded on the order and deducted from the seller's product proceeds.
 
@@ -103,7 +103,7 @@ Handyman pricing does not use product category rates or product price tiers.
 
 ### Current rate
 
-- Rate: **10% of the completed job value**
+- Rate: **4% of the completed job value**
 - Payer: handyman/professional
 - Buyer/seeker pays: agreed job amount plus the service commission
 - Professional receives: agreed job amount after payment and verification
@@ -111,16 +111,16 @@ Handyman pricing does not use product category rates or product price tiers.
 The rate is configured with:
 
 ```env
-SERVICE_COMMISSION_RATE=0.10
+SERVICE_COMMISSION_RATE=0.04
 ```
 
 The code stores the rate as a decimal fraction. Therefore:
 
 ```text
-0.10 = 10%
+0.04 = 4%
 ```
 
-The supported range for this setting is 0%–10%, in line with the platform-wide 10% commission ceiling described above; the current implementation uses the full 10% rate.
+The supported range for this setting is 0%–10%, in line with the platform-wide 10% commission ceiling described above; the current implementation uses a 4% rate, well inside that ceiling.
 
 ### Handyman calculation
 
@@ -128,8 +128,8 @@ For a job amount of GHS 100:
 
 ```text
 Agreed professional job amount       GHS 100.00
-EraVenda service commission, 10%     GHS  10.00
-Seeker payment total                 GHS 110.00
+EraVenda service commission, 4%      GHS   4.00
+Seeker payment total                 GHS 104.00
 Professional payout                  GHS 100.00
 ```
 
@@ -143,7 +143,7 @@ Handyman commission is stored on `service_bookings.commission_amount`. The profe
 ### Handyman payment flow
 
 1. The professional accepts or prices the job.
-2. The backend calculates the 10% commission and total escrow charge.
+2. The backend calculates the 4% commission and total escrow charge.
 3. The professional requests completion sign-off.
 4. The seeker reviews the completed work and pays through Paystack.
 5. EraVenda holds the payment while completion is verified.
@@ -181,7 +181,7 @@ This returns the standard rate, category rates, launch dates, vendor cap and dis
 COMMISSION_LAUNCH_START_DATE=2026-10-14
 COMMISSION_LAUNCH_DURATION_DAYS=90
 COMMISSION_LAUNCH_VENDOR_CAP=20
-SERVICE_COMMISSION_RATE=0.10
+SERVICE_COMMISSION_RATE=0.04
 ```
 
 The product launch settings are also defined in `render.yaml` for deployment.

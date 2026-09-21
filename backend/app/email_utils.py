@@ -31,6 +31,17 @@ ADMIN_NOTIFICATION_EMAIL = os.getenv("ADMIN_NOTIFICATION_EMAIL", "asieduisaac577
 DEFAULT_EMAIL_FLYER_URL = "https://res.cloudinary.com/ni2pcrua/image/upload/v1789391753/EraVenda_Banner.jpg"
 EMAIL_FLYER_URL = os.getenv("EMAIL_FLYER_URL", DEFAULT_EMAIL_FLYER_URL).strip() or DEFAULT_EMAIL_FLYER_URL
 
+# Single source of truth for the site's public URL, used to build links in
+# every outgoing email (password reset, welcome emails, Paystack callbacks,
+# the sitemap). Previously each file that needed this declared its own
+# `os.getenv("SITE_URL", ...)` with a different, mostly-wrong fallback
+# (some pointed at "https://www.eravenda.com", a domain that was never
+# actually live; others fell back to "http://localhost:8000"), so a missing
+# SITE_URL env var could silently send buyers a password-reset link that
+# only worked on someone's laptop. Now deployed on Render, so the one
+# correct fallback is the live API URL.
+SITE_URL = os.getenv("SITE_URL", "https://eravenda-api.onrender.com").rstrip("/")
+
 
 def _html_email(body: str) -> str:
         paragraphs = "<br>".join(escape(body).splitlines())
@@ -74,3 +85,21 @@ def send_email(to: str, subject: str, body: str, reply_to: str | None = None) ->
         if SMTP_USER and SMTP_PASSWORD:
             server.login(SMTP_USER, SMTP_PASSWORD)
         server.sendmail(FROM_EMAIL, [to], msg.as_string())
+
+
+def send_role_welcome_email(to: str, full_name: str, role_label: str, next_steps: list[str], dashboard_path: str) -> None:
+    """Common 'thanks for signing up as X' email for the three role
+    applications (seller, delivery partner, handyman). Errors are caught by
+    the caller — a failed welcome email should never block the signup
+    itself, it should just get logged."""
+    first_name = (full_name or "").strip().split(" ")[0] or "there"
+    steps = "\n".join(f"{i}. {step}" for i, step in enumerate(next_steps, start=1))
+    body = (
+        f"Hi {first_name},\n\n"
+        f"Thanks for signing up to become a {role_label} on EraVenda Market!\n\n"
+        f"What happens next:\n{steps}\n\n"
+        f"You can check your application status any time here:\n{SITE_URL}{dashboard_path}\n\n"
+        f"Questions? Just reply to this email or reach us at {SUPPORT_EMAIL}.\n\n"
+        "— The EraVenda Market team"
+    )
+    send_email(to, f"Welcome to EraVenda Market — your {role_label} application", body)
