@@ -1,9 +1,11 @@
 import os
+import hmac
+import hashlib
 import logging
 from datetime import datetime
 
 import httpx  # type: ignore[reportMissingImports]
-from fastapi import APIRouter, Depends, HTTPException  # type: ignore[reportMissingImports]
+from fastapi import APIRouter, Depends, HTTPException, Request  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
 from .. import models, schemas, auth
@@ -40,6 +42,42 @@ def _call_paystack(method: str, path: str, **kwargs) -> dict:
     if not data.get("status"):
         raise HTTPException(status_code=502, detail=data.get("message", "Paystack rejected the request."))
     return data["data"]
+
+
+def _finalize_product_payment(db: Session, payment: models.Payment, order: models.Order) -> None:
+    """Marks a product payment (and its order) as paid, and notifies admin.
+    Shared by the buyer-triggered /verify call and the Paystack webhook, so
+    a payment gets confirmed whichever path reaches it first — a dropped
+    connection on one path doesn't leave the order stuck as pending forever."""
+    if payment.status == models.PaymentStatus.success:
+        return  # already finalized by the other path
+    payment.status = models.PaymentStatus.success
+    payment.paid_at = datetime.utcnow()
+    order.status = models.OrderStatus.paid
+    db.commit()
+
+    try:
+        buyer = db.query(models.User).filter(models.User.id == order.buyer_id).first()
+        product_summary = ", ".join(
+            f"{item.product_name} x{item.quantity}" for item in order.items
+        ) or "Product order"
+        subject_summary = " ".join(product_summary.split())
+        send_email(
+            to=ADMIN_NOTIFICATION_EMAIL,
+            subject=f"[Eravenda Market] Product payment received: {subject_summary[:90]}",
+            body=(
+                "A product order payment has been confirmed.\n\n"
+                f"Order number: {order.order_number}\n"
+                f"Payment reference: {payment.provider_reference}\n"
+                f"Amount: GHS {float(payment.amount):.2f}\n"
+                f"Buyer: {buyer.full_name if buyer else 'Unknown'}\n"
+                f"Buyer email: {buyer.email if buyer else 'Unknown'}\n"
+                f"Products: {product_summary}\n"
+            ),
+            reply_to=buyer.email if buyer else None,
+        )
+    except Exception:
+        logger.exception("Could not send product-payment notification for order %s", order.id)
 
 
 @router.post("/initialize", response_model=schemas.PaymentInitOut)
@@ -120,37 +158,10 @@ def verify_payment(
     paid_successfully = data.get("status") == "success" and data.get("amount") == expected_pesewas
 
     if paid_successfully:
-        payment.status = models.PaymentStatus.success
-        payment.paid_at = datetime.utcnow()
-        order.status = models.OrderStatus.paid
+        _finalize_product_payment(db, payment, order)
     else:
         payment.status = models.PaymentStatus.failed
-
-    db.commit()
-
-    if paid_successfully:
-        try:
-            buyer = db.query(models.User).filter(models.User.id == order.buyer_id).first()
-            product_summary = ", ".join(
-                f"{item.product_name} x{item.quantity}" for item in order.items
-            ) or "Product order"
-            subject_summary = " ".join(product_summary.split())
-            send_email(
-                to=ADMIN_NOTIFICATION_EMAIL,
-                subject=f"[Eravenda Market] Product payment received: {subject_summary[:90]}",
-                body=(
-                    "A product order payment has been confirmed.\n\n"
-                    f"Order number: {order.order_number}\n"
-                    f"Payment reference: {reference}\n"
-                    f"Amount: GHS {float(payment.amount):.2f}\n"
-                    f"Buyer: {buyer.full_name if buyer else 'Unknown'}\n"
-                    f"Buyer email: {buyer.email if buyer else 'Unknown'}\n"
-                    f"Products: {product_summary}\n"
-                ),
-                reply_to=buyer.email if buyer else None,
-            )
-        except Exception:
-            logger.exception("Could not send product-payment notification for order %s", order.id)
+        db.commit()
 
     return schemas.PaymentVerifyOut(
         status=payment.status, order_id=order.id, order_status=order.status,
@@ -162,6 +173,48 @@ def verify_payment(
 # Handyman jobs are paid exclusively on-platform: the seeker reviews the
 # completed work (rating + photos) and pays here; Eravenda holds the funds
 # until an admin releases the net payout to the handyman.
+
+def _finalize_service_payment(db: Session, payment: models.ServicePayment, booking: models.ServiceBooking) -> None:
+    """Marks a handyman-job payment (and its booking) as paid, and notifies
+    admin. Shared by the buyer-triggered /verify call and the Paystack
+    webhook — see _finalize_product_payment for why."""
+    if payment.status == models.PaymentStatus.success:
+        return  # already finalized by the other path
+    payment.status = models.PaymentStatus.success
+    payment.paid_at = datetime.utcnow()
+    booking.status = models.ServiceBookingStatus.completed
+    booking.paid_at = payment.paid_at
+    base_amount = float(booking.quoted_amount or 0)
+    if not base_amount:
+        base_amount = round(float(booking.escrow_amount) - float(booking.commission_amount or 0), 2)
+    booking.commission_amount = service_commission_for(base_amount)
+    booking.payout_amount = base_amount
+    booking.payout_status = models.PayoutStatus.pending
+    db.commit()
+
+    try:
+        client = db.query(models.User).filter(models.User.id == booking.client_id).first()
+        handyman = booking.handyman
+        job_summary = (booking.details or "Handyman service").strip()
+        subject_summary = " ".join(job_summary.split())
+        send_email(
+            to=ADMIN_NOTIFICATION_EMAIL,
+            subject=f"[Eravenda Services] Handyman payment received: {subject_summary[:90]}",
+            body=(
+                "A handyman booking payment has been confirmed.\n\n"
+                f"Booking ID: {booking.id}\n"
+                f"Payment reference: {payment.provider_reference}\n"
+                f"Amount: GHS {float(payment.amount):.2f}\n"
+                f"Client: {client.full_name if client else 'Unknown'}\n"
+                f"Client email: {client.email if client else 'Unknown'}\n"
+                f"Handyman: {handyman.professional_name or handyman.job_title}\n"
+                f"Job requested: {job_summary}\n"
+            ),
+            reply_to=client.email if client else None,
+        )
+    except Exception:
+        logger.exception("Could not send handyman-payment notification for booking %s", booking.id)
+
 
 @router.post("/service/initialize", response_model=schemas.PaymentInitOut)
 def initialize_service_payment(
@@ -238,46 +291,74 @@ def verify_service_payment(
     paid_successfully = data.get("status") == "success" and data.get("amount") == expected_pesewas
 
     if paid_successfully:
-        payment.status = models.PaymentStatus.success
-        payment.paid_at = datetime.utcnow()
-        booking.status = models.ServiceBookingStatus.completed
-        booking.paid_at = payment.paid_at
-        base_amount = float(booking.quoted_amount or 0)
-        if not base_amount:
-            base_amount = round(float(booking.escrow_amount) - float(booking.commission_amount or 0), 2)
-        booking.commission_amount = service_commission_for(base_amount)
-        booking.payout_amount = base_amount
-        booking.payout_status = models.PayoutStatus.pending
+        _finalize_service_payment(db, payment, booking)
     else:
         payment.status = models.PaymentStatus.failed
-
-    db.commit()
-
-    if paid_successfully:
-        try:
-            client = db.query(models.User).filter(models.User.id == booking.client_id).first()
-            handyman = booking.handyman
-            job_summary = (booking.details or "Handyman service").strip()
-            subject_summary = " ".join(job_summary.split())
-            send_email(
-                to=ADMIN_NOTIFICATION_EMAIL,
-                subject=f"[Eravenda Services] Handyman payment received: {subject_summary[:90]}",
-                body=(
-                    "A handyman booking payment has been confirmed.\n\n"
-                    f"Booking ID: {booking.id}\n"
-                    f"Payment reference: {reference}\n"
-                    f"Amount: GHS {float(payment.amount):.2f}\n"
-                    f"Client: {client.full_name if client else 'Unknown'}\n"
-                    f"Client email: {client.email if client else 'Unknown'}\n"
-                    f"Handyman: {handyman.professional_name or handyman.job_title}\n"
-                    f"Job requested: {job_summary}\n"
-                ),
-                reply_to=client.email if client else None,
-            )
-        except Exception:
-            logger.exception("Could not send handyman-payment notification for booking %s", booking.id)
+        db.commit()
 
     return schemas.ServicePaymentVerifyOut(
         status=payment.status, booking_id=booking.id, booking_status=booking.status,
         amount=float(payment.amount), reference=reference,
     )
+
+
+# ---------- WEBHOOK ----------
+# Belt-and-braces alongside the buyer-triggered /verify calls above: those
+# only run if the buyer's browser makes it back to the callback page and
+# fires the verify request. If their connection drops, the tab is closed,
+# or the app crashes right after a successful charge, Paystack has still
+# taken the money but the order/booking would be stuck "pending" forever
+# with nothing to nudge it. Paystack calls this URL directly from their own
+# servers the moment a charge succeeds, independent of the buyer's browser,
+# so the order still gets marked paid even if the redirect back never happens.
+# Configure it in the Paystack Dashboard under Settings -> API Keys & Webhooks
+# -> Webhook URL, as {SITE_URL}/api/payments/webhook.
+@router.post("/webhook")
+async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
+    raw_body = await request.body()
+    signature = request.headers.get("x-paystack-signature", "")
+
+    if not PAYSTACK_SECRET_KEY:
+        # Nothing to verify the signature against — refuse rather than
+        # silently trust an unverifiable request.
+        raise HTTPException(status_code=503, detail="Payments aren't configured")
+
+    expected_signature = hmac.new(
+        PAYSTACK_SECRET_KEY.encode("utf-8"), raw_body, hashlib.sha512
+    ).hexdigest()
+    if not hmac.compare_digest(expected_signature, signature):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    event = await request.json()
+    if event.get("event") != "charge.success":
+        return {"received": True}  # we only act on successful charges
+
+    data = event.get("data", {})
+    reference = data.get("reference", "")
+    paid_amount = data.get("amount")
+
+    # Product order payment references are minted as ERV-...; handyman job
+    # payment references are minted as ERVSVC-... (see initialize_payment
+    # and initialize_service_payment above) — check whichever table matches.
+    payment = db.query(models.Payment).filter(models.Payment.provider_reference == reference).first()
+    if payment:
+        expected_pesewas = int(round(float(payment.amount) * 100))
+        if data.get("status") == "success" and paid_amount == expected_pesewas:
+            order = db.query(models.Order).filter(models.Order.id == payment.order_id).first()
+            if order:
+                _finalize_product_payment(db, payment, order)
+        return {"received": True}
+
+    service_payment = db.query(models.ServicePayment).filter(models.ServicePayment.provider_reference == reference).first()
+    if service_payment:
+        expected_pesewas = int(round(float(service_payment.amount) * 100))
+        if data.get("status") == "success" and paid_amount == expected_pesewas:
+            booking = db.query(models.ServiceBooking).filter(models.ServiceBooking.id == service_payment.booking_id).first()
+            if booking:
+                _finalize_service_payment(db, service_payment, booking)
+        return {"received": True}
+
+    # Unknown reference — nothing on our side to reconcile against, but
+    # this still isn't an error on Paystack's end, so acknowledge normally.
+    logger.warning("Paystack webhook: no payment found for reference %s", reference)
+    return {"received": True}
