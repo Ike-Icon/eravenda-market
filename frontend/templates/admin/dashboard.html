@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Admin Dashboard — Eravenda{% endblock %}
 {% block extra_head %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="/static/js/vendor/chart.umd.js"></script>
 {% endblock %}
 {% block content %}
 <div class="bg-slate-50 min-h-full">
@@ -23,7 +23,6 @@
   <section class="bg-white border border-slate-200 rounded-2xl p-6 mb-8">
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-5">
       <div><h2 class="font-head text-xl font-bold">Income &amp; commission KPIs</h2><p class="text-sm text-slate-500 mt-1">All successful product payments and paid handyman bookings.</p></div>
-      <span class="text-xs text-slate-400">Last 12 months</span>
     </div>
     <div id="overallKpis" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
 
@@ -455,7 +454,15 @@ let incomeChartInstance, commissionMixChartInstance, revenueMixChartInstance, to
 const CHART_COLORS = { income: '#1c6b4f', commission: '#f59e0b', product: '#2563eb', service: '#0d9488' };
 
 function renderIncomeCharts(s) {
-  if (typeof Chart === 'undefined') return; // Chart.js failed to load (e.g. offline) — KPI cards and table above still work.
+  const chartContainers = ['incomeChart', 'revenueMixChart', 'commissionMixChart', 'topStoresChart'].map(id => document.getElementById(id)?.parentElement).filter(Boolean);
+  if (typeof Chart === 'undefined') {
+    // Charts failed to load — tell the admin plainly instead of leaving the area blank
+    // with no explanation. The KPI cards and monthly table above still work fine either way.
+    chartContainers.forEach(el => {
+      el.innerHTML = '<p class="text-xs text-red-600 flex items-center justify-center h-full text-center px-4">Charts couldn\'t load (Chart.js didn\'t load in this browser). The numbers above and the table below are still accurate — try refreshing the page.</p>';
+    });
+    return;
+  }
   const monthly = s.monthly || [];
   const labels = monthly.map(m => {
     const [y, mo] = m.month.split('-');
