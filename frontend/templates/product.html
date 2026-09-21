@@ -66,14 +66,14 @@
 
     <!-- COLUMN 2 — Product info -->
     <div class="min-w-0">
-      {% if product.badge_keys or product.cod_eligible %}
+      {% if (product.badge_keys | default([], true)) or product.cod_eligible %}
       <div class="flex flex-wrap gap-2 mb-3">
         {% if product.cod_eligible %}
         <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
           <i class="fas fa-truck text-emerald-600 text-[10px]"></i>Pay on Delivery
         </span>
         {% endif %}
-        {% for badge in product.badge_keys %}
+        {% for badge in (product.badge_keys | default([], true)) %}
         <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
           <i class="fas fa-star text-amber-500 text-[10px]"></i>{{ badge|replace('-', ' ')|title }}
         </span>
@@ -141,19 +141,19 @@
 
       <p class="mt-4 text-slate-600">{{ product.description or "No description provided for this product yet." }}</p>
 
-      {% if product.specifications %}
+      {% if product.specifications | default([], true) %}
       <ul class="mt-3 space-y-1 text-sm text-slate-600 list-disc list-inside">
-        {% for spec in product.specifications %}
+        {% for spec in (product.specifications | default([], true)) %}
         <li>{{ spec }}</li>
         {% endfor %}
       </ul>
       {% endif %}
 
-      {% if product.colors %}
+      {% if product.colors | default([], true) %}
       <fieldset class="mt-5">
         <legend class="block text-sm font-semibold mb-2">Choose a color when buying <span class="font-normal text-slate-500">(optional for cart and wishlist)</span></legend>
         <div id="colorChoices" class="flex flex-wrap gap-3" role="group" aria-label="Available product colors">
-          {% for color in product.colors %}
+          {% for color in (product.colors | default([], true)) %}
           {% if color is string %}{% set cname=color %}{% set chex="#000000" %}{% set cstock=0 %}{% set cavail=false %}
           {% else %}{% set cname=color.name %}{% set chex=color.hex %}{% set cstock=color.stock|default(0)|int %}{% set cavail=color.available|default(cstock > 0) and cstock > 0 %}{% endif %}
           <div class="relative group/swatch">
@@ -178,7 +178,7 @@
       <fieldset class="mt-5">
         <legend class="block text-sm font-semibold mb-2">Options <span class="font-normal text-slate-500">(optional for cart — select one to see and lock in the exact price)</span></legend>
         <div id="optionChoices" class="flex flex-wrap gap-3" role="group" aria-label="Available product options">
-          {% for opt in product.options %}
+          {% for opt in (product.options | default([], true)) %}
           {% set ostock = opt.stock|default(0)|int %}
           {% set oavail = opt.available|default(ostock > 0) and ostock > 0 %}
           {% set has_opt_discount = opt.discount_price and opt.discount_price|float > 0 and opt.discount_price|float < opt.price|float %}
@@ -202,7 +202,7 @@
       <fieldset class="mt-5">
         <legend class="block text-sm font-semibold mb-2">Size <span class="font-normal text-slate-500">(optional for cart — pick a size before buying)</span></legend>
         <div id="sizeChoices" class="flex flex-wrap gap-2" role="group" aria-label="Available sizes">
-          {% for sz in product.sizes %}
+          {% for sz in (product.sizes | default([], true)) %}
           {% set sstock = sz.stock|default(0)|int %}
           {% set savail = sz.available|default(sstock > 0) and sstock > 0 %}
           <button type="button" data-size="{{ sz.label }}" data-size-stock="{{ sstock }}" data-size-available="{{ 'true' if savail else 'false' }}"
@@ -299,7 +299,7 @@
       <button type="button" data-product-tab="shipping" class="product-tab px-5 py-3 text-sm font-semibold text-slate-500">Shipping</button>
       <button type="button" data-product-tab="returns" class="product-tab px-5 py-3 text-sm font-semibold text-slate-500">Returns</button>
     </div>
-    <div data-product-panel="details" class="p-5 text-sm text-slate-600">{{ product.description or 'No additional product details provided.' }}{% if product.specifications %}<ul class="list-disc list-inside mt-3 space-y-1">{% for spec in product.specifications %}<li>{{ spec }}</li>{% endfor %}</ul>{% endif %}</div>
+    <div data-product-panel="details" class="p-5 text-sm text-slate-600">{{ product.description or 'No additional product details provided.' }}{% if product.specifications | default([], true) %}<ul class="list-disc list-inside mt-3 space-y-1">{% for spec in (product.specifications | default([], true)) %}<li>{{ spec }}</li>{% endfor %}</ul>{% endif %}</div>
     <div data-product-panel="shipping" class="hidden p-5 text-sm text-slate-600">Shipping fees and delivery times are calculated at checkout based on your delivery location and the store's location.</div>
     <div data-product-panel="returns" class="hidden p-5 text-sm text-slate-600">For return or exchange requests, contact the seller through Eravenda support with your order details. Eligibility depends on the item's condition and the seller's applicable return terms.</div>
   </div>
