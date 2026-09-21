@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 
 import os
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -20,7 +21,10 @@ from .database import Base, engine, get_db
 from .migrate import run_migrations
 from . import models  # noqa: F401 - registers models on Base before create_all
 from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products
+from . import email_utils
 from .email_utils import SITE_URL
+
+logger = logging.getLogger("eravenda.main")
 
 app = FastAPI(title="Eravenda API", version="1.0.0")
 
@@ -58,6 +62,21 @@ def on_startup():
     # /services and /services/register always match the ORM schema.
     run_migrations()
     Base.metadata.create_all(bind=engine)
+
+    # SMTP_HOST etc. are declared with `sync: false` in render.yaml, which
+    # means Render does NOT fill them in for you — they start blank until
+    # someone enters real values in the dashboard's Environment tab. With
+    # SMTP_HOST unset, send_email() quietly logs the email instead of
+    # sending it (so local dev works with zero setup), which makes "why
+    # isn't the reset email arriving?" very hard to debug in production
+    # unless it's called out loudly at boot.
+    if not email_utils.SMTP_HOST:
+        logger.warning(
+            "SMTP_HOST is not set — password reset, welcome, and contact "
+            "emails will be logged to this console instead of actually "
+            "sent. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD and "
+            "FROM_EMAIL in the Render dashboard's Environment tab to fix this."
+        )
 
 
 # ============================================================

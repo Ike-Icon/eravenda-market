@@ -352,6 +352,7 @@ class DeliveryProfile(Base):
     license_number = Column(String(100), nullable=True)
     availability = Column(String(50), nullable=False, default="available")
     status = Column(Enum(DeliveryStatus), nullable=False, default=DeliveryStatus.pending)
+    rejection_reason = Column(Text, nullable=True)
     terms_accepted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

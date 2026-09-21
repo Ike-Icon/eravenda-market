@@ -10,7 +10,11 @@ from sqlalchemy.exc import IntegrityError  # pyright: ignore[reportMissingImport
 from .. import models, schemas, auth
 from ..database import get_db
 from ..service_pricing import service_charge_for, service_commission_for
+from ..email_utils import send_email, SITE_URL
 from .products import _sync_stock_from_variants
+import logging
+
+logger = logging.getLogger("eravenda.admin")
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(auth.require_role(models.UserRole.admin))])
 
@@ -26,18 +30,38 @@ def approve_delivery_person(profile_id: str, db: Session = Depends(get_db)):
     if not profile:
         raise HTTPException(status_code=404, detail="Delivery profile not found")
     profile.status = models.DeliveryStatus.approved
+    profile.rejection_reason = None
     profile.user.role = models.UserRole.delivery
     db.commit(); db.refresh(profile)
     return profile
 
 
 @router.put("/delivery-people/{profile_id}/reject", response_model=schemas.DeliveryProfileOut)
-def reject_delivery_person(profile_id: str, db: Session = Depends(get_db)):
+def reject_delivery_person(profile_id: str, payload: schemas.StoreDecision, db: Session = Depends(get_db)):
     profile = db.query(models.DeliveryProfile).filter(models.DeliveryProfile.id == profile_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Delivery profile not found")
     profile.status = models.DeliveryStatus.rejected
+    profile.rejection_reason = payload.rejection_reason
     db.commit(); db.refresh(profile)
+
+    try:
+        reason_line = f"\nReason given: {payload.rejection_reason}\n" if payload.rejection_reason else ""
+        send_email(
+            profile.user.email,
+            "Update on your EraVenda delivery partner application",
+            (
+                f"Hi {profile.user.full_name.split(' ')[0]},\n\n"
+                "Your delivery partner application wasn't approved this time.\n"
+                f"{reason_line}\n"
+                f"You can review the details and submit a new application any time here:\n{SITE_URL}/delivery/register\n\n"
+                f"If you'd like more feedback, just reply to this email or reach us at support.\n\n"
+                "— The EraVenda Market team"
+            ),
+        )
+    except Exception:
+        logger.exception("Could not send delivery rejection email to %s", profile.user.email)
+
     return profile
 
 
@@ -57,6 +81,7 @@ def reinstate_delivery_person(profile_id: str, db: Session = Depends(get_db)):
     if not profile:
         raise HTTPException(status_code=404, detail="Delivery profile not found")
     profile.status = models.DeliveryStatus.approved
+    profile.rejection_reason = None
     profile.user.role = models.UserRole.delivery
     db.commit(); db.refresh(profile)
     return profile

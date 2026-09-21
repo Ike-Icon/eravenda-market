@@ -68,7 +68,37 @@ def register_delivery_person(
         raise HTTPException(status_code=400, detail="Please accept the delivery partner terms before submitting")
     existing = db.query(models.DeliveryProfile).filter(models.DeliveryProfile.user_id == current_user.id).first()
     if existing:
-        raise HTTPException(status_code=400, detail="You already have a delivery partner profile")
+        if existing.status != models.DeliveryStatus.rejected:
+            raise HTTPException(status_code=400, detail="You already have a delivery partner profile")
+        # A previously rejected applicant is reapplying — reuse the same row
+        # (there's a unique constraint on user_id) rather than blocking them
+        # or creating a duplicate, and put them back in the review queue.
+        existing.company_name = payload.company_name.strip() if payload.company_name else None
+        existing.location = payload.location.strip()
+        existing.vehicle_type = payload.vehicle_type.strip()
+        existing.license_number = payload.license_number.strip() if payload.license_number else None
+        existing.availability = payload.availability.strip() or "available"
+        existing.status = models.DeliveryStatus.pending
+        existing.rejection_reason = None
+        existing.terms_accepted_at = datetime.utcnow()
+        db.commit()
+        db.refresh(existing)
+
+        try:
+            send_role_welcome_email(
+                current_user.email, current_user.full_name, "delivery partner",
+                [
+                    "Our team reviews your updated delivery partner details, usually within 1-2 business days.",
+                    "Once approved, you'll be able to accept and manage deliveries from your dashboard.",
+                    "You'll get an email as soon as your profile is approved.",
+                ],
+                "/delivery-dashboard.html",
+            )
+        except Exception:
+            logger.exception("Could not send delivery partner reapplication email to %s", current_user.email)
+
+        return existing
+
     profile = models.DeliveryProfile(
         user_id=current_user.id,
         company_name=payload.company_name.strip() if payload.company_name else None,

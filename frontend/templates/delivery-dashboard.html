@@ -7,10 +7,13 @@
     <div class="flex gap-2"><a href="/delivery/terms" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold">Partner terms</a><button id="refresh" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold"><i class="fas fa-rotate-right mr-1"></i>Refresh</button></div>
   </div>
   <div id="error" class="hidden mb-5 rounded-lg bg-red-50 border border-red-200 text-red-700 p-4 text-sm"></div>
-  <div id="stats" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8"></div>
-  <div class="grid xl:grid-cols-[1.2fr_1fr] gap-6">
-    <section class="bg-white border border-slate-200 rounded-2xl p-6"><div class="flex items-center justify-between gap-3 mb-5"><div><h2 class="font-head text-xl font-bold">Active deliveries</h2><p class="text-sm text-slate-500 mt-1">Update progress as each assigned order moves.</p></div><span id="activeCount" class="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-bold"></span></div><div id="activeOrders" class="space-y-3"></div></section>
-    <section class="bg-white border border-slate-200 rounded-2xl p-6"><div class="mb-5"><h2 class="font-head text-xl font-bold">Delivery history</h2><p class="text-sm text-slate-500 mt-1">Completed orders and delivery amounts recorded for each one.</p></div><div id="completedOrders" class="space-y-3 max-h-[650px] overflow-y-auto"></div></section>
+  <div id="statusBanner" class="hidden mb-6"></div>
+  <div id="dashboardBody">
+    <div id="stats" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8"></div>
+    <div class="grid xl:grid-cols-[1.2fr_1fr] gap-6">
+      <section class="bg-white border border-slate-200 rounded-2xl p-6"><div class="flex items-center justify-between gap-3 mb-5"><div><h2 class="font-head text-xl font-bold">Active deliveries</h2><p class="text-sm text-slate-500 mt-1">Update progress as each assigned order moves.</p></div><span id="activeCount" class="text-xs bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full font-bold"></span></div><div id="activeOrders" class="space-y-3"></div></section>
+      <section class="bg-white border border-slate-200 rounded-2xl p-6"><div class="mb-5"><h2 class="font-head text-xl font-bold">Delivery history</h2><p class="text-sm text-slate-500 mt-1">Completed orders and delivery amounts recorded for each one.</p></div><div id="completedOrders" class="space-y-3 max-h-[650px] overflow-y-auto"></div></section>
+    </div>
   </div>
 </section>
 {% endblock %}
@@ -24,7 +27,38 @@ const date=v=>v?new Date(v).toLocaleString([], {dateStyle:'medium',timeStyle:'sh
 const statusClass=s=>({processing:'bg-blue-50 text-blue-700',shipped:'bg-amber-50 text-amber-700',delivered:'bg-brand-50 text-brand-700'}[s]||'bg-slate-100 text-slate-600');
 function renderStats(data){document.getElementById('stats').innerHTML=[[data.total_deliveries,'Completed deliveries','fa-check-double'],[data.active_delivery_count,'Active assignments','fa-truck-fast'],[money(data.amount_received),'Amount received','fa-coins'],[data.profile.availability,'Availability','fa-calendar-check']].map(([v,l,i])=>`<div class="bg-white border border-slate-200 rounded-2xl p-4"><div class="flex items-center justify-between"><span class="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">${esc(l)}</span><i class="fas ${i} text-brand-600"></i></div><div class="font-head text-2xl font-bold mt-2 capitalize">${esc(v)}</div></div>`).join('');}
 function orderCard(order,active){return `<article class="border border-slate-200 rounded-xl p-4"><div class="flex items-start justify-between gap-3"><div><p class="text-xs text-slate-400">Assigned ${date(order.assigned_at)}</p><h3 class="font-semibold mt-1">${esc(order.order_number)}</h3><p class="text-xs text-slate-500 mt-1">${esc(order.store_name)} · Buyer: ${esc(order.buyer_name)}</p></div><span class="text-xs px-2 py-1 rounded-full capitalize ${statusClass(order.status)}">${esc(label(order.status))}</span></div><div class="grid sm:grid-cols-2 gap-x-5 gap-y-1 text-sm mt-4"><p><strong>Location:</strong> ${esc(order.delivery_location||'Not provided')}</p><p><strong>Buyer phone:</strong> ${esc(order.buyer_phone||'Not provided')}</p><p><strong>Order total:</strong> ${money(order.total_amount)}</p><p><strong>Delivery amount:</strong> ${money(order.delivery_fee)}</p></div>${order.assignment_note?`<p class="text-sm text-slate-600 mt-3"><strong>Note:</strong> ${esc(order.assignment_note)}</p>`:''}<p class="text-xs text-slate-400 mt-3">Placed ${date(order.created_at)}${order.delivered_at?` · Delivered ${date(order.delivered_at)}`:''}</p>${active?`<div class="flex flex-wrap gap-2 mt-4 pt-3 border-t border-slate-100">${order.buyer_phone?`<a href="tel:${esc(order.buyer_phone)}" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold"><i class="fas fa-phone mr-1"></i>Call buyer</a>`:''}${order.status==='processing'?`<button data-status-order="${order.id}" data-next-status="shipped" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold">Mark on the way</button>`:''}${order.status==='shipped'?`<button data-status-order="${order.id}" data-next-status="delivered" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold">Mark delivered &amp; notify</button>`:''}</div>`:''}</article>`;}
-async function load(){const error=document.getElementById('error');error.classList.add('hidden');try{const data=await apiFetch('/delivery/dashboard');document.getElementById('profileSummary').textContent=`${data.profile.name} · ${data.profile.company_name||'Independent partner'} · ${data.profile.location}`;renderStats(data);document.getElementById('activeCount').textContent=`${data.active_delivery_count} active`;document.getElementById('activeOrders').innerHTML=data.active_orders.length?data.active_orders.map(o=>orderCard(o,true)).join(''):'<p class="text-sm text-slate-500">No active delivery assignments.</p>';document.getElementById('completedOrders').innerHTML=data.completed_orders.length?data.completed_orders.map(o=>orderCard(o,false)).join(''):'<p class="text-sm text-slate-500">No completed deliveries yet.</p>';document.querySelectorAll('[data-status-order]').forEach(button=>button.onclick=async()=>{button.disabled=true;try{await apiFetch(`/delivery/orders/${button.dataset.statusOrder}/status`,{method:'PUT',body:{status:button.dataset.nextStatus}});showToast(button.dataset.nextStatus==='delivered'?'Delivery confirmed. Notifications sent to the admin, seller, and buyer.':'Order marked as on the way.');await load();}catch(e){alert(e.message);button.disabled=false;}});}catch(e){if(String(e.message).toLowerCase().includes('delivery partner profile')){location.href='/delivery/register';return;}error.textContent=e.message;error.classList.remove('hidden');}}
+
+function renderStatusBanner(profile){
+  const banner=document.getElementById('statusBanner');
+  const body=document.getElementById('dashboardBody');
+  if(profile.status==='approved'){ banner.classList.add('hidden'); banner.innerHTML=''; body.classList.remove('hidden'); return; }
+  body.classList.add('hidden');
+  const reapplyBtn=`<a href="/delivery/register" class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Reapply</a>`;
+  const supportBtn=`<a href="/contact" class="border border-slate-300 px-4 py-2 rounded-lg text-sm font-semibold">Contact support</a>`;
+  if(profile.status==='rejected'){
+    banner.innerHTML=`<div class="bg-red-50 border border-red-200 rounded-2xl p-6">
+      <h2 class="font-head text-lg font-bold text-red-800 flex items-center gap-2"><i class="fas fa-circle-xmark"></i> Your delivery partner application wasn't approved</h2>
+      ${profile.rejection_reason?`<p class="text-sm text-red-700 mt-2"><strong>Reason given:</strong> ${esc(profile.rejection_reason)}</p>`:`<p class="text-sm text-red-700 mt-2">No specific reason was recorded — contact support below if you'd like more feedback.</p>`}
+      <p class="text-sm text-red-700 mt-2">You're welcome to submit a new application with updated details, or reach out to support for more feedback before you reapply.</p>
+      <div class="flex flex-wrap gap-2 mt-4">${reapplyBtn}${supportBtn}</div>
+    </div>`;
+  } else if(profile.status==='suspended'){
+    banner.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+      <h2 class="font-head text-lg font-bold text-amber-800 flex items-center gap-2"><i class="fas fa-pause-circle"></i> Your delivery partner account is suspended</h2>
+      <p class="text-sm text-amber-700 mt-2">You won't be assigned new deliveries while your account is suspended. Contact support if you'd like to understand why or request reinstatement.</p>
+      <div class="flex flex-wrap gap-2 mt-4">${supportBtn}</div>
+    </div>`;
+  } else {
+    banner.innerHTML=`<div class="bg-brand-50 border border-brand-200 rounded-2xl p-6">
+      <h2 class="font-head text-lg font-bold text-brand-800 flex items-center gap-2"><i class="fas fa-hourglass-half"></i> Your application is under review</h2>
+      <p class="text-sm text-brand-700 mt-2">Our team usually reviews delivery partner applications within 1-2 business days. You'll get an email as soon as it's approved.</p>
+      <div class="flex flex-wrap gap-2 mt-4">${supportBtn}</div>
+    </div>`;
+  }
+  banner.classList.remove('hidden');
+}
+
+async function load(){const error=document.getElementById('error');error.classList.add('hidden');try{const data=await apiFetch('/delivery/dashboard');document.getElementById('profileSummary').textContent=`${data.profile.name} · ${data.profile.company_name||'Independent partner'} · ${data.profile.location}`;renderStatusBanner(data.profile);if(data.profile.status!=='approved')return;renderStats(data);document.getElementById('activeCount').textContent=`${data.active_delivery_count} active`;document.getElementById('activeOrders').innerHTML=data.active_orders.length?data.active_orders.map(o=>orderCard(o,true)).join(''):'<p class="text-sm text-slate-500">No active delivery assignments.</p>';document.getElementById('completedOrders').innerHTML=data.completed_orders.length?data.completed_orders.map(o=>orderCard(o,false)).join(''):'<p class="text-sm text-slate-500">No completed deliveries yet.</p>';document.querySelectorAll('[data-status-order]').forEach(button=>button.onclick=async()=>{button.disabled=true;try{await apiFetch(`/delivery/orders/${button.dataset.statusOrder}/status`,{method:'PUT',body:{status:button.dataset.nextStatus}});showToast(button.dataset.nextStatus==='delivered'?'Delivery confirmed. Notifications sent to the admin, seller, and buyer.':'Order marked as on the way.');await load();}catch(e){alert(e.message);button.disabled=false;}});}catch(e){if(String(e.message).toLowerCase().includes('delivery partner profile')){location.href='/delivery/register';return;}error.textContent=e.message;error.classList.remove('hidden');}}
 document.getElementById('refresh').onclick=load;
 load();
 </script>

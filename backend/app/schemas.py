@@ -471,6 +471,7 @@ class DeliveryPersonOut(BaseModel):
     license_number: Optional[str] = None
     availability: str
     status: DeliveryStatus
+    rejection_reason: Optional[str] = None
 
 
 class DeliveryProfileOut(DeliveryPersonOut):
