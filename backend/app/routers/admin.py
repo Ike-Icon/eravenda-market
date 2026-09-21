@@ -89,24 +89,25 @@ def reinstate_delivery_person(profile_id: str, db: Session = Depends(get_db)):
 
 @router.delete("/delivery-people/{profile_id}", status_code=204)
 def delete_delivery_person(profile_id: str, db: Session = Depends(get_db)):
-    """Permanently remove a delivery profile and its linked user account."""
-    profile = (db.query(models.DeliveryProfile)
-               .filter(models.DeliveryProfile.id == profile_id)
-               .first())
+    """Removes a delivery partner's profile from the list entirely. Only the
+    delivery-partner profile is removed — the underlying user account (and
+    their own order history as a buyer, if any) is left alone; their role
+    is simply reverted to buyer so they lose delivery-partner access."""
+    profile = db.query(models.DeliveryProfile).filter(models.DeliveryProfile.id == profile_id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Delivery profile not found")
     user = profile.user
     try:
-        # Remove the profile first, then the account, so it disappears from both lists.
         db.delete(profile)
         db.flush()
-        db.delete(user)
+        if user and user.role == models.UserRole.delivery:
+            user.role = models.UserRole.buyer
         db.commit()
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=400,
-            detail="Can't delete this delivery person because they have existing delivery assignments. Suspend the account instead.",
+            detail="Can't delete this delivery partner — they have existing or past delivery assignments. Suspend them instead.",
         )
 
 
@@ -386,26 +387,17 @@ def delete_service_worker(profile_id: str, db: Session = Depends(get_db)):
 @router.get("/products/pending")
 def pending_products(db: Session = Depends(get_db)):
     products = (db.query(models.Product)
-                .join(models.Store, models.Product.store_id == models.Store.id)
-                .options(__import__("sqlalchemy.orm", fromlist=["joinedload"]).joinedload(models.Product.store).joinedload(models.Store.owner))
                 .filter(models.Product.status == models.ProductStatus.pending)
+                .options(selectinload(models.Product.store).selectinload(models.Store.owner))
                 .order_by(models.Product.created_at.desc())
                 .all())
     return [{
-        "id": p.id, "store_id": p.store_id, "category_id": p.category_id,
-        "name": p.name, "slug": p.slug, "description": p.description,
-        "brand": p.brand, "condition": p.condition.value, "sku": p.sku,
-        "price": float(p.discount_price if p.discount_price is not None else p.price),
-        "stock_quantity": p.stock_quantity, "status": p.status.value,
-        "rejection_reason": p.rejection_reason,
-        "seller": {
-            "name": p.store.owner.full_name if p.store and p.store.owner else "Unknown seller",
-            "email": p.store.owner.email if p.store and p.store.owner else "",
-            "phone": p.store.owner.phone if p.store and p.store.owner else None,
-            "store_name": p.store.store_name if p.store else "",
-            "city": p.store.city if p.store else None,
-            "region": p.store.region if p.store else None,
-        },
+        "id": p.id, "name": p.name, "sku": p.sku, "description": p.description,
+        "price": float(p.price), "stock_quantity": p.stock_quantity,
+        "store_name": p.store.store_name if p.store else "",
+        "seller_name": p.store.owner.full_name if p.store and p.store.owner else "",
+        "seller_email": p.store.owner.email if p.store and p.store.owner else "",
+        "seller_phone": p.store.owner.phone if p.store and p.store.owner else "",
         "created_at": p.created_at,
     } for p in products]
 
@@ -699,7 +691,11 @@ def delete_user(user_id: str, current_admin: models.User = Depends(auth.require_
 
 
 @router.get("/stats")
-def platform_stats(period: str = "last12", db: Session = Depends(get_db)):
+def platform_stats(
+    db: Session = Depends(get_db),
+    end_month: str | None = None,  # "YYYY-MM" — last month of the trailing-12 window; defaults to the current month
+    show_all: bool = False,  # ignore the 12-month window and bucket every month since the first paid transaction
+):
     total_orders = db.query(func.count(models.Order.id)).scalar() or 0
     paid_product_rows = (db.query(models.Payment, models.Order)
                          .join(models.Order, models.Payment.order_id == models.Order.id)
@@ -718,40 +714,30 @@ def platform_stats(period: str = "last12", db: Session = Depends(get_db)):
     service_commissions = sum(float(booking.commission_amount or 0) for booking in paid_service_rows)
     total_commissions = product_commissions + service_commissions
 
-    current_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    try:
+        anchor_month = (datetime.strptime(end_month, "%Y-%m") if end_month
+                         else datetime.utcnow()).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="end_month must be in YYYY-MM format")
 
-    # Supported views: last12 (default), all, or a specific YYYY-MM month.
-    selected_month = None
-    if period not in {"last12", "all"}:
-        try:
-            selected_month = datetime.strptime(period, "%Y-%m").replace(day=1)
-        except ValueError:
-            period = "last12"
-
-    if period == "all":
-        paid_dates = [
-            *(payment.paid_at for payment, _order in paid_product_rows if payment.paid_at),
-            *(booking.paid_at for booking in paid_service_rows if booking.paid_at),
-        ]
-        first_month = min(paid_dates).replace(day=1, hour=0, minute=0, second=0, microsecond=0) if paid_dates else current_month
-        month_count = (current_month.year - first_month.year) * 12 + current_month.month - first_month.month + 1
-        month_offsets = range(month_count - 1, -1, -1)
-    elif selected_month is not None:
-        first_month = selected_month
-        month_offsets = range(0, 1)
+    if show_all:
+        all_paid_dates = [p.paid_at for p, _o in paid_product_rows if p.paid_at] + \
+                          [b.paid_at for b in paid_service_rows if b.paid_at]
+        earliest = min(all_paid_dates) if all_paid_dates else anchor_month
+        months_span = (anchor_month.year - earliest.year) * 12 + (anchor_month.month - earliest.month)
     else:
-        month_offsets = range(11, -1, -1)
+        months_span = 11  # trailing 12 months (11 months back + the anchor month itself)
 
     monthly = []
-    for month_offset in month_offsets:
-        if selected_month is not None:
-            year, month = selected_month.year, selected_month.month
-        else:
-            year, month = current_month.year, current_month.month - month_offset
-            while month <= 0:
-                year -= 1
-                month += 12
-        month_start = current_month.replace(year=year, month=month)
+    for month_offset in range(months_span, -1, -1):
+        year, month = anchor_month.year, anchor_month.month - month_offset
+        while month <= 0:
+            year -= 1
+            month += 12
+        while month > 12:
+            year += 1
+            month -= 12
+        month_start = anchor_month.replace(year=year, month=month)
         last_day = monthrange(year, month)[1]
         month_end = month_start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
         month_products = [
@@ -811,7 +797,6 @@ def platform_stats(period: str = "last12", db: Session = Depends(get_db)):
             "paid_bookings": len(paid_service_rows),
         },
         "monthly": monthly,
-        "period": period,
         "active_sellers": total_sellers,
         "active_products": total_products,
         "pending_store_approvals": pending_stores_count,
