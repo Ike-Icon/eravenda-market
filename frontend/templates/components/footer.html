@@ -74,12 +74,25 @@
     </div>
   </div>
 
-  <!-- Payment icon placeholders — swap for real logos when you have brand assets -->
-  <div class="max-w-7xl mx-auto px-4 pb-6 flex flex-wrap items-center gap-2 text-xs text-brand-100">
-    <span class="mr-2">We accept:</span>
-    {% for label in ["Pay on delivery", "Mobile Money"] %}
-    <span class="bg-brand-700 rounded px-2 py-1 font-medium">{{ label }}</span>
-    {% endfor %}
+  <!-- Payment methods we accept, with recognizable icons for each -->
+  <div class="max-w-7xl mx-auto px-4 pb-6">
+    <p class="text-xs text-brand-100 mb-2">We accept:</p>
+    <div class="flex flex-wrap items-center gap-2 text-xs text-brand-100">
+      <span class="inline-flex items-center gap-1.5 bg-brand-700 rounded px-2.5 py-1.5 font-medium">
+        <i class="fas fa-truck text-accent-400"></i> Pay on delivery
+      </span>
+      <span class="inline-flex items-center gap-1.5 bg-brand-700 rounded px-2.5 py-1.5 font-medium">
+        <i class="fas fa-mobile-screen-button text-accent-400"></i> Mobile Money
+      </span>
+      <span class="inline-flex items-center gap-1.5 bg-brand-700 rounded px-2.5 py-1.5 font-medium">
+        <i class="fas fa-credit-card text-accent-400"></i> Card
+        <span class="inline-flex items-center gap-1 ml-0.5">
+          <i class="fa-brands fa-cc-visa text-base" aria-label="Visa"></i>
+          <i class="fa-brands fa-cc-mastercard text-base" aria-label="Mastercard"></i>
+        </span>
+      </span>
+      <span class="text-[11px] text-brand-300">Card and Mobile Money payments are processed securely.</span>
+    </div>
   </div>
 
   <!-- Logo + contact details + social -->
