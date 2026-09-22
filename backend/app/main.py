@@ -552,6 +552,11 @@ def admin_dashboard_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("admin/dashboard.html", page_context(request, db))
 
 
+@app.get("/admin/stats.html", response_class=HTMLResponse)
+def admin_stats_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("admin/stats.html", page_context(request, db))
+
+
 @app.get("/admin/edit-product.html", response_class=HTMLResponse)
 def admin_edit_product_page(request: Request, db: Session = Depends(get_db)):
     # Same client-side auth-gating as the seller edit page: product_id comes

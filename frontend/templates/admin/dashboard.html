@@ -1,8 +1,5 @@
 {% extends "base.html" %}
 {% block title %}Admin Dashboard — Eravenda{% endblock %}
-{% block extra_head %}
-<script src="/static/js/vendor/chart.umd.js"></script>
-{% endblock %}
 {% block content %}
 <div class="bg-slate-50 min-h-full">
 <section class="max-w-7xl mx-auto px-4 py-8">
@@ -18,60 +15,13 @@
     </button>
   </div>
 
-  <div id="statGrid" class="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-8"></div>
-
-  <section class="bg-white border border-slate-200 rounded-2xl p-6 mb-8">
-    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-5">
-      <div><h2 class="font-head text-xl font-bold">Income &amp; commission KPIs</h2><p class="text-sm text-slate-500 mt-1">All successful product payments and paid handyman bookings.</p></div>
-    </div>
-    <div id="overallKpis" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
-
-    <div class="grid lg:grid-cols-3 gap-4 mt-6">
-      <div class="lg:col-span-2 border border-slate-200 rounded-xl p-4">
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <h3 class="font-semibold text-sm">Monthly income vs. commissions earned</h3>
-          <div class="flex items-center gap-2">
-            <select id="incomeRangeSelect" class="text-xs border border-slate-300 rounded-lg px-2 py-1.5 font-semibold text-slate-700">
-              <option value="all">Show all (since the beginning)</option>
-            </select>
-            <span id="incomeGrowthBadge" class="text-xs font-bold px-2 py-1 rounded-full"></span>
-          </div>
-        </div>
-        <p id="incomeRangeCaption" class="text-xs text-slate-400 -mt-2 mb-3"></p>
-        <div class="relative" style="height:260px"><canvas id="incomeChart"></canvas></div>
-      </div>
-      <div class="border border-slate-200 rounded-xl p-4">
-        <h3 class="font-semibold text-sm mb-3">Where commissions come from</h3>
-        <div class="relative" style="height:200px"><canvas id="commissionMixChart"></canvas></div>
-        <p id="commissionMixEmpty" class="hidden text-xs text-slate-400 text-center mt-6">No commission activity yet.</p>
-      </div>
-    </div>
-
-    <div class="border border-slate-200 rounded-xl p-4 mt-4">
-      <h3 class="font-semibold text-sm mb-3">Revenue mix — marketplace products vs. handyman bookings</h3>
-      <div class="relative" style="height:220px"><canvas id="revenueMixChart"></canvas></div>
-    </div>
-
-    <div class="border border-slate-200 rounded-xl p-4 mt-4">
-      <div class="flex items-center justify-between mb-3">
-        <div><h3 class="font-semibold text-sm">Top-earning stores</h3><p class="text-xs text-slate-500 mt-0.5">Ranked by paid product income, all-time.</p></div>
-      </div>
-      <div class="relative" style="height:260px"><canvas id="topStoresChart"></canvas></div>
-      <p id="topStoresEmpty" class="hidden text-xs text-slate-400 text-center mt-6">No paid orders yet.</p>
-    </div>
-
-    <div class="overflow-x-auto mt-6">
-      <table class="w-full text-sm text-left">
-        <thead><tr class="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400"><th class="py-3 pr-4">Month</th><th class="py-3 px-4">Income</th><th class="py-3 px-4">Commissions</th><th class="py-3 px-4">Product payments</th><th class="py-3 px-4">Handyman payments</th></tr></thead>
-        <tbody id="monthlyKpis"></tbody>
-      </table>
-    </div>
-  </section>
-
   <div class="grid lg:grid-cols-[220px_1fr] gap-6">
 
     <!-- Sidebar -->
     <nav class="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 border-b lg:border-b-0 lg:border-r border-slate-200 lg:pr-4" aria-label="Admin sections">
+      <a href="/admin/stats.html" class="whitespace-nowrap text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-white hover:text-brand-700 flex items-center gap-2">
+        <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Stats &amp; KPIs
+      </a>
       {% set tabs = [
         ('overview', 'gauge', 'Overview'),
         ('stores', 'store', 'Stores'),
@@ -392,45 +342,15 @@ async function loadBadgeManager(){
 }
 
 // -------------------- Overview --------------------
-async function loadStats() {
-  const rangeSel = document.getElementById('incomeRangeSelect');
-  const showAll = rangeSel && rangeSel.value === 'all';
-  const statsQuery = showAll ? '?show_all=true' : (rangeSel && rangeSel.value ? `?end_month=${rangeSel.value}` : '');
-  const s = await apiFetch('/admin/stats' + statsQuery);
-  const caption = document.getElementById('incomeRangeCaption');
-  if (caption) {
-    const monthly = s.monthly || [];
-    caption.textContent = showAll
-      ? `Showing all ${monthly.length} month(s) since the first payment.`
-      : `Showing the 12 months ending ${rangeSel && rangeSel.selectedOptions[0] ? rangeSel.selectedOptions[0].textContent : 'this month'}.`;
-  }
-  document.getElementById('statGrid').innerHTML = [
-    [s.pending_store_approvals, 'Pending stores', 'fa-store'],
-    [s.pending_product_approvals, 'Pending products', 'fa-box-open'],
-    [s.service_pending, 'Pending professionals', 'fa-user-clock'],
-    [s.active_sellers, 'Active sellers', 'fa-shop'],
-    [s.active_products, 'Active products', 'fa-boxes-stacked'],
-    [s.total_orders, 'Total orders', 'fa-receipt'],
-    [`GHS ${Number(s.platform_revenue || 0).toFixed(2)}`, 'Platform commissions', 'fa-coins'],
-  ].map(([v, l, i]) => `<div class="bg-white border border-slate-200 rounded-2xl p-4"><div class="flex items-center justify-between"><span class="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">${l}</span><i class="fas ${i} text-brand-600"></i></div><div class="font-head text-2xl font-bold mt-2">${v}</div></div>`).join('');
-
-  const overall = s.overall || {};
-  const money = value => `GHS ${Number(value || 0).toFixed(2)}`;
-  document.getElementById('overallKpis').innerHTML = [
-    [money(overall.total_income), 'Total income', 'fa-chart-line'],
-    [money(overall.total_commissions), 'Total commissions', 'fa-coins'],
-    [money(overall.service_income), 'Handyman charges', 'fa-screwdriver-wrench'],
-    [money(overall.service_commissions), 'Handyman commissions', 'fa-percent'],
-    [money(overall.product_income), 'Product payments', 'fa-box'],
-    [money(overall.product_commissions), 'Product commissions', 'fa-store'],
-    [overall.paid_orders || 0, 'Paid product orders', 'fa-receipt'],
-    [overall.paid_bookings || 0, 'Paid handyman bookings', 'fa-calendar-check'],
-  ].map(([value, label, icon]) => `<div class="border border-slate-200 rounded-xl p-4"><div class="flex items-center justify-between"><span class="text-xs text-slate-500">${label}</span><i class="fas ${icon} text-brand-600"></i></div><p class="font-head text-xl font-bold mt-2">${value}</p></div>`).join('');
-
-  document.getElementById('monthlyKpis').innerHTML = (s.monthly || []).map(month => `<tr class="border-b border-slate-100"><td class="py-3 pr-4 font-semibold">${month.month}</td><td class="py-3 px-4">${money(month.total_income)}</td><td class="py-3 px-4 font-semibold text-brand-700">${money(month.total_commissions)}</td><td class="py-3 px-4">${money(month.product_income)} <span class="text-xs text-slate-400">(${month.orders})</span></td><td class="py-3 px-4">${money(month.service_income)} <span class="text-xs text-slate-400">(${month.bookings})</span></td></tr>`).join('') || '<tr><td colspan="5" class="py-4 text-sm text-slate-500">No payment activity yet.</td></tr>';
-
-  renderIncomeCharts(s);
-  loadTopStoresChart();
+// -------------------- Dashboard alerts & sidebar badge counts --------------------
+// The heavy income/commission stats, charts and monthly table now live on
+// their own page (/admin/stats.html) so this dashboard isn't dominated by a
+// big KPI block above every tab. This trimmed version just keeps the
+// sidebar's pending-count badges and the "Welcome back" alert cards fresh —
+// it hits the same /admin/stats endpoint (cheap either way) but only reads
+// the pending-count fields out of the response.
+async function loadDashboardAlerts() {
+  const s = await apiFetch('/admin/stats');
 
   setBadge('stores', s.pending_store_approvals);
   setBadge('products', s.pending_product_approvals);
@@ -440,141 +360,16 @@ async function loadStats() {
   document.getElementById('pendingBadge').textContent = `${s.service_pending} pending`;
 
   const alerts = [];
-  if (s.pending_store_approvals) alerts.push([`${s.pending_store_approvals} store${s.pending_store_approvals === 1 ? '' : 's'} waiting for approval`, 'stores', 'store']);
-  if (s.pending_product_approvals) alerts.push([`${s.pending_product_approvals} product${s.pending_product_approvals === 1 ? '' : 's'} waiting for approval`, 'products', 'package']);
-  if (s.service_pending) alerts.push([`${s.service_pending} professional application${s.service_pending === 1 ? '' : 's'} to review`, 'professionals', 'user-check']);
+  if (s.pending_store_approvals) alerts.push([`${s.pending_store_approvals} store${s.pending_store_approvals === 1 ? '' : 's'} waiting for approval`, 'stores']);
+  if (s.pending_product_approvals) alerts.push([`${s.pending_product_approvals} product${s.pending_product_approvals === 1 ? '' : 's'} waiting for approval`, 'products']);
+  if (s.service_pending) alerts.push([`${s.service_pending} professional application${s.service_pending === 1 ? '' : 's'} to review`, 'professionals']);
   document.getElementById('overviewAlerts').innerHTML = alerts.length
     ? alerts.map(([label, tab]) => `<button data-goto="${tab}" class="text-left border border-amber-200 bg-amber-50 rounded-xl p-4 hover:border-amber-400 transition-colors"><p class="text-sm font-semibold text-amber-800">${esc(label)}</p><span class="text-xs text-amber-700">Review now →</span></button>`).join('')
     : '<p class="text-sm text-slate-500 sm:col-span-2">Nothing needs your attention right now. 🎉</p>';
   document.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => document.querySelector(`[data-tab="${b.dataset.goto}"]`).click());
 }
 
-// -------------------- Income data visualization --------------------
-let incomeChartInstance, commissionMixChartInstance, revenueMixChartInstance, topStoresChartInstance;
-const CHART_COLORS = { income: '#1c6b4f', commission: '#f59e0b', product: '#2563eb', service: '#0d9488' };
 
-function renderIncomeCharts(s) {
-  const chartContainers = ['incomeChart', 'revenueMixChart', 'commissionMixChart', 'topStoresChart'].map(id => document.getElementById(id)?.parentElement).filter(Boolean);
-  if (typeof Chart === 'undefined') {
-    // Charts failed to load — tell the admin plainly instead of leaving the area blank
-    // with no explanation. The KPI cards and monthly table above still work fine either way.
-    chartContainers.forEach(el => {
-      el.innerHTML = '<p class="text-xs text-red-600 flex items-center justify-center h-full text-center px-4">Charts couldn\'t load (Chart.js didn\'t load in this browser). The numbers above and the table below are still accurate — try refreshing the page.</p>';
-    });
-    return;
-  }
-  const monthly = s.monthly || [];
-  const labels = monthly.map(m => {
-    const [y, mo] = m.month.split('-');
-    return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-  });
-  const moneyTick = v => `GHS ${v}`;
-
-  const incomeCtx = document.getElementById('incomeChart');
-  if (incomeCtx) {
-    if (incomeChartInstance) incomeChartInstance.destroy();
-    incomeChartInstance = new Chart(incomeCtx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          { label: 'Total income', data: monthly.map(m => m.total_income), backgroundColor: CHART_COLORS.income, borderRadius: 4 },
-          { label: 'Commissions earned', data: monthly.map(m => m.total_commissions), backgroundColor: CHART_COLORS.commission, borderRadius: 4 },
-        ],
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
-        scales: { y: { beginAtZero: true, ticks: { callback: moneyTick } } },
-      },
-    });
-  }
-
-  const mixCtx = document.getElementById('revenueMixChart');
-  if (mixCtx) {
-    if (revenueMixChartInstance) revenueMixChartInstance.destroy();
-    revenueMixChartInstance = new Chart(mixCtx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          { label: 'Product income', data: monthly.map(m => m.product_income), backgroundColor: CHART_COLORS.product, borderRadius: 4 },
-          { label: 'Handyman income', data: monthly.map(m => m.service_income), backgroundColor: CHART_COLORS.service, borderRadius: 4 },
-        ],
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
-        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { callback: moneyTick } } },
-      },
-    });
-  }
-
-  const overall = s.overall || {};
-  const donutCtx = document.getElementById('commissionMixChart');
-  const donutEmpty = document.getElementById('commissionMixEmpty');
-  const hasCommissions = (overall.product_commissions || 0) + (overall.service_commissions || 0) > 0;
-  if (donutCtx) {
-    donutCtx.classList.toggle('hidden', !hasCommissions);
-    if (donutEmpty) donutEmpty.classList.toggle('hidden', hasCommissions);
-    if (commissionMixChartInstance) commissionMixChartInstance.destroy();
-    if (hasCommissions) {
-      commissionMixChartInstance = new Chart(donutCtx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Product commissions', 'Handyman commissions'],
-          datasets: [{ data: [overall.product_commissions || 0, overall.service_commissions || 0], backgroundColor: [CHART_COLORS.product, CHART_COLORS.service] }],
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } },
-      });
-    }
-  }
-
-  const badge = document.getElementById('incomeGrowthBadge');
-  if (badge) {
-    if (monthly.length >= 2 && monthly[monthly.length - 2].total_income > 0) {
-      const last = monthly[monthly.length - 1].total_income;
-      const prev = monthly[monthly.length - 2].total_income;
-      const pct = ((last - prev) / prev) * 100;
-      const up = pct >= 0;
-      badge.textContent = `${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}% vs last month`;
-      badge.className = `text-xs font-bold px-2 py-1 rounded-full ${up ? 'bg-brand-50 text-brand-700' : 'bg-red-50 text-red-600'}`;
-    } else {
-      badge.textContent = '';
-    }
-  }
-}
-
-async function loadTopStoresChart() {
-  const canvas = document.getElementById('topStoresChart');
-  const empty = document.getElementById('topStoresEmpty');
-  if (!canvas || typeof Chart === 'undefined') return;
-  let stores = [];
-  try {
-    stores = await apiFetch('/admin/stats/top-stores?limit=8');
-  } catch (e) {
-    return; // KPI cards above still work even if this extra breakdown fails.
-  }
-  canvas.classList.toggle('hidden', stores.length === 0);
-  if (empty) empty.classList.toggle('hidden', stores.length > 0);
-  if (topStoresChartInstance) topStoresChartInstance.destroy();
-  if (!stores.length) return;
-  topStoresChartInstance = new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels: stores.map(s => s.store_name),
-      datasets: [{ label: 'Paid income (GHS)', data: stores.map(s => s.income), backgroundColor: CHART_COLORS.income, borderRadius: 4 }],
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { afterLabel: (item) => `Commission: GHS ${Number(stores[item.dataIndex].commission).toFixed(2)} · ${stores[item.dataIndex].orders} order(s)` } },
-      },
-      scales: { x: { beginAtZero: true, ticks: { callback: v => `GHS ${v}` } } },
-    },
-  });
-}
 
 // -------------------- Stores --------------------
 let allStoresCache = [];
@@ -582,8 +377,8 @@ async function loadPendingStores() {
   const el = document.getElementById('pendingStores');
   const stores = await apiFetch('/admin/stores/pending');
   el.innerHTML = stores.length ? stores.map(s => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex flex-col sm:flex-row justify-between gap-3"><div><h3 class="font-semibold">${esc(s.store_name)}</h3><p class="text-xs text-slate-500 mt-1">${esc(s.city || '')}${s.region ? ', ' + esc(s.region) : ''}</p><p class="text-sm text-slate-600 mt-2">${esc(s.description || 'No description provided.')}</p></div><div class="flex sm:flex-col gap-2 sm:min-w-32"><button data-store-approve="${s.id}" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold">Approve</button><button data-store-reject="${s.id}" class="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm font-semibold">Reject</button></div></div></article>`).join('') : '<p class="text-sm text-slate-500">No stores are waiting for approval.</p>';
-  el.querySelectorAll('[data-store-approve]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/stores/${b.dataset.storeApprove}/approve`, { method: 'PUT' }); await Promise.all([loadPendingStores(), loadAllStores(), loadStats()]); });
-  el.querySelectorAll('[data-store-reject]').forEach(b => b.onclick = async () => { const reason = prompt('Reason for rejecting this store (shown to the seller):'); if (reason === null) return; await apiFetch(`/admin/stores/${b.dataset.storeReject}/reject`, { method: 'PUT', body: { rejection_reason: reason } }); await Promise.all([loadPendingStores(), loadAllStores(), loadStats()]); });
+  el.querySelectorAll('[data-store-approve]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/stores/${b.dataset.storeApprove}/approve`, { method: 'PUT' }); await Promise.all([loadPendingStores(), loadAllStores(), loadDashboardAlerts()]); });
+  el.querySelectorAll('[data-store-reject]').forEach(b => b.onclick = async () => { const reason = prompt('Reason for rejecting this store (shown to the seller):'); if (reason === null) return; await apiFetch(`/admin/stores/${b.dataset.storeReject}/reject`, { method: 'PUT', body: { rejection_reason: reason } }); await Promise.all([loadPendingStores(), loadAllStores(), loadDashboardAlerts()]); });
 }
 async function loadAllStores() {
   allStoresCache = await apiFetch('/admin/stores');
@@ -604,8 +399,8 @@ async function loadPendingProducts() {
   const products = await apiFetch('/admin/products/pending');
   el.innerHTML = products.length ? products.map(p => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex flex-col sm:flex-row justify-between gap-3"><div><h3 class="font-semibold">${esc(p.name)}</h3><p class="text-xs text-slate-500 mt-1">${p.sku ? 'SKU ' + esc(p.sku) : 'No SKU'} · GHS ${Number(p.price).toFixed(2)} · ${p.stock_quantity} in stock</p><p class="text-xs text-slate-400 mt-1"><i data-lucide="user" class="w-3 h-3 inline -mt-0.5"></i> ${esc(p.store_name || 'Unknown store')} — posted by ${esc(p.seller_name || 'Unknown seller')}${p.seller_email ? ' · ' + esc(p.seller_email) : ''}${p.seller_phone ? ' · ' + esc(p.seller_phone) : ''}</p><p class="text-sm text-slate-600 mt-2 line-clamp-2">${esc(p.description || 'No description provided.')}</p></div><div class="flex sm:flex-col gap-2 sm:min-w-32"><a href="/admin/edit-product.html?id=${p.id}" class="text-center border border-slate-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-semibold hover:border-brand-500">Edit</a><button data-product-approve="${p.id}" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold">Approve</button><button data-product-reject="${p.id}" class="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm font-semibold">Reject</button></div></div></article>`).join('') : '<p class="text-sm text-slate-500">No products are waiting for approval.</p>';
   if (window.lucide) lucide.createIcons();
-  el.querySelectorAll('[data-product-approve]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/products/${b.dataset.productApprove}/approve`, { method: 'PUT' }); await Promise.all([loadPendingProducts(), loadProducts(), loadStats()]); });
-  el.querySelectorAll('[data-product-reject]').forEach(b => b.onclick = async () => { const reason = prompt('Reason for rejecting this product (shown to the seller):'); if (reason === null) return; await apiFetch(`/admin/products/${b.dataset.productReject}/reject`, { method: 'PUT', body: { rejection_reason: reason } }); await Promise.all([loadPendingProducts(), loadProducts(), loadStats()]); });
+  el.querySelectorAll('[data-product-approve]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/products/${b.dataset.productApprove}/approve`, { method: 'PUT' }); await Promise.all([loadPendingProducts(), loadProducts(), loadDashboardAlerts()]); });
+  el.querySelectorAll('[data-product-reject]').forEach(b => b.onclick = async () => { const reason = prompt('Reason for rejecting this product (shown to the seller):'); if (reason === null) return; await apiFetch(`/admin/products/${b.dataset.productReject}/reject`, { method: 'PUT', body: { rejection_reason: reason } }); await Promise.all([loadPendingProducts(), loadProducts(), loadDashboardAlerts()]); });
 }
 async function loadProducts() {
   allProductsCache = await apiFetch('/admin/products/tracking');
@@ -890,7 +685,7 @@ async function refresh() {
   btn.innerHTML = '<i class="fas fa-rotate-right mr-1 fa-spin"></i> Refreshing…';
 
   const tasks = {
-    'Overview stats': loadStats(),
+    'Overview alerts': loadDashboardAlerts(),
     'Pending stores': loadPendingStores(),
     'All stores': loadAllStores(),
     'Pending products': loadPendingProducts(),
@@ -925,24 +720,6 @@ async function refresh() {
 }
 document.getElementById('refreshAll').onclick = refresh;
 
-// -------------------- Income range dropdown --------------------
-(function populateIncomeRangeOptions() {
-  const sel = document.getElementById('incomeRangeSelect');
-  if (!sel) return;
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const now = new Date();
-  const currentValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  for (let i = 0; i < 36; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const opt = document.createElement('option');
-    opt.value = value;
-    opt.textContent = `${monthNames[d.getMonth()]} ${d.getFullYear()}${i === 0 ? ' (last 12 months)' : ''}`;
-    sel.appendChild(opt);
-  }
-  sel.value = currentValue; // default: trailing 12 months ending this month, same as before this feature existed
-  sel.addEventListener('change', () => { loadStats(); });
-})();
 initTabs();
 refresh();
 </script>
