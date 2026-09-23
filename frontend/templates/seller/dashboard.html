@@ -271,16 +271,16 @@
       </div>
 
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <div class="border border-slate-200 rounded-md p-4">
-          <div class="font-head text-2xl font-bold">${products.length}</div>
+        <div class="border border-slate-200 rounded-md p-4 min-w-0">
+          <div class="font-head text-xl sm:text-2xl font-bold truncate">${products.length}</div>
           <div class="text-xs text-slate-500">Products listed</div>
         </div>
-        <div class="border border-slate-200 rounded-md p-4">
-          <div class="font-head text-2xl font-bold">${orders.length}</div>
+        <div class="border border-slate-200 rounded-md p-4 min-w-0">
+          <div class="font-head text-xl sm:text-2xl font-bold truncate">${orders.length}</div>
           <div class="text-xs text-slate-500">Total orders</div>
         </div>
-        <div class="border border-slate-200 rounded-md p-4">
-          <div class="font-head text-2xl font-bold">${money(revenue)}</div>
+        <div class="border border-slate-200 rounded-md p-4 min-w-0">
+          <div class="font-head text-xl sm:text-2xl font-bold truncate">${money(revenue)}</div>
           <div class="text-xs text-slate-500">Net earnings so far</div>
         </div>
       </div>

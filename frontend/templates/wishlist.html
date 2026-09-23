@@ -62,7 +62,12 @@ async function loadWishlist() {
     if (typeof initProductCards === "function") initProductCards();
     el.querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
       await apiFetch(`/wishlist/${b.dataset.id}`, {method: "DELETE"});
-      location.reload();
+      refreshWishlistBadge();
+      const card = b.closest("[data-product-card], article");
+      if (card) card.remove();
+      if (!el.querySelector("[data-product-card], article")) {
+        el.innerHTML = '<p class="text-slate-500 col-span-full py-12 text-center">Your wishlist is empty. <a href="/products" class="text-brand-600 font-semibold">Browse products</a> and save your favourites.</p>';
+      }
     });
   } catch (e) {
     el.innerHTML = `<p class="text-red-600 col-span-full">Couldn't load your wishlist: ${e.message}</p>`;

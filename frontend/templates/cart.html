@@ -45,16 +45,16 @@
     document.getElementById("sumSubtotal").textContent = money(GuestCart.getTotal());
 
     el.innerHTML = items.map(item => `
-      <div class="flex items-center gap-4 border border-slate-200 rounded-md p-3" data-product-id="${item.product_id}">
-        ${item.image_url ? `<img src="${item.image_url}" class="w-16 h-16 object-cover rounded">` : `<div class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center text-2xl text-slate-300">🛍️</div>`}
-        <div class="flex-1">
-          <div class="font-medium">${item.name || "Product"}</div>
-          ${(item.option || item.color || item.size) ? `<div class="text-xs text-slate-500 mt-0.5">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}${(item.color || item.option) && item.size ? " · " : ""}${item.size ? `Size: ${item.size}` : ""}</div>` : ""}
-          <div class="text-sm text-slate-500">${money(item.price)} each</div>
+      <div class="flex items-center gap-2 sm:gap-4 border border-slate-200 rounded-md p-3" data-product-id="${item.product_id}">
+        ${item.image_url ? `<img src="${item.image_url}" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded shrink-0">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded flex items-center justify-center text-2xl text-slate-300 shrink-0">🛍️</div>`}
+        <div class="flex-1 min-w-0">
+          <div class="text-sm sm:text-base font-medium truncate">${item.name || "Product"}</div>
+          ${(item.option || item.color || item.size) ? `<div class="text-xs text-slate-500 mt-0.5 truncate">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}${(item.color || item.option) && item.size ? " · " : ""}${item.size ? `Size: ${item.size}` : ""}</div>` : ""}
+          <div class="text-xs sm:text-sm text-slate-500">${money(item.price)} each</div>
         </div>
-        <input type="number" class="guest-qty-input w-16 border border-slate-300 rounded px-2 py-1 text-center" value="${item.quantity}" min="1" data-product-id="${item.product_id}">
-        <div class="text-right">
-          <div class="font-semibold">${money(Number(item.price) * item.quantity)}</div>
+        <input type="number" class="guest-qty-input w-11 sm:w-16 shrink-0 border border-slate-300 rounded px-1 sm:px-2 py-1 text-center text-sm" value="${item.quantity}" min="1" data-product-id="${item.product_id}">
+        <div class="text-right shrink-0">
+          <div class="text-sm sm:text-base font-semibold">${money(Number(item.price) * item.quantity)}</div>
           <button class="text-xs text-red-600 hover:underline mt-1" data-guest-remove="${item.product_id}">Remove</button>
         </div>
       </div>`).join("");
@@ -93,16 +93,16 @@
         const maxStock = optionMatch ? Number(optionMatch.stock) || 0 : colorMatch ? Number(colorMatch.stock) || 0 : p.stock_quantity;
         const img = (p.images || []).find(i => i.is_primary) || (p.images || [])[0];
         return `
-          <div class="flex items-center gap-4 border border-slate-200 rounded-md p-3" data-item-id="${item.id}">
-            ${img ? `<img src="${img.image_url}" class="w-16 h-16 object-cover rounded">` : `<div class="w-16 h-16 bg-slate-100 rounded"></div>`}
-            <div class="flex-1">
-              <div class="font-medium">${p.name}</div>
-              ${(item.option || item.color) ? `<div class="text-xs text-slate-500 mt-0.5">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}</div>` : ""}
-              <div class="text-sm text-slate-500">${money(price)} each</div>
+          <div class="flex items-center gap-2 sm:gap-4 border border-slate-200 rounded-md p-3" data-item-id="${item.id}">
+            ${img ? `<img src="${img.image_url}" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded shrink-0">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded shrink-0"></div>`}
+            <div class="flex-1 min-w-0">
+              <div class="text-sm sm:text-base font-medium truncate">${p.name}</div>
+              ${(item.option || item.color) ? `<div class="text-xs text-slate-500 mt-0.5 truncate">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}</div>` : ""}
+              <div class="text-xs sm:text-sm text-slate-500">${money(price)} each</div>
             </div>
-            <input type="number" class="qty-input w-16 border border-slate-300 rounded px-2 py-1 text-center" value="${item.quantity}" min="1" max="${maxStock}" data-item-id="${item.id}">
-            <div class="text-right">
-              <div class="font-semibold">${money(price * item.quantity)}</div>
+            <input type="number" class="qty-input w-11 sm:w-16 shrink-0 border border-slate-300 rounded px-1 sm:px-2 py-1 text-center text-sm" value="${item.quantity}" min="1" max="${maxStock}" data-item-id="${item.id}">
+            <div class="text-right shrink-0">
+              <div class="text-sm sm:text-base font-semibold">${money(price * item.quantity)}</div>
               <button class="text-xs text-red-600 hover:underline mt-1" data-remove="${item.id}">Remove</button>
             </div>
           </div>`;

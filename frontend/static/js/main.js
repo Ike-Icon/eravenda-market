@@ -444,11 +444,13 @@ function initCardActions() {
         await apiFetch(`/wishlist/${productId}`, { method: "POST" });
         if (icon) icon.className = "fas fa-heart";
         showToast("Added to wishlist");
+        refreshWishlistBadge();
       } catch (err) {
         if (err.message.includes("already")) {
           await apiFetch(`/wishlist/${productId}`, { method: "DELETE" });
           if (icon) icon.className = "far fa-heart";
           showToast("Removed from wishlist");
+          refreshWishlistBadge();
         } else {
           showToast(err.message, "error");
         }
@@ -491,11 +493,13 @@ function initCardActions() {
         await apiFetch(`/wishlist/${productId}`, { method: "POST" });
         if (icon) icon.className = "fas fa-heart";
         showToast("Added to wishlist");
+        refreshWishlistBadge();
       } catch (err) {
         if (err.message.includes("already")) {
           await apiFetch(`/wishlist/${productId}`, { method: "DELETE" });
           if (icon) icon.className = "far fa-heart";
           showToast("Removed from wishlist");
+          refreshWishlistBadge();
         } else {
           showToast(err.message, "error");
         }

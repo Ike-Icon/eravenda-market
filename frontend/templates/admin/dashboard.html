@@ -7,7 +7,7 @@
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
     <div>
       <p class="text-brand-700 text-sm font-bold tracking-wider">ERAVENDA ADMINISTRATION</p>
-      <h1 class="font-head text-3xl font-bold mt-1">Admin Dashboard</h1>
+      <h1 class="font-head text-2xl sm:text-3xl font-bold mt-1">Admin Dashboard</h1>
       <p class="text-slate-500 mt-2">Manage stores, products, categories, professionals, payments and platform accounts from one workspace.</p>
     </div>
     <button id="refreshAll" class="border border-slate-300 bg-white px-4 py-2 rounded-lg font-semibold shrink-0">
@@ -58,16 +58,16 @@
       <!-- Stores -->
       <section data-panel="stores" class="admin-panel hidden space-y-6">
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-5">
-            <div><h2 class="font-head text-xl font-bold">Store approvals</h2><p class="text-sm text-slate-500">Review new seller applications before they can publish products.</p></div>
-            <span id="pendingStoreBadge" class="text-xs font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">0 pending</span>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div class="min-w-0"><h2 class="font-head text-xl font-bold">Store approvals</h2><p class="text-sm text-slate-500">Review new seller applications before they can publish products.</p></div>
+            <span id="pendingStoreBadge" class="text-xs font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full self-start sm:self-auto shrink-0">0 pending</span>
           </div>
           <div id="pendingStores" class="space-y-3"></div>
         </section>
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex items-center justify-between gap-3 mb-5">
-            <div><h2 class="font-head text-xl font-bold">All stores</h2><p class="text-sm text-slate-500">Suspend a store to immediately hide its products from buyers.</p></div>
-            <input id="storeSearch" type="search" placeholder="Search store name" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div class="min-w-0"><h2 class="font-head text-xl font-bold">All stores</h2><p class="text-sm text-slate-500">Suspend a store to immediately hide its products from buyers.</p></div>
+            <input id="storeSearch" type="search" placeholder="Search store name" class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full sm:w-auto sm:shrink-0">
           </div>
           <div id="allStores" class="space-y-2 max-h-[520px] overflow-y-auto"></div>
         </section>
@@ -76,17 +76,17 @@
       <!-- Products -->
       <section data-panel="products" class="admin-panel hidden space-y-6">
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-5">
-            <div><h2 class="font-head text-xl font-bold">Product approvals</h2><p class="text-sm text-slate-500">New listings wait here until you approve them for the storefront.</p></div>
-            <span id="pendingProductBadge" class="text-xs font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">0 pending</span>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div class="min-w-0"><h2 class="font-head text-xl font-bold">Product approvals</h2><p class="text-sm text-slate-500">New listings wait here until you approve them for the storefront.</p></div>
+            <span id="pendingProductBadge" class="text-xs font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full self-start sm:self-auto shrink-0">0 pending</span>
           </div>
           <div id="pendingProducts" class="space-y-3"></div>
         </section>
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex items-center justify-between gap-3 mb-5">
-            <div><h2 class="font-head text-xl font-bold">All products</h2><p class="text-sm text-slate-500">Track inventory and pricing, or unpublish / remove a listing that breaks policy.</p></div>
-            <div class="flex items-center gap-2">
-              <input id="productSearch" type="search" placeholder="Search product or store" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div class="min-w-0"><h2 class="font-head text-xl font-bold">All products</h2><p class="text-sm text-slate-500">Track inventory and pricing, or unpublish / remove a listing that breaks policy.</p></div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <input id="productSearch" type="search" placeholder="Search product or store" class="border border-slate-300 rounded-lg px-3 py-2 text-sm min-w-0 flex-1 sm:flex-none">
               <button id="refreshProducts" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold shrink-0">Refresh</button>
             </div>
           </div>
@@ -123,9 +123,9 @@
       <!-- Professionals -->
       <section data-panel="professionals" class="admin-panel hidden space-y-6">
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-5">
-            <div><h2 class="font-head text-xl font-bold">Professional approvals</h2><p class="text-sm text-slate-500">Review applications before public listing.</p></div>
-            <span id="pendingBadge" class="text-xs font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">0 pending</span>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div class="min-w-0"><h2 class="font-head text-xl font-bold">Professional approvals</h2><p class="text-sm text-slate-500">Review applications before public listing.</p></div>
+            <span id="pendingBadge" class="text-xs font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full self-start sm:self-auto shrink-0">0 pending</span>
           </div>
           <div id="pendingServiceWorkers" class="space-y-4"></div>
         </section>
@@ -139,7 +139,7 @@
       <!-- Delivery network -->
       <section data-panel="delivery" class="admin-panel hidden space-y-6">
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex items-center justify-between gap-3 mb-5"><div><h2 class="font-head text-xl font-bold">Delivery partner applications</h2><p class="text-sm text-slate-500">Review contact details and approve reliable delivery people before assigning an order.</p></div><button id="refreshDelivery" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold">Refresh</button></div>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5"><div class="min-w-0"><h2 class="font-head text-xl font-bold">Delivery partner applications</h2><p class="text-sm text-slate-500">Review contact details and approve reliable delivery people before assigning an order.</p></div><button id="refreshDelivery" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold self-start sm:self-auto shrink-0">Refresh</button></div>
           <div id="deliveryPeople" class="space-y-3"></div>
         </section>
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
@@ -167,14 +167,14 @@
       <!-- Payments -->
       <section data-panel="payments" class="admin-panel hidden space-y-6">
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex items-center justify-between gap-3 mb-5">
-            <div><h2 class="font-head text-xl font-bold">Record cash-on-delivery payment</h2><p class="text-sm text-slate-500">Log a COD payment to keep your records complete. Select an order and confirm the amount collected.</p></div>
-            <button id="refreshCOD" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold shrink-0">Refresh</button>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div class="min-w-0"><h2 class="font-head text-xl font-bold">Record cash-on-delivery payment</h2><p class="text-sm text-slate-500">Log a COD payment to keep your records complete. Select an order and confirm the amount collected.</p></div>
+            <button id="refreshCOD" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold self-start sm:self-auto shrink-0">Refresh</button>
           </div>
           <div id="codPendingList" class="space-y-3"></div>
         </section>
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex items-center justify-between gap-3 mb-5"><div><h2 class="font-head text-xl font-bold">Payment tracking</h2><p class="text-sm text-slate-500">View payment references, buyers, stores and payment status.</p></div><button id="refreshPayments" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold">Refresh</button></div>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5"><div class="min-w-0"><h2 class="font-head text-xl font-bold">Payment tracking</h2><p class="text-sm text-slate-500">View payment references, buyers, stores and payment status.</p></div><button id="refreshPayments" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold self-start sm:self-auto shrink-0">Refresh</button></div>
           <div id="paymentTracking" class="space-y-3 max-h-[650px] overflow-y-auto"></div>
         </section>
       </section>
@@ -182,7 +182,7 @@
       <!-- Users -->
       <section data-panel="users" class="admin-panel hidden">
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex items-center justify-between mb-4 gap-3"><div><h2 class="font-head text-xl font-bold">Account management</h2><p class="text-sm text-slate-500">Suspend an account to block sign-in, or remove it permanently.</p></div><input id="userSearch" type="search" placeholder="Search name or email" class="border border-slate-300 rounded-lg px-3 py-2 text-sm"></div>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3"><div class="min-w-0"><h2 class="font-head text-xl font-bold">Account management</h2><p class="text-sm text-slate-500">Suspend an account to block sign-in, or remove it permanently.</p></div><input id="userSearch" type="search" placeholder="Search name or email" class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full sm:w-auto sm:shrink-0"></div>
           <div id="userList" class="space-y-2 max-h-[650px] overflow-y-auto"></div>
         </section>
       </section>

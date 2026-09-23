@@ -353,385 +353,6 @@
   </div>
 </section>
 {% endif %}
-
-
-<!-- ============================================================
-     4B. TOP DEALS — horizontal-scroll rail, compact cards
-     ============================================================ -->
-{% if top_deals|default([]) %}
-<section class="max-w-7xl mx-auto px-4 py-8">
-  <div class="flex items-end justify-between mb-4">
-    <div>
-      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Best Value</span>
-      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Top Deals</h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">The biggest markdowns across the catalog right now</p>
-    </div>
-    <a href="/products?sort=price_asc" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group shrink-0">
-      <span>See All</span>
-      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
-    </a>
-  </div>
-
-  <div class="relative" data-scroll-rail>
-    <button type="button" data-scroll-prev aria-label="Scroll left"
-      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
-      <i data-lucide="chevron-left" class="w-4 h-4"></i>
-    </button>
-
-    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
-      {% for p in top_deals %}
-      {% set price = p.discount_price if p.discount_price else p.price %}
-      {% set has_discount = p.discount_price and p.discount_price < p.price %}
-      {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
-      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
-      {% set out_of_stock = p.stock_quantity <= 0 %}
-      <article data-product-card data-product-url="/product/{{ p.id }}"
-        class="group shrink-0 snap-start w-[136px] sm:w-[160px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
-        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
-          {% if has_discount and not out_of_stock %}
-          <span class="absolute top-1.5 left-1.5 z-10 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
-            -{{ discount_pct }}%
-          </span>
-          {% endif %}
-          {% if out_of_stock %}
-          <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
-            <span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span>
-          </div>
-          {% endif %}
-          {% if primary_image %}
-          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
-          {% else %}
-          <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
-          {% endif %}
-        </div>
-        <div class="p-2">
-          <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
-            {{ p.name }}
-          </h3>
-          <div class="flex items-center gap-1 text-[10px] text-amber-500 mt-1">
-            <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
-            <span class="text-slate-400">({{ p.review_count }})</span>
-          </div>
-          <div class="mt-1 flex items-baseline gap-1">
-            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
-            {% if has_discount %}
-            <span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
-            {% endif %}
-          </div>
-        </div>
-      </article>
-      {% endfor %}
-    </div>
-
-    <button type="button" data-scroll-next aria-label="Scroll right"
-      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
-      <i data-lucide="chevron-right" class="w-4 h-4"></i>
-    </button>
-  </div>
-</section>
-{% endif %}
-
-
-<!-- ============================================================
-     4C. PAY ON DELIVERY — horizontal-scroll rail, compact cards
-     ============================================================ -->
-{% if pay_on_delivery|default([]) %}
-<section class="max-w-7xl mx-auto px-4 py-8">
-  <div class="flex items-end justify-between mb-4">
-    <div>
-      <span class="text-xs font-bold tracking-[0.18em] text-emerald-600 uppercase">Buy With Confidence</span>
-      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-        <i class="fas fa-truck text-emerald-600 text-lg"></i> Pay on Delivery
-      </h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pay in cash when it arrives — no online payment needed for these items</p>
-    </div>
-    <a href="/products?cod=1" class="text-xs sm:text-sm font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-1 group shrink-0">
-      <span>See All</span>
-      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
-    </a>
-  </div>
-
-  <div class="relative" data-scroll-rail>
-    <button type="button" data-scroll-prev aria-label="Scroll left"
-      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400">
-      <i data-lucide="chevron-left" class="w-4 h-4"></i>
-    </button>
-
-    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
-      {% for p in pay_on_delivery %}
-      {% set price = p.discount_price if p.discount_price else p.price %}
-      {% set has_discount = p.discount_price and p.discount_price < p.price %}
-      {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
-      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
-      {% set out_of_stock = p.stock_quantity <= 0 %}
-      <article data-product-card data-product-url="/product/{{ p.id }}"
-        class="group shrink-0 snap-start w-[136px] sm:w-[160px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500">
-        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
-          {% if has_discount and not out_of_stock %}
-          <span class="absolute top-1.5 left-1.5 z-10 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
-            -{{ discount_pct }}%
-          </span>
-          {% endif %}
-          {% if out_of_stock %}
-          <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
-            <span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span>
-          </div>
-          {% else %}
-          <span class="absolute bottom-1.5 left-1.5 z-10 inline-flex items-center gap-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
-            <i class="fas fa-truck text-[8px]"></i> COD
-          </span>
-          {% endif %}
-          {% if primary_image %}
-          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
-          {% else %}
-          <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
-          {% endif %}
-        </div>
-        <div class="p-2">
-          <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-            {{ p.name }}
-          </h3>
-          <div class="flex items-center gap-1 text-[10px] text-amber-500 mt-1">
-            <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
-            <span class="text-slate-400">({{ p.review_count }})</span>
-          </div>
-          <div class="mt-1 flex items-baseline gap-1">
-            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
-            {% if has_discount %}
-            <span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
-            {% endif %}
-          </div>
-        </div>
-      </article>
-      {% endfor %}
-    </div>
-
-    <button type="button" data-scroll-next aria-label="Scroll right"
-      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400">
-      <i data-lucide="chevron-right" class="w-4 h-4"></i>
-    </button>
-  </div>
-</section>
-{% endif %}
-
-
-<!-- ============================================================
-     5. DEDICATED HANDYMAN HUB SHOWCASE — "Trusted help, right when you need it."
-     ============================================================ -->
-<section class="max-w-7xl mx-auto px-4 py-12">
-  <div class="rounded-3xl border border-teal-200 dark:border-teal-900 bg-gradient-to-br from-teal-900 via-teal-950 to-slate-950 text-white p-6 sm:p-8 md:p-10 shadow-xl relative overflow-hidden">
-    
-    <!-- Background Accents -->
-    <div class="absolute -right-16 -top-16 w-80 h-80 rounded-full border-[40px] border-white/5 pointer-events-none"></div>
-    <div class="absolute -left-12 -bottom-12 w-64 h-64 rounded-full border-[30px] border-white/[0.03] pointer-events-none"></div>
-
-    <!-- Header -->
-    <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-      <div>
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-300 text-xs font-bold tracking-widest uppercase">
-          <i class="fas fa-screwdriver-wrench"></i> Handyman Hub
-        </div>
-        <h2 class="font-head text-2xl sm:text-4xl font-bold mt-3 leading-tight">
-          Verified Professionals for Any Repair or Installation
-        </h2>
-        <p class="text-teal-100/80 text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
-          Skip the guesswork and unreliable tradesmen. Book vetted, rated electricians, plumbers, AC technicians, and carpenters with safe escrow payments.
-        </p>
-      </div>
-      <div class="flex items-center gap-3 shrink-0">
-        <a href="/services"
-          class="inline-flex items-center gap-2 bg-white text-teal-950 font-bold px-5 py-2.5 rounded-xl hover:bg-teal-50 transition-colors text-sm shadow-md">
-          <span>Browse All Pros</span>
-          <i class="fas fa-arrow-right text-xs"></i>
-        </a>
-        <a href="/services/register"
-          class="inline-flex items-center gap-2 border border-white/30 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-sm">
-          <span>Join as a Pro</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- 8 Core Popular Trades Grid -->
-    <div class="relative z-10 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-10">
-      <!-- Electrician -->
-      <a href="/services"
-        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
-        <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
-          ⚡
-        </div>
-        <span class="text-xs font-bold text-white group-hover:text-teal-200">Electrician</span>
-        <span class="text-[10px] text-teal-200/70 mt-0.5">Wiring & Power</span>
-      </a>
-
-      <!-- Plumber -->
-      <a href="/services"
-        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
-        <div class="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
-          🚰
-        </div>
-        <span class="text-xs font-bold text-white group-hover:text-teal-200">Plumber</span>
-        <span class="text-[10px] text-teal-200/70 mt-0.5">Pipes & Leaks</span>
-      </a>
-
-      <!-- AC Technician -->
-      <a href="/services"
-        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
-        <div class="w-10 h-10 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
-          ❄️
-        </div>
-        <span class="text-xs font-bold text-white group-hover:text-teal-200">AC Tech</span>
-        <span class="text-[10px] text-teal-200/70 mt-0.5">Cooling & Gas</span>
-      </a>
-
-      <!-- Carpenter -->
-      <a href="/services"
-        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
-        <div class="w-10 h-10 rounded-lg bg-yellow-500/20 text-yellow-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
-          🔨
-        </div>
-        <span class="text-xs font-bold text-white group-hover:text-teal-200">Carpenter</span>
-        <span class="text-[10px] text-teal-200/70 mt-0.5">Wood & Doors</span>
-      </a>
-
-      <!-- Painter -->
-      <a href="/services"
-        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
-        <div class="w-10 h-10 rounded-lg bg-rose-500/20 text-rose-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
-          🎨
-        </div>
-        <span class="text-xs font-bold text-white group-hover:text-teal-200">Painter</span>
-        <span class="text-[10px] text-teal-200/70 mt-0.5">Walls & Finish</span>
-      </a>
-
-      <!-- Mason -->
-      <a href="/services"
-        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
-        <div class="w-10 h-10 rounded-lg bg-orange-500/20 text-orange-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
-          🧱
-        </div>
-        <span class="text-xs font-bold text-white group-hover:text-teal-200">Mason</span>
-        <span class="text-[10px] text-teal-200/70 mt-0.5">Tiling & Brick</span>
-      </a>
-
-      <!-- Appliance Repair -->
-      <a href="/services"
-        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
-        <div class="w-10 h-10 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
-          🔧
-        </div>
-        <span class="text-xs font-bold text-white group-hover:text-teal-200">Appliances</span>
-        <span class="text-[10px] text-teal-200/70 mt-0.5">Fridge & Wash</span>
-      </a>
-
-      <!-- Mechanic -->
-      <a href="/services"
-        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
-        <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
-          🚗
-        </div>
-        <span class="text-xs font-bold text-white group-hover:text-teal-200">Mechanic</span>
-        <span class="text-[10px] text-teal-200/70 mt-0.5">Auto & Service</span>
-      </a>
-    </div>
-
-    <!-- Featured Verified Service Pros -->
-    {% if featured_handymen|default([]) %}
-    <div class="relative z-10 mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-head text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-          <i class="fas fa-certificate text-accent-400"></i> Top-Rated Approved Pros
-        </h3>
-        <span class="text-xs text-teal-200">Ready for service requests</span>
-      </div>
-
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for worker in featured_handymen %}
-        {% set w_name = worker.professional_name or worker.custom_job_title or worker.job_title %}
-        {% set w_trade = worker.custom_job_title or worker.job_title %}
-        {% set w_photo = worker.portfolio[0].image_url if (worker.portfolio and worker.portfolio[0]) else '' %}
-        <div class="bg-white/10 hover:bg-white/15 border border-white/15 rounded-2xl p-4 backdrop-blur-md transition flex flex-col justify-between">
-          <div>
-            <div class="flex items-center gap-3">
-              <div class="w-14 h-14 rounded-xl bg-slate-800 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center text-slate-400">
-                {% if w_photo %}
-                <img src="{{ w_photo }}" alt="{{ w_name }}" class="w-full h-full object-cover">
-                {% else %}
-                <i class="fas fa-user-hard-hat text-2xl text-teal-300"></i>
-                {% endif %}
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  {% if worker.verified_pro %}
-                  <span class="text-[10px] font-bold bg-teal-400/20 text-teal-200 border border-teal-400/30 px-1.5 py-0.5 rounded">Verified Pro</span>
-                  {% endif %}
-                  {% if worker.background_checked %}
-                  <span class="text-[10px] font-bold bg-blue-400/20 text-blue-200 border border-blue-400/30 px-1.5 py-0.5 rounded">ID Checked</span>
-                  {% endif %}
-                </div>
-                <h4 class="font-head font-bold text-sm sm:text-base text-white truncate mt-1">{{ w_name }}</h4>
-                <p class="text-xs text-teal-200 font-medium truncate">{{ w_trade }}</p>
-              </div>
-            </div>
-
-            <!-- Ratings & Experience -->
-            <div class="mt-3 flex items-center gap-3 text-xs text-teal-100/90">
-              <span class="text-amber-400 font-bold">★ {{ "%.1f"|format(worker.average_rating) }}</span>
-              <span>({{ worker.review_count }} review{{ 's' if worker.review_count != 1 else '' }})</span>
-              {% if worker.company_name %}
-              <span class="text-white/40">·</span>
-              <span class="truncate text-teal-200/80">{{ worker.company_name }}</span>
-              {% endif %}
-            </div>
-
-            <p class="mt-2 text-xs text-slate-300 line-clamp-2">
-              {{ worker.qualifications or worker.work_experience or 'Experienced and certified professional on EraVenda.' }}
-            </p>
-          </div>
-
-          <!-- Buttons -->
-          <div class="mt-4 pt-3 border-t border-white/10 flex items-center gap-2">
-            <a href="/services/professional/{{ worker.id }}"
-              class="flex-1 text-center py-2 px-3 rounded-lg border border-white/30 hover:bg-white/10 text-white font-semibold text-xs transition">
-              Profile
-            </a>
-            <a href="/services/request/{{ worker.id }}"
-              class="flex-1 text-center py-2 px-3 rounded-lg bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold text-xs transition shadow">
-              Book Pro
-            </a>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- How Handyman Hub Works in 3 Steps -->
-    <div class="relative z-10 pt-6 border-t border-white/15">
-      <h4 class="text-xs font-bold uppercase tracking-widest text-teal-300 mb-4 text-center">How It Works: Safe & Easy</h4>
-      <div class="grid sm:grid-cols-3 gap-4 text-center">
-        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
-          <div class="w-7 h-7 rounded-full bg-teal-400 text-teal-950 font-bold text-xs flex items-center justify-center mx-auto mb-2">1</div>
-          <h5 class="font-bold text-sm text-white">Choose Your Specialist</h5>
-          <p class="text-xs text-teal-100/70 mt-1">Select verified pros by trade, qualification, and verified ratings.</p>
-        </div>
-        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
-          <div class="w-7 h-7 rounded-full bg-teal-400 text-teal-950 font-bold text-xs flex items-center justify-center mx-auto mb-2">2</div>
-          <h5 class="font-bold text-sm text-white">Safe Escrow Booking</h5>
-          <p class="text-xs text-teal-100/70 mt-1">Funds are protected in escrow until you verify the job is done right.</p>
-        </div>
-        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
-          <div class="w-7 h-7 rounded-full bg-teal-400 text-teal-950 font-bold text-xs flex items-center justify-center mx-auto mb-2">3</div>
-          <h5 class="font-bold text-sm text-white">Job Guaranteed & Done</h5>
-          <p class="text-xs text-teal-100/70 mt-1">Inspect the finished work, release payment, and leave a review.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
 <!-- ============================================================
      6. INTERACTIVE PRODUCT DISCOVERY WITH FILTER TABS
      ============================================================ -->
@@ -900,6 +521,168 @@
 
 
 <!-- ============================================================
+     4B. TOP DEALS — horizontal-scroll rail, compact cards
+     ============================================================ -->
+{% if top_deals|default([]) %}
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <div class="flex items-end justify-between mb-4">
+    <div>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Best Value</span>
+      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Top Deals</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">The biggest markdowns across the catalog right now</p>
+    </div>
+    <a href="/products?sort=price_asc" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group shrink-0">
+      <span>See All</span>
+      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+    </a>
+  </div>
+
+  <div class="relative" data-scroll-rail>
+    <button type="button" data-scroll-prev aria-label="Scroll left"
+      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </button>
+
+    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
+      {% for p in top_deals %}
+      {% set price = p.discount_price if p.discount_price else p.price %}
+      {% set has_discount = p.discount_price and p.discount_price < p.price %}
+      {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
+      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+      {% set out_of_stock = p.stock_quantity <= 0 %}
+      <article data-product-card data-product-url="/product/{{ p.id }}"
+        class="group shrink-0 snap-start w-[136px] sm:w-[160px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          {% if has_discount and not out_of_stock %}
+          <span class="absolute top-1.5 left-1.5 z-10 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+            -{{ discount_pct }}%
+          </span>
+          {% endif %}
+          {% if out_of_stock %}
+          <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
+            <span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span>
+          </div>
+          {% endif %}
+          {% if primary_image %}
+          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
+          {% endif %}
+        </div>
+        <div class="p-2">
+          <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+            {{ p.name }}
+          </h3>
+          <div class="flex items-center gap-1 text-[10px] text-amber-500 mt-1">
+            <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
+            <span class="text-slate-400">({{ p.review_count }})</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1">
+            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
+            {% if has_discount %}
+            <span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <button type="button" data-scroll-next aria-label="Scroll right"
+      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>
+  </div>
+</section>
+{% endif %}
+
+
+<!-- ============================================================
+     4C. PAY ON DELIVERY — horizontal-scroll rail, compact cards
+     ============================================================ -->
+{% if pay_on_delivery|default([]) %}
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <div class="flex items-end justify-between mb-4">
+    <div>
+      <span class="text-xs font-bold tracking-[0.18em] text-emerald-600 uppercase">Buy With Confidence</span>
+      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+        <i class="fas fa-truck text-emerald-600 text-lg"></i> Pay on Delivery
+      </h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pay in cash when it arrives — no online payment needed for these items</p>
+    </div>
+    <a href="/products?cod=1" class="text-xs sm:text-sm font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-1 group shrink-0">
+      <span>See All</span>
+      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+    </a>
+  </div>
+
+  <div class="relative" data-scroll-rail>
+    <button type="button" data-scroll-prev aria-label="Scroll left"
+      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </button>
+
+    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
+      {% for p in pay_on_delivery %}
+      {% set price = p.discount_price if p.discount_price else p.price %}
+      {% set has_discount = p.discount_price and p.discount_price < p.price %}
+      {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
+      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+      {% set out_of_stock = p.stock_quantity <= 0 %}
+      <article data-product-card data-product-url="/product/{{ p.id }}"
+        class="group shrink-0 snap-start w-[136px] sm:w-[160px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          {% if has_discount and not out_of_stock %}
+          <span class="absolute top-1.5 left-1.5 z-10 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+            -{{ discount_pct }}%
+          </span>
+          {% endif %}
+          {% if out_of_stock %}
+          <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
+            <span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span>
+          </div>
+          {% else %}
+          <span class="absolute bottom-1.5 left-1.5 z-10 inline-flex items-center gap-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+            <i class="fas fa-truck text-[8px]"></i> COD
+          </span>
+          {% endif %}
+          {% if primary_image %}
+          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
+          {% endif %}
+        </div>
+        <div class="p-2">
+          <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+            {{ p.name }}
+          </h3>
+          <div class="flex items-center gap-1 text-[10px] text-amber-500 mt-1">
+            <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
+            <span class="text-slate-400">({{ p.review_count }})</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1">
+            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
+            {% if has_discount %}
+            <span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <button type="button" data-scroll-next aria-label="Scroll right"
+      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400">
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>
+  </div>
+</section>
+{% endif %}
+
+
+<!-- ============================================================
      6B. HIGHLY RATED — horizontal-scroll rail, compact cards
      ============================================================ -->
 {% if top_rated|default([]) %}
@@ -973,6 +756,225 @@
   </div>
 </section>
 {% endif %}
+
+
+<!-- ============================================================
+     5. DEDICATED HANDYMAN HUB SHOWCASE — "Trusted help, right when you need it."
+     ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 py-12">
+  <div class="rounded-3xl border border-teal-200 dark:border-teal-900 bg-gradient-to-br from-teal-900 via-teal-950 to-slate-950 text-white p-6 sm:p-8 md:p-10 shadow-xl relative overflow-hidden">
+    
+    <!-- Background Accents -->
+    <div class="absolute -right-16 -top-16 w-80 h-80 rounded-full border-[40px] border-white/5 pointer-events-none"></div>
+    <div class="absolute -left-12 -bottom-12 w-64 h-64 rounded-full border-[30px] border-white/[0.03] pointer-events-none"></div>
+
+    <!-- Header -->
+    <div class="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 border border-teal-400/30 text-teal-300 text-xs font-bold tracking-widest uppercase">
+          <i class="fas fa-screwdriver-wrench"></i> Handyman Hub
+        </div>
+        <h2 class="font-head text-2xl sm:text-4xl font-bold mt-3 leading-tight">
+          Verified Professionals for Any Repair or Installation
+        </h2>
+        <p class="text-teal-100/80 text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
+          Skip the guesswork and unreliable tradesmen. Book vetted, rated electricians, plumbers, AC technicians, and carpenters with safe escrow payments.
+        </p>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        <a href="/services"
+          class="inline-flex items-center gap-2 bg-white text-teal-950 font-bold px-5 py-2.5 rounded-xl hover:bg-teal-50 transition-colors text-sm shadow-md">
+          <span>Browse All Pros</span>
+          <i class="fas fa-arrow-right text-xs"></i>
+        </a>
+        <a href="/services/register"
+          class="inline-flex items-center gap-2 border border-white/30 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-sm">
+          <span>Join as a Pro</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 8 Core Popular Trades Grid -->
+    <div class="relative z-10 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-10">
+      <!-- Electrician -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          ⚡
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Electrician</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Wiring & Power</span>
+      </a>
+
+      <!-- Plumber -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🚰
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Plumber</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Pipes & Leaks</span>
+      </a>
+
+      <!-- AC Technician -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          ❄️
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">AC Tech</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Cooling & Gas</span>
+      </a>
+
+      <!-- Carpenter -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-yellow-500/20 text-yellow-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🔨
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Carpenter</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Wood & Doors</span>
+      </a>
+
+      <!-- Painter -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-rose-500/20 text-rose-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🎨
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Painter</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Walls & Finish</span>
+      </a>
+
+      <!-- Mason -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-orange-500/20 text-orange-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🧱
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Mason</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Tiling & Brick</span>
+      </a>
+
+      <!-- Appliance Repair -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🔧
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Appliances</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Fridge & Wash</span>
+      </a>
+
+      <!-- Mechanic -->
+      <a href="/services"
+        class="trade-card p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-center flex flex-col items-center justify-center transition-all group">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg mb-2 group-hover:scale-110 transition-transform">
+          🚗
+        </div>
+        <span class="text-xs font-bold text-white group-hover:text-teal-200">Mechanic</span>
+        <span class="text-[10px] text-teal-200/70 mt-0.5">Auto & Service</span>
+      </a>
+    </div>
+
+    <!-- Featured Verified Service Pros -->
+    {% if featured_handymen|default([]) %}
+    <div class="relative z-10 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-head text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+          <i class="fas fa-certificate text-accent-400"></i> Top-Rated Approved Pros
+        </h3>
+        <span class="text-xs text-teal-200">Ready for service requests</span>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for worker in featured_handymen %}
+        {% set w_name = worker.professional_name or worker.custom_job_title or worker.job_title %}
+        {% set w_trade = worker.custom_job_title or worker.job_title %}
+        {% set w_photo = worker.portfolio[0].image_url if (worker.portfolio and worker.portfolio[0]) else '' %}
+        <div class="bg-white/10 hover:bg-white/15 border border-white/15 rounded-2xl p-4 backdrop-blur-md transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3">
+              <div class="w-14 h-14 rounded-xl bg-slate-800 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center text-slate-400">
+                {% if w_photo %}
+                <img src="{{ w_photo }}" alt="{{ w_name }}" class="w-full h-full object-cover">
+                {% else %}
+                <i class="fas fa-user-hard-hat text-2xl text-teal-300"></i>
+                {% endif %}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  {% if worker.verified_pro %}
+                  <span class="text-[10px] font-bold bg-teal-400/20 text-teal-200 border border-teal-400/30 px-1.5 py-0.5 rounded">Verified Pro</span>
+                  {% endif %}
+                  {% if worker.background_checked %}
+                  <span class="text-[10px] font-bold bg-blue-400/20 text-blue-200 border border-blue-400/30 px-1.5 py-0.5 rounded">ID Checked</span>
+                  {% endif %}
+                </div>
+                <h4 class="font-head font-bold text-sm sm:text-base text-white truncate mt-1">{{ w_name }}</h4>
+                <p class="text-xs text-teal-200 font-medium truncate">{{ w_trade }}</p>
+              </div>
+            </div>
+
+            <!-- Ratings & Experience -->
+            <div class="mt-3 flex items-center gap-3 text-xs text-teal-100/90">
+              <span class="text-amber-400 font-bold shrink-0">★ {{ "%.1f"|format(worker.average_rating) }}</span>
+              <span class="shrink-0">({{ worker.review_count }} review{{ 's' if worker.review_count != 1 else '' }})</span>
+              {% if worker.company_name %}
+              <span class="text-white/40 shrink-0">·</span>
+              <span class="truncate min-w-0 flex-1 text-teal-200/80">{{ worker.company_name }}</span>
+              {% endif %}
+            </div>
+
+            <p class="mt-2 text-xs text-slate-300 line-clamp-2">
+              {{ worker.qualifications or worker.work_experience or 'Experienced and certified professional on EraVenda.' }}
+            </p>
+          </div>
+
+          <!-- Buttons -->
+          <div class="mt-4 pt-3 border-t border-white/10 flex items-center gap-2">
+            <a href="/services/professional/{{ worker.id }}"
+              class="flex-1 text-center py-2 px-3 rounded-lg border border-white/30 hover:bg-white/10 text-white font-semibold text-xs transition">
+              Profile
+            </a>
+            <a href="/services/request/{{ worker.id }}"
+              class="flex-1 text-center py-2 px-3 rounded-lg bg-accent-500 hover:bg-accent-600 text-slate-950 font-bold text-xs transition shadow">
+              Book Pro
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- How Handyman Hub Works in 3 Steps -->
+    <div class="relative z-10 pt-6 border-t border-white/15">
+      <h4 class="text-xs font-bold uppercase tracking-widest text-teal-300 mb-4 text-center">How It Works: Safe & Easy</h4>
+      <div class="grid sm:grid-cols-3 gap-4 text-center">
+        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+          <div class="w-7 h-7 rounded-full bg-teal-400 text-teal-950 font-bold text-xs flex items-center justify-center mx-auto mb-2">1</div>
+          <h5 class="font-bold text-sm text-white">Choose Your Specialist</h5>
+          <p class="text-xs text-teal-100/70 mt-1">Select verified pros by trade, qualification, and verified ratings.</p>
+        </div>
+        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+          <div class="w-7 h-7 rounded-full bg-teal-400 text-teal-950 font-bold text-xs flex items-center justify-center mx-auto mb-2">2</div>
+          <h5 class="font-bold text-sm text-white">Safe Escrow Booking</h5>
+          <p class="text-xs text-teal-100/70 mt-1">Funds are protected in escrow until you verify the job is done right.</p>
+        </div>
+        <div class="p-3 bg-white/5 rounded-xl border border-white/10">
+          <div class="w-7 h-7 rounded-full bg-teal-400 text-teal-950 font-bold text-xs flex items-center justify-center mx-auto mb-2">3</div>
+          <h5 class="font-bold text-sm text-white">Job Guaranteed & Done</h5>
+          <p class="text-xs text-teal-100/70 mt-1">Inspect the finished work, release payment, and leave a review.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
 
 
 <!-- ============================================================
