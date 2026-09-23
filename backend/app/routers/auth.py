@@ -161,6 +161,17 @@ def get_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
 
 
+def _clear_other_default_addresses(db: Session, user_id: str, exclude_id: Optional[str]) -> None:
+    """Only one saved address should be flagged default at a time."""
+    query = db.query(models.Address).filter(
+        models.Address.user_id == user_id,
+        models.Address.is_default.is_(True),
+    )
+    if exclude_id:
+        query = query.filter(models.Address.id != exclude_id)
+    query.update({"is_default": False}, synchronize_session=False)
+
+
 @router.post("/addresses", response_model=schemas.AddressOut, status_code=status.HTTP_201_CREATED)
 def add_address(
     payload: schemas.AddressCreate,
@@ -169,6 +180,11 @@ def add_address(
 ):
     address = models.Address(user_id=current_user.id, **payload.model_dump())
     db.add(address)
+    db.flush()  # assign address.id before we exclude it from the default-clearing update
+
+    if address.is_default:
+        _clear_other_default_addresses(db, current_user.id, exclude_id=address.id)
+
     db.commit()
     db.refresh(address)
     return address
@@ -180,6 +196,52 @@ def list_addresses(
     current_user: models.User = Depends(auth.get_current_user),
 ):
     return db.query(models.Address).filter(models.Address.user_id == current_user.id).all()
+
+
+@router.put("/addresses/{address_id}", response_model=schemas.AddressOut)
+def update_address(
+    address_id: str,
+    payload: schemas.AddressUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    address = (
+        db.query(models.Address)
+        .filter(models.Address.id == address_id, models.Address.user_id == current_user.id)
+        .first()
+    )
+    if not address:
+        raise HTTPException(status_code=404, detail="Address not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(address, field, value)
+
+    if updates.get("is_default"):
+        _clear_other_default_addresses(db, current_user.id, exclude_id=address.id)
+
+    db.commit()
+    db.refresh(address)
+    return address
+
+
+@router.delete("/addresses/{address_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_address(
+    address_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    address = (
+        db.query(models.Address)
+        .filter(models.Address.id == address_id, models.Address.user_id == current_user.id)
+        .first()
+    )
+    if not address:
+        raise HTTPException(status_code=404, detail="Address not found")
+
+    db.delete(address)
+    db.commit()
+    return None
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)

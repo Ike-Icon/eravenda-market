@@ -61,10 +61,47 @@
         <i class="ev-nav-icon ev-nav-icon-gold fas fa-cart-shopping text-base"></i>
         <span id="mobileCartCountBadge" class="hidden absolute -top-0.5 -right-0.5 bg-accent-500 text-slate-900 text-[9px] font-bold rounded-full px-1 min-w-[1rem] text-center">0</span>
       </a>
+      <!-- Account icon: opens a small dropdown instead of navigating away.
+           Signed out -> Log In / Sign Up. Signed in -> account menu + Log Out.
+           Server renders the safe "guest" default; main.js swaps the avatar
+           in and fills the signed-in panel once it reads the token. -->
+      <div class="relative lg:hidden">
+        <button id="mobileAccountBtn" type="button"
+          class="mobile-nav-action p-2 rounded-lg hover:bg-slate-100 flex items-center justify-center"
+          aria-label="Account" aria-haspopup="true" aria-expanded="false" title="Account">
+          <img id="mobileUserAvatarImg" src="" alt="" class="hidden w-6 h-6 rounded-full object-cover border border-slate-200">
+          <span id="mobileUserAvatarFallback" class="hidden w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-[10px] font-bold items-center justify-center">?</span>
+          <i id="mobileAccountGuestIcon" class="ev-nav-icon ev-nav-icon-green fas fa-circle-user text-lg"></i>
+        </button>
+
+        <!-- Signed-out panel -->
+        <div id="mobileGuestDropdown" class="hidden absolute right-0 top-full mt-1 w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50">
+          <a href="/login" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-green fas fa-right-to-bracket w-4 text-center"></i>Log In</a>
+          <a href="/register" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-gold fas fa-user-plus w-4 text-center"></i>Sign Up</a>
+        </div>
+
+        <!-- Signed-in panel -->
+        <div id="mobileUserDropdown" class="hidden absolute right-0 top-full mt-1 w-64 max-h-[70vh] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-50">
+          <div class="px-4 py-2.5 border-b border-slate-100">
+            <p class="text-sm font-semibold text-slate-800">Hi, <span id="mobileUserFirstName">there</span></p>
+            <p class="text-xs text-slate-500 mt-0.5" id="mobileUserEmail"></p>
+          </div>
+          <a id="mobileDashboardLink" href="/seller/dashboard.html" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700" style="display:none"><i class="ev-nav-icon-green fas fa-store w-4 text-center"></i><span>My Store</span></a>
+          <a id="mobileProfessionalDashboardLink" href="/professional/dashboard.html" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700" style="display:none"><i class="ev-nav-icon-purple fas fa-briefcase w-4 text-center"></i><span>Pro Dashboard</span></a>
+          <a id="mobileDeliveryDashboardLink" href="/delivery/dashboard" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700" style="display:none"><i class="ev-nav-icon-teal fas fa-truck w-4 text-center"></i><span>Delivery Dashboard</span></a>
+          {% if not is_services_page %}
+          <a href="/orders.html" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-blue fas fa-box w-4 text-center"></i>Orders</a>
+          {% endif %}
+          <a href="/services/bookings" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-purple fas fa-clipboard-list w-4 text-center"></i>Handyman Bookings</a>
+          <a href="/account" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="fas fa-user w-4 text-center text-slate-400"></i>Account</a>
+          <a href="/settings" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-teal fas fa-gear w-4 text-center"></i>Settings</a>
+          <a href="/faq" class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="fas fa-circle-question w-4 text-center text-slate-400"></i>Help &amp; FAQ</a>
+          <div class="border-t border-slate-100 mt-1 pt-1">
+            <button id="mobileAccountLogoutBtn" type="button" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-700"><i class="ev-nav-icon-orange fas fa-right-from-bracket w-4 text-center"></i>Log Out</button>
+          </div>
+        </div>
+      </div>
     </div>
-    <a href="/settings" class="lg:hidden p-2 rounded-lg hover:bg-slate-100" aria-label="Settings" title="Settings">
-      <i class="ev-nav-icon ev-nav-icon-teal fas fa-gear text-base"></i>
-    </a>
 
     <!-- Mobile menu toggle — shown only below lg breakpoint; kept on the far right -->
     <button id="mobileMenuBtn" type="button" class="lg:hidden shrink-0 p-2 rounded hover:bg-slate-100"
@@ -176,6 +213,24 @@
     </nav>
   </div>
 
+  <!-- Static mobile search bar — sits directly under the nav bar, outside the
+       collapsible drawer, so it's always visible on mobile. It lives inside
+       the header, and the header is sticky (top-0), so this scrolls up with
+       the nav bar and stays pinned to the top of the screen while scrolling. -->
+  {% if not is_services_page and not is_admin_page %}<div class="lg:hidden border-t border-slate-200 bg-white px-3 sm:px-4 py-2">
+    <form action="/products" method="get" class="flex">
+      <input type="search" name="q" value="{{ search_query|default('') }}"
+        placeholder="Search products, brands and categories"
+        class="flex-1 border border-slate-300 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+      <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white px-4 rounded-r-md transition-colors" aria-label="Search">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7" />
+          <path stroke-linecap="round" d="m20 20-3-3" />
+        </svg>
+      </button>
+    </form>
+  </div>{% endif %}
+
   <!-- Category strip — full-width desktop navigation. Categories stay on one row and
        scroll only when necessary. Parents with subcategories open their dropdown
        on hover (and remain keyboard/click accessible). The dropdown panel lives
@@ -226,11 +281,7 @@
 
   <!-- Mobile nav drawer -->
   <div id="mobileDrawer" class="hidden lg:hidden border-t border-slate-200 bg-white px-3 sm:px-4 py-3 sm:py-4 space-y-4 max-h-[calc(100dvh-64px)] overflow-y-auto">
-    {% if not is_services_page and not is_admin_page %}<form action="/products" method="get" class="flex">
-      <input type="search" name="q" value="{{ search_query|default('') }}" placeholder="Search products"
-        class="flex-1 border border-slate-300 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-      <button type="submit" class="bg-brand-500 text-white px-4 rounded-r-md">Go</button>
-    </form>
+    {% if not is_services_page and not is_admin_page %}
     <div class="flex flex-col gap-1 text-sm font-medium">
       {% for c in category_tree|default([]) %}
         {% if c.children %}

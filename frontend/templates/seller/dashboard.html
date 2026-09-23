@@ -6,7 +6,7 @@
   {% set active = "overview" %}
   {% include "components/seller-nav.html" with context %}
 
-  <div id="dashContent">
+  <div id="dashContent" class="min-w-0">
     <p class="text-slate-500">Loading your store…</p>
   </div>
 </div>
@@ -192,13 +192,83 @@
 
     const lowStock = products.filter(product => Number(product.stock_quantity) < 5);
     content.innerHTML = `
-      <div class="flex items-center justify-between mb-1">
-        <h1 class="font-head text-2xl font-semibold">${escapeHtml(store.store_name)}</h1>
+      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-1">
+        <h1 class="font-head text-2xl font-semibold break-words min-w-0">${escapeHtml(store.store_name)}</h1>
         ${badgeHtml(store.status)}
       </div>
           <p class="text-slate-500 mb-6">Product commission follows the launch offer and category policy shown in your seller terms.</p>
 
-      ${statusNote ? `<div class="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-md p-3 mb-6">${statusNote}</div>` : ""}
+      ${statusNote ? `<div class="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-md p-3 mb-6 break-words">${statusNote}</div>` : ""}
+
+      <div class="border border-slate-200 rounded-md p-5 mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold">Store info</h3>
+          <button type="button" id="storeInfoEditToggle" class="text-sm font-semibold text-brand-600 hover:underline">Edit</button>
+        </div>
+
+        <div id="storeInfoView" class="flex flex-wrap sm:flex-nowrap items-start gap-4">
+          <img src="${escapeHtml(store.logo_url || "")}" alt="" class="w-14 h-14 rounded-md object-cover border border-slate-200 shrink-0 ${store.logo_url ? "" : "hidden"}">
+          <div class="text-sm text-slate-600 space-y-1 min-w-0 break-words">
+            <p class="font-medium text-slate-800">${escapeHtml(store.store_name)}</p>
+            <p>${escapeHtml(store.description || "No description yet.")}</p>
+            <p class="text-slate-500">${[store.sub_town, store.city, store.region].filter(Boolean).map(escapeHtml).join(", ") || "No location set."}</p>
+            ${store.business_registration_number ? `<p class="text-slate-500">Reg. no: ${escapeHtml(store.business_registration_number)}</p>` : ""}
+          </div>
+        </div>
+
+        <form id="storeInfoForm" class="hidden mt-1 space-y-3">
+          <div id="storeInfoError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3"></div>
+          <div id="storeInfoSuccess" class="hidden text-sm text-brand-700 bg-brand-50 rounded-md p-3"></div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Store name</label>
+            <input name="store_name" value="${escapeHtml(store.store_name)}" required class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Description</label>
+            <textarea name="description" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">${escapeHtml(store.description || "")}</textarea>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium mb-1">Region</label>
+              <select name="region" data-region-select data-location-group="store-edit" data-selected="${escapeHtml(store.region || "")}" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"><option value="">Select region</option></select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1">City / District</label>
+              <select name="city" data-city-select data-location-group="store-edit" data-selected="${escapeHtml(store.city || "")}" disabled class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"><option value="">Select city / district</option></select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Sub-town / neighbourhood</label>
+            <input name="sub_town" value="${escapeHtml(store.sub_town || "")}" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Business registration number</label>
+            <input name="business_registration_number" value="${escapeHtml(store.business_registration_number || "")}" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Store logo</label>
+            <div class="flex flex-wrap items-center gap-3">
+              <img id="storeLogoPreview" src="${escapeHtml(store.logo_url || "")}" class="w-14 h-14 rounded-md object-cover border border-slate-200 shrink-0 ${store.logo_url ? "" : "hidden"}">
+              <input type="file" id="storeLogoFile" accept="image/*" class="text-sm min-w-0 max-w-full">
+            </div>
+            <input type="hidden" name="logo_url" id="storeLogoUrl" value="${escapeHtml(store.logo_url || "")}">
+            <p class="text-xs text-slate-500 mt-1 break-words" id="storeLogoHint"></p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">Store banner</label>
+            <div class="flex flex-wrap items-center gap-3">
+              <img id="storeBannerPreview" src="${escapeHtml(store.banner_url || "")}" class="w-24 h-14 rounded-md object-cover border border-slate-200 shrink-0 ${store.banner_url ? "" : "hidden"}">
+              <input type="file" id="storeBannerFile" accept="image/*" class="text-sm min-w-0 max-w-full">
+            </div>
+            <input type="hidden" name="banner_url" id="storeBannerUrl" value="${escapeHtml(store.banner_url || "")}">
+            <p class="text-xs text-slate-500 mt-1 break-words" id="storeBannerHint"></p>
+          </div>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-md transition-colors">Save store info</button>
+            <button type="button" id="storeInfoCancel" class="border border-slate-300 text-sm font-semibold px-4 py-2 rounded-md hover:bg-slate-50">Cancel</button>
+          </div>
+        </form>
+      </div>
 
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <div class="border border-slate-200 rounded-md p-4">
@@ -216,26 +286,116 @@
       </div>
 
       ${lowStock.length ? `<div class="border border-amber-200 bg-amber-50 rounded-md p-4 mb-6">
-        <div class="flex items-center gap-2"><span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">Low Stock: Less than 5 remaining</span><span class="text-sm text-amber-900">${lowStock.length} product${lowStock.length === 1 ? " needs" : "s need"} attention.</span></div>
-        <div class="mt-2 text-sm text-amber-800">${lowStock.map(product => `${escapeHtml(product.name)} (${product.stock_quantity})`).join(" · ")}</div>
+        <div class="flex flex-wrap items-center gap-2"><span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 whitespace-nowrap">Low Stock: Less than 5 remaining</span><span class="text-sm text-amber-900">${lowStock.length} product${lowStock.length === 1 ? " needs" : "s need"} attention.</span></div>
+        <div class="mt-2 text-sm text-amber-800 break-words">${lowStock.map(product => `${escapeHtml(product.name)} (${product.stock_quantity})`).join(" · ")}</div>
       </div>` : ""}
 
       <div class="border border-slate-200 rounded-md p-5">
         <h3 class="font-semibold mb-3">Recent orders</h3>
         ${orders.length ? `
-          <table class="w-full text-sm">
-            <thead><tr class="text-left text-xs text-slate-500 uppercase"><th class="pb-2">Order</th><th class="pb-2">Status</th><th class="pb-2">Total</th></tr></thead>
-            <tbody>
-              ${orders.slice(0, 5).map(o => `
-                <tr class="border-t border-slate-100">
-                  <td class="py-2">${escapeHtml(o.order_number)}</td>
-                  <td class="py-2">${badgeHtml(o.status)}</td>
-                  <td class="py-2">${money(o.total_amount)}</td>
-                </tr>`).join("")}
-            </tbody>
-          </table>` : `<p class="text-slate-500 text-sm">No orders yet.</p>`}
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead><tr class="text-left text-xs text-slate-500 uppercase"><th class="pb-2">Order</th><th class="pb-2">Status</th><th class="pb-2">Total</th></tr></thead>
+              <tbody>
+                ${orders.slice(0, 5).map(o => `
+                  <tr class="border-t border-slate-100">
+                    <td class="py-2">${escapeHtml(o.order_number)}</td>
+                    <td class="py-2">${badgeHtml(o.status)}</td>
+                    <td class="py-2">${money(o.total_amount)}</td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>` : `<p class="text-slate-500 text-sm">No orders yet.</p>`}
       </div>
     `;
+    initLocationSelects(document.getElementById("storeInfoForm"));
+    wireStoreInfoForm(store);
+  }
+
+  function wireStoreInfoForm(store) {
+    const view = document.getElementById("storeInfoView");
+    const form = document.getElementById("storeInfoForm");
+    const editToggle = document.getElementById("storeInfoEditToggle");
+    const cancelBtn = document.getElementById("storeInfoCancel");
+    const errBox = document.getElementById("storeInfoError");
+    const okBox = document.getElementById("storeInfoSuccess");
+
+    editToggle.addEventListener("click", () => {
+      view.classList.add("hidden");
+      form.classList.remove("hidden");
+    });
+    cancelBtn.addEventListener("click", () => {
+      form.classList.add("hidden");
+      view.classList.remove("hidden");
+      errBox.classList.add("hidden");
+      okBox.classList.add("hidden");
+    });
+
+    wireImageUploadField("storeLogoFile", "storeLogoUrl", "storeLogoPreview", "storeLogoHint");
+    wireImageUploadField("storeBannerFile", "storeBannerUrl", "storeBannerPreview", "storeBannerHint");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errBox.classList.add("hidden");
+      okBox.classList.add("hidden");
+      const fd = new FormData(form);
+      const payload = {
+        store_name: fd.get("store_name"),
+        description: fd.get("description") || null,
+        region: fd.get("region") || null,
+        city: fd.get("city") || null,
+        sub_town: fd.get("sub_town") || null,
+        business_registration_number: fd.get("business_registration_number") || null,
+        logo_url: fd.get("logo_url") || null,
+        banner_url: fd.get("banner_url") || null,
+      };
+      try {
+        const updated = await apiFetch("/stores/me", { method: "PUT", body: payload });
+        okBox.textContent = "Store info updated.";
+        okBox.classList.remove("hidden");
+        renderStoreDashboard(updated);
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.classList.remove("hidden");
+      }
+    });
+  }
+
+  async function uploadToCloudinary(file) {
+    const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    const res = await fetch(url, { method: "POST", body: fd });
+    if (!res.ok) throw new Error("Image upload failed");
+    const data = await res.json();
+    return data.secure_url;
+  }
+
+  function wireImageUploadField(fileInputId, hiddenInputId, previewId, hintId) {
+    const fileInput = document.getElementById(fileInputId);
+    const hiddenInput = document.getElementById(hiddenInputId);
+    const preview = document.getElementById(previewId);
+    const hint = document.getElementById(hintId);
+    if (!fileInput) return;
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+        hint.textContent = "Image uploads aren't configured yet — set CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET in static/js/config.js.";
+        return;
+      }
+      hint.textContent = "Uploading…";
+      try {
+        const url = await uploadToCloudinary(file);
+        hiddenInput.value = url;
+        preview.src = url;
+        preview.classList.remove("hidden");
+        hint.textContent = "";
+      } catch (err) {
+        hint.textContent = err.message;
+      }
+    });
   }
 
   load();

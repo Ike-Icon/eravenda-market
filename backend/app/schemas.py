@@ -111,11 +111,34 @@ class AddressOut(AddressCreate):
     id: str
 
 
+class AddressUpdate(BaseModel):
+    label: Optional[str] = None
+    recipient_name: Optional[str] = None
+    phone: Optional[str] = None
+    region: Optional[str] = None
+    city: Optional[str] = None
+    area: Optional[str] = None
+    sub_town: Optional[str] = None
+    landmark: Optional[str] = None
+    is_default: Optional[bool] = None
+
+
 # ---------- STORES ----------
 
 class StoreCreate(BaseModel):
     store_name: str
     description: Optional[str] = None
+    region: Optional[str] = None
+    city: Optional[str] = None
+    sub_town: Optional[str] = None
+    business_registration_number: Optional[str] = None
+
+
+class StoreUpdate(BaseModel):
+    store_name: Optional[str] = None
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+    banner_url: Optional[str] = None
     region: Optional[str] = None
     city: Optional[str] = None
     sub_town: Optional[str] = None

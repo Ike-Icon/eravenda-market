@@ -71,9 +71,9 @@
 
       el.innerHTML = orders.map(o => `
         <div id="order-${o.id}" class="border border-slate-200 rounded-md p-5">
-          <div class="flex justify-between items-center mb-3">
-            <div class="flex items-center gap-2">
-              <strong>${escapeHtml(o.order_number)}</strong>
+          <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <strong class="break-all">${escapeHtml(o.order_number)}</strong>
               ${badgeHtml(o.status)}
             </div>
             <div class="text-xs text-slate-500">${new Date(o.created_at).toLocaleDateString()}</div>
@@ -81,17 +81,20 @@
           <a class="border border-brand-200 text-brand-700 hover:bg-brand-50 text-sm font-semibold px-3 py-1.5 rounded-md mb-3 inline-block" href="/orders/track?order_id=${encodeURIComponent(o.id)}">
             <i class="fas fa-location-dot mr-1"></i>Track this order
           </a>
-          <table class="w-full text-sm">
-            <tbody>
-              ${o.items.map(i => `
-                <tr class="border-t border-slate-100">
-                  <td class="py-2">${escapeHtml(i.product_name)}</td>
-                  <td class="py-2">x${i.quantity}</td>
-                  <td class="py-2 text-right">${money(i.line_total)} ${o.status === "delivered" ? `<a class="rate-product text-xs text-accent-600 ml-2" href="/orders/review?order_id=${encodeURIComponent(o.id)}&item_id=${encodeURIComponent(i.id)}">Rate this</a>` : ""}</td>
-                </tr>`).join("")}
-            </tbody>
-          </table>
-          <div class="flex justify-between font-semibold border-t border-slate-200 pt-3 mt-1">
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <tbody>
+                ${o.items.map(i => `
+                  <tr class="border-t border-slate-100">
+                    <td class="py-2">${escapeHtml(i.product_name)}</td>
+                    <td class="py-2">x${i.quantity}</td>
+                    <td class="py-2 text-right">${money(i.line_total)} ${o.status === "delivered" ? `<a class="rate-product text-xs text-accent-600 ml-2" href="/orders/review?order_id=${encodeURIComponent(o.id)}&item_id=${encodeURIComponent(i.id)}">Rate this</a>` : ""}</td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+          <div class="flex flex-wrap justify-between gap-2 font-semibold border-t border-slate-200 pt-3 mt-1">
             <span>Total (incl. ₵${Number(o.delivery_fee).toFixed(2)} delivery)</span>
             <span>${money(o.total_amount)}</span>
           </div>

@@ -581,12 +581,47 @@ async function renderAuthState() {
       }
     }
 
+    // Mobile nav-bar account icon: same avatar-or-initial logic as the
+    // desktop dropdown trigger. The icon itself is a button that opens a
+    // small dropdown (wired by initMobileAccountDropdown) rather than
+    // navigating straight to a page.
+    const mobileAvatarImg = document.getElementById("mobileUserAvatarImg");
+    const mobileAvatarFallback = document.getElementById("mobileUserAvatarFallback");
+    const mobileGuestIcon = document.getElementById("mobileAccountGuestIcon");
+    // NOTE: mobileGuestIcon carries the shared ".ev-nav-icon" class, which
+    // has a "#siteHeader .ev-nav-icon { display: inline-flex }" rule in
+    // custom.css with higher specificity than Tailwind's ".hidden". Toggling
+    // the "hidden" class alone would silently fail to hide it, so this is
+    // set via inline style (which always wins) instead.
+    if (mobileGuestIcon) mobileGuestIcon.style.display = "none";
+    if (mobileAvatarImg && mobileAvatarFallback) {
+      if (user.avatar_key) {
+        mobileAvatarImg.src = avatarImageUrl(user.avatar_key);
+        mobileAvatarImg.alt = user.full_name;
+        mobileAvatarImg.classList.remove("hidden");
+        mobileAvatarFallback.classList.add("hidden");
+      } else {
+        mobileAvatarFallback.textContent = user.full_name.trim().charAt(0).toUpperCase();
+        mobileAvatarFallback.classList.remove("hidden");
+        mobileAvatarFallback.classList.add("flex");
+        mobileAvatarImg.classList.add("hidden");
+      }
+    }
+
+    const mobileFirstName = document.getElementById("mobileUserFirstName");
+    if (mobileFirstName) mobileFirstName.textContent = user.full_name.split(" ")[0];
+    const mobileEmail = document.getElementById("mobileUserEmail");
+    if (mobileEmail) mobileEmail.textContent = user.email || "";
+
     const navName = document.getElementById("userNavName");
     if (navName) navName.textContent = user.full_name.split(" ")[0];
 
     const dashboardLink = document.getElementById("dashboardLink");
     const professionalDashboardLink = document.getElementById("professionalDashboardLink");
     const deliveryDashboardLink = document.getElementById("deliveryDashboardLink");
+    const mobileDashboardLink = document.getElementById("mobileDashboardLink");
+    const mobileProfessionalDashboardLink = document.getElementById("mobileProfessionalDashboardLink");
+    const mobileDeliveryDashboardLink = document.getElementById("mobileDeliveryDashboardLink");
     const hasDashboard = user.role === "admin" || user.role === "seller";
     if (dashboardLink) {
       if (hasDashboard) {
@@ -605,6 +640,23 @@ async function renderAuthState() {
         dashboardLink.style.display = "none";
       }
     }
+    if (mobileDashboardLink) {
+      if (hasDashboard) {
+        mobileDashboardLink.href = dashboardLink ? dashboardLink.href : (user.role === "admin" ? "/admin/dashboard.html" : "/seller/dashboard.html");
+        const icon = mobileDashboardLink.querySelector("i");
+        const span = mobileDashboardLink.querySelector("span");
+        if (user.role === "admin") {
+          if (icon) icon.className = "ev-nav-icon-green fas fa-gauge-high w-4 text-center";
+          if (span) span.textContent = "Admin Dashboard";
+        } else {
+          if (icon) icon.className = "ev-nav-icon-green fas fa-store w-4 text-center";
+          if (span) span.textContent = "My Store";
+        }
+        mobileDashboardLink.style.display = "";
+      } else {
+        mobileDashboardLink.style.display = "none";
+      }
+    }
 
     let hasProfessionalProfile = false;
     try {
@@ -616,6 +668,9 @@ async function renderAuthState() {
     if (professionalDashboardLink) {
       professionalDashboardLink.style.display = hasProfessionalProfile ? "" : "none";
     }
+    if (mobileProfessionalDashboardLink) {
+      mobileProfessionalDashboardLink.style.display = hasProfessionalProfile ? "" : "none";
+    }
 
     let hasDeliveryProfile = user.role === "delivery";
     try {
@@ -626,6 +681,9 @@ async function renderAuthState() {
     }
     if (deliveryDashboardLink) {
       deliveryDashboardLink.style.display = hasDeliveryProfile ? "" : "none";
+    }
+    if (mobileDeliveryDashboardLink) {
+      mobileDeliveryDashboardLink.style.display = hasDeliveryProfile ? "" : "none";
     }
     const deliveryFooterDashboard = document.getElementById("deliveryFooterDashboard");
     if (deliveryFooterDashboard) {
@@ -698,6 +756,54 @@ function initUserDropdown() {
 function logOut() {
   Auth.clearSession();
   window.location.href = "/";
+}
+
+// Mobile nav-bar account icon: opens the signed-out (Log In / Sign Up) or
+// signed-in (account menu + Log Out) panel depending on auth state at the
+// moment it's clicked, so it works correctly whether or not renderAuthState
+// has finished its async role checks yet.
+function initMobileAccountDropdown() {
+  const btn = document.getElementById("mobileAccountBtn");
+  const guestDropdown = document.getElementById("mobileGuestDropdown");
+  const userDropdown = document.getElementById("mobileUserDropdown");
+  if (!btn || !guestDropdown || !userDropdown || btn.dataset.bound) return;
+  btn.dataset.bound = "true";
+
+  function activeDropdown() {
+    return Auth.isLoggedIn() ? userDropdown : guestDropdown;
+  }
+
+  function closeAll() {
+    guestDropdown.classList.add("hidden");
+    userDropdown.classList.add("hidden");
+    btn.setAttribute("aria-expanded", "false");
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const dropdown = activeDropdown();
+    const isOpen = !dropdown.classList.contains("hidden");
+    closeAll();
+    if (!isOpen) {
+      dropdown.classList.remove("hidden");
+      btn.setAttribute("aria-expanded", "true");
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!btn.contains(e.target) && !guestDropdown.contains(e.target) && !userDropdown.contains(e.target)) {
+      closeAll();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeAll();
+    }
+  });
+
+  const logoutBtn = document.getElementById("mobileAccountLogoutBtn");
+  if (logoutBtn) logoutBtn.addEventListener("click", logOut);
 }
 
 // ------------------------------------------------------------------
@@ -1464,6 +1570,7 @@ function initQuickViewModal() {
 // ------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   initMobileMenu();
+  initMobileAccountDropdown();
   renderAuthState();
   refreshCartBadge();
   refreshWishlistBadge();

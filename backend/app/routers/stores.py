@@ -57,6 +57,24 @@ def get_my_store(
     return current_user.store
 
 
+@router.put("/me", response_model=schemas.StoreOut)
+def update_my_store(
+    payload: schemas.StoreUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    store = current_user.store
+    if not store:
+        raise HTTPException(status_code=404, detail="You don't have a store yet")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(store, field, value)
+
+    db.commit()
+    db.refresh(store)
+    return store
+
+
 @router.get("/{store_id}", response_model=schemas.StoreOut)
 def get_store(store_id: str, db: Session = Depends(get_db)):
     store = db.query(models.Store).filter(models.Store.id == store_id).first()

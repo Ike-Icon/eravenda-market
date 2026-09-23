@@ -333,7 +333,12 @@ a, button, input, select, textarea {
   scrollbar-width: thin;
 }
 
-table {
+/* Tables need a minimum width to stay legible, but that must only ever
+   apply inside a horizontally-scrollable wrapper — an unscoped rule here
+   would force every <table> on the site (wrapped or not) to blow out
+   narrow viewports and cause page-level horizontal scroll on mobile. */
+.table-scroll table,
+.overflow-x-auto table {
   min-width: 620px;
 }
 
