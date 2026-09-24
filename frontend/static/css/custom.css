@@ -346,6 +346,28 @@ a, button, input, select, textarea {
   overflow-wrap: anywhere;
 }
 
+/* Phones (iPhone 12 / 12 mini and similar, 375–430px).
+   `overflow-wrap: anywhere` lets flex/grid items shrink below the width of a
+   single word, which is what stacked words like "Handyma/n" or "activ/e" into
+   a letter-per-line block. `break-word` keeps each word whole when the layout
+   is sized, and only splits a word if it is wider than its whole container
+   (e.g. a very long email). Anything that then doesn't fit gets a smaller
+   font size instead of being chopped up. */
+@media (max-width: 430px) {
+  [class*="rounded-2xl"], [class*="rounded-xl"] {
+    overflow-wrap: break-word;
+  }
+
+  /* A `.grid` that only declares columns at sm:/md:/lg: gets a single `auto`
+     track on phones, and an auto track grows to its widest child instead of
+     the screen (cart rows, admin stat cards, etc. ran 600px+ wide and got cut
+     off). Give those a one-column, shrinkable track. :where() keeps this at
+     zero specificity so every explicit grid-cols-* class still wins. */
+  :where(.grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ============================================================
    Header & navigation
    ============================================================ */
