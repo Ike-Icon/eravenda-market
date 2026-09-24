@@ -356,6 +356,173 @@
 
 
 <!-- ============================================================
+     6. INTERACTIVE PRODUCT DISCOVERY WITH FILTER TABS
+     ============================================================ -->
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <!-- Section Title & Filter Tabs -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+    <div>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Marketplace Highlights</span>
+      <h2 class="font-head text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Discover Products</h2>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Explore authentic merchandise from verified Ghanaian merchants</p>
+    </div>
+
+    <!-- Client-Side Filter Tabs -->
+    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-semibold">
+      <button type="button" data-product-filter="all" class="product-filter-tab active px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
+        All Products
+      </button>
+      <button type="button" data-product-filter="deals" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
+        🔥 Top Deals
+      </button>
+      <button type="button" data-product-filter="top-rated" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
+        ⭐ Highly Rated (4★+)
+      </button>
+      {% for cat in category_tree|default([]) %}
+      {% if loop.index <= 4 %}
+      <button type="button" data-product-filter="{{ cat.id }}" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
+        {{ cat.name }}
+      </button>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Products Grid -->
+  {% if products|default([]) %}
+  <div data-product-grid class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+    {% for p in products %}
+    {% set price = p.discount_price if p.discount_price else p.price %}
+    {% set has_discount = p.discount_price and p.discount_price < p.price %}
+    {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
+    {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+    {% set out_of_stock = p.stock_quantity <= 0 %}
+    
+    <article data-product-card
+      data-product-url="/product/{{ p.id }}"
+      data-category="{{ p.category_id }}"
+      data-parent-category="{{ p.category.parent_id if p.category else '' }}"
+      data-has-discount="{{ 'true' if has_discount else 'false' }}"
+      data-rating="{{ p.average_rating }}"
+      class="group border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all flex flex-col justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
+      
+      <!-- Product Image -->
+      <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+        {% if has_discount and not out_of_stock %}
+        <span class="absolute top-2 left-2 z-10 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+          -{{ discount_pct }}%
+        </span>
+        {% endif %}
+
+        {% if out_of_stock %}
+        <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
+          <span class="bg-slate-900/85 text-white text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full">Out of Stock</span>
+        </div>
+        {% endif %}
+
+        <!-- Card Quick Action Buttons -->
+        <div class="card-quick-actions">
+          <button type="button" data-home-wishlist="{{ p.id }}" class="card-quick-btn wishlist-btn"
+            aria-label="Add {{ p.name }} to wishlist" title="Add to wishlist">
+            <i class="far fa-heart"></i>
+          </button>
+          <button type="button" data-quick-view
+            data-id="{{ p.id }}"
+            data-name="{{ p.name }}"
+            data-price="{{ price }}"
+            data-original-price="{{ p.price if has_discount else '' }}"
+            data-discount-pct="{{ discount_pct if has_discount else '' }}"
+            data-image="{{ primary_image.image_url if primary_image else '' }}"
+            data-store="{{ p.store.store_name if p.store else '' }}"
+            data-store-url="/store/{{ p.store.id if p.store else '' }}"
+            data-rating="{{ p.average_rating }}"
+            data-reviews="{{ p.review_count }}"
+            data-desc="{{ p.description or '' }}"
+            data-stock="{{ p.stock_quantity }}"
+            data-url="/product/{{ p.id }}"
+            class="card-quick-btn quick-view-btn"
+            aria-label="Quick view {{ p.name }}" title="Quick view">
+            <i class="fas fa-eye"></i>
+          </button>
+          {% if not out_of_stock %}
+          <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
+            data-image="{{ primary_image.image_url if primary_image else '' }}" class="card-quick-btn"
+            aria-label="Add {{ p.name }} to cart" title="Add to cart">
+            <i class="fas fa-cart-plus"></i>
+          </button>
+          {% endif %}
+        </div>
+
+        {% if primary_image %}
+        <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center text-3xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
+        {% endif %}
+      </div>
+
+      <!-- Card Details -->
+      <div class="p-3 flex-1 flex flex-col justify-between">
+        <div>
+          <a href="/store/{{ p.store.id }}" class="text-[11px] text-brand-600 dark:text-brand-400 font-medium hover:underline block truncate">
+            {{ p.store.store_name if p.store else 'Ghana Seller' }}
+          </a>
+          <h3 class="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-2 mt-0.5 group-hover:text-brand-600 transition-colors">
+            {{ p.name }}
+          </h3>
+
+          <div class="flex items-center gap-1 text-[11px] text-amber-500 mt-1">
+            <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
+            <span class="text-slate-400">({{ p.review_count }})</span>
+          </div>
+        </div>
+
+        <div class="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div class="flex items-baseline gap-1.5">
+            <span class="font-bold text-sm sm:text-base text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
+            {% if has_discount %}
+            <span class="text-[11px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
+            {% endif %}
+          </div>
+
+          {% if out_of_stock %}
+          <div class="w-full mt-2 rounded bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 px-2 py-1.5 text-xs font-bold text-center">
+            Out of stock
+          </div>
+          {% else %}
+          <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
+            data-image="{{ primary_image.image_url if primary_image else '' }}"
+            class="w-full mt-2 rounded bg-brand-50 hover:bg-brand-500 text-brand-700 hover:text-white dark:bg-slate-800 dark:hover:bg-brand-500 dark:text-brand-300 dark:hover:text-white px-2 py-1.5 text-xs font-bold transition-colors flex items-center justify-center gap-1">
+            <i class="fas fa-shopping-cart text-[11px]"></i>
+            <span>Add to Cart</span>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+
+  <div id="noProductMatches" class="hidden text-center py-12 text-slate-500 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl mt-4">
+    No products found in this category filter.
+  </div>
+
+  <div class="text-center mt-8">
+    <a href="/products"
+      class="inline-flex items-center gap-2 bg-brand-700 hover:bg-slate-800 text-white dark:bg-accent-200 dark:hover:bg-slate-100 dark:text-slate-950 font-bold px-8 py-3 rounded-xl transition-colors shadow">
+      <span>Browse Complete Catalog</span>
+      <i class="fas fa-arrow-right text-xs"></i>
+    </a>
+  </div>
+  {% else %}
+  <div class="text-center py-16 text-slate-500 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+    No products available yet. Check back soon!
+  </div>
+  {% endif %}
+</section>
+
+
+<!-- ============================================================
      4B. TOP DEALS — horizontal-scroll rail, compact cards
      ============================================================ -->
 {% if top_deals|default([]) %}
@@ -515,6 +682,82 @@
   </div>
 </section>
 {% endif %}
+
+<!-- ============================================================
+     6B. HIGHLY RATED — horizontal-scroll rail, compact cards
+     ============================================================ -->
+{% if top_rated|default([]) %}
+<section class="max-w-7xl mx-auto px-4 py-8">
+  <div class="flex items-end justify-between mb-4">
+    <div>
+      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Customer Favorites</span>
+      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Highly Rated</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">4★ and up, straight from real buyer reviews</p>
+    </div>
+    <a href="/products?sort=rating_desc" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group shrink-0">
+      <span>See All</span>
+      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+    </a>
+  </div>
+
+  <div class="relative" data-scroll-rail>
+    <button type="button" data-scroll-prev aria-label="Scroll left"
+      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </button>
+
+    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
+      {% for p in top_rated %}
+      {% set price = p.discount_price if p.discount_price else p.price %}
+      {% set has_discount = p.discount_price and p.discount_price < p.price %}
+      {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
+      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+      {% set out_of_stock = p.stock_quantity <= 0 %}
+      <article data-product-card data-product-url="/product/{{ p.id }}"
+        class="group shrink-0 snap-start w-[136px] sm:w-[160px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          {% if not out_of_stock %}
+          <span class="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+            ★ {{ "%.1f"|format(p.average_rating) }}
+          </span>
+          {% else %}
+          <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
+            <span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span>
+          </div>
+          {% endif %}
+          {% if primary_image %}
+          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
+          {% endif %}
+        </div>
+        <div class="p-2">
+          <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+            {{ p.name }}
+          </h3>
+          <div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+            <span>{{ p.review_count }} review{{ 's' if p.review_count != 1 else '' }}</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1">
+            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
+            {% if has_discount %}
+            <span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <button type="button" data-scroll-next aria-label="Scroll right"
+      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>
+  </div>
+</section>
+{% endif %}
+
 
 
 <!-- ============================================================
@@ -732,247 +975,7 @@
 </section>
 
 
-<!-- ============================================================
-     6. INTERACTIVE PRODUCT DISCOVERY WITH FILTER TABS
-     ============================================================ -->
-<section class="max-w-7xl mx-auto px-4 py-8">
-  <!-- Section Title & Filter Tabs -->
-  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-    <div>
-      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Marketplace Highlights</span>
-      <h2 class="font-head text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Discover Products</h2>
-      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Explore authentic merchandise from verified Ghanaian merchants</p>
-    </div>
 
-    <!-- Client-Side Filter Tabs -->
-    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-semibold">
-      <button type="button" data-product-filter="all" class="product-filter-tab active px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
-        All Products
-      </button>
-      <button type="button" data-product-filter="deals" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
-        🔥 Top Deals
-      </button>
-      <button type="button" data-product-filter="top-rated" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
-        ⭐ Highly Rated (4★+)
-      </button>
-      {% for cat in category_tree|default([]) %}
-      {% if loop.index <= 4 %}
-      <button type="button" data-product-filter="{{ cat.id }}" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
-        {{ cat.name }}
-      </button>
-      {% endif %}
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- Products Grid -->
-  {% if products|default([]) %}
-  <div data-product-grid class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-    {% for p in products %}
-    {% set price = p.discount_price if p.discount_price else p.price %}
-    {% set has_discount = p.discount_price and p.discount_price < p.price %}
-    {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
-    {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
-    {% set out_of_stock = p.stock_quantity <= 0 %}
-    
-    <article data-product-card
-      data-product-url="/product/{{ p.id }}"
-      data-category="{{ p.category_id }}"
-      data-parent-category="{{ p.category.parent_id if p.category else '' }}"
-      data-has-discount="{{ 'true' if has_discount else 'false' }}"
-      data-rating="{{ p.average_rating }}"
-      class="group border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all flex flex-col justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
-      
-      <!-- Product Image -->
-      <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
-        {% if has_discount and not out_of_stock %}
-        <span class="absolute top-2 left-2 z-10 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
-          -{{ discount_pct }}%
-        </span>
-        {% endif %}
-
-        {% if out_of_stock %}
-        <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
-          <span class="bg-slate-900/85 text-white text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full">Out of Stock</span>
-        </div>
-        {% endif %}
-
-        <!-- Card Quick Action Buttons -->
-        <div class="card-quick-actions">
-          <button type="button" data-home-wishlist="{{ p.id }}" class="card-quick-btn wishlist-btn"
-            aria-label="Add {{ p.name }} to wishlist" title="Add to wishlist">
-            <i class="far fa-heart"></i>
-          </button>
-          <button type="button" data-quick-view
-            data-id="{{ p.id }}"
-            data-name="{{ p.name }}"
-            data-price="{{ price }}"
-            data-original-price="{{ p.price if has_discount else '' }}"
-            data-discount-pct="{{ discount_pct if has_discount else '' }}"
-            data-image="{{ primary_image.image_url if primary_image else '' }}"
-            data-store="{{ p.store.store_name if p.store else '' }}"
-            data-store-url="/store/{{ p.store.id if p.store else '' }}"
-            data-rating="{{ p.average_rating }}"
-            data-reviews="{{ p.review_count }}"
-            data-desc="{{ p.description or '' }}"
-            data-stock="{{ p.stock_quantity }}"
-            data-url="/product/{{ p.id }}"
-            class="card-quick-btn quick-view-btn"
-            aria-label="Quick view {{ p.name }}" title="Quick view">
-            <i class="fas fa-eye"></i>
-          </button>
-          {% if not out_of_stock %}
-          <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
-            data-image="{{ primary_image.image_url if primary_image else '' }}" class="card-quick-btn"
-            aria-label="Add {{ p.name }} to cart" title="Add to cart">
-            <i class="fas fa-cart-plus"></i>
-          </button>
-          {% endif %}
-        </div>
-
-        {% if primary_image %}
-        <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
-        {% else %}
-        <div class="w-full h-full flex items-center justify-center text-3xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
-        {% endif %}
-      </div>
-
-      <!-- Card Details -->
-      <div class="p-3 flex-1 flex flex-col justify-between">
-        <div>
-          <a href="/store/{{ p.store.id }}" class="text-[11px] text-brand-600 dark:text-brand-400 font-medium hover:underline block truncate">
-            {{ p.store.store_name if p.store else 'Ghana Seller' }}
-          </a>
-          <h3 class="text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100 line-clamp-2 mt-0.5 group-hover:text-brand-600 transition-colors">
-            {{ p.name }}
-          </h3>
-
-          <div class="flex items-center gap-1 text-[11px] text-amber-500 mt-1">
-            <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
-            <span class="text-slate-400">({{ p.review_count }})</span>
-          </div>
-        </div>
-
-        <div class="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div class="flex items-baseline gap-1.5">
-            <span class="font-bold text-sm sm:text-base text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
-            {% if has_discount %}
-            <span class="text-[11px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
-            {% endif %}
-          </div>
-
-          {% if out_of_stock %}
-          <div class="w-full mt-2 rounded bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 px-2 py-1.5 text-xs font-bold text-center">
-            Out of stock
-          </div>
-          {% else %}
-          <button type="button" data-home-cart="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ price }}"
-            data-image="{{ primary_image.image_url if primary_image else '' }}"
-            class="w-full mt-2 rounded bg-brand-50 hover:bg-brand-500 text-brand-700 hover:text-white dark:bg-slate-800 dark:hover:bg-brand-500 dark:text-brand-300 dark:hover:text-white px-2 py-1.5 text-xs font-bold transition-colors flex items-center justify-center gap-1">
-            <i class="fas fa-shopping-cart text-[11px]"></i>
-            <span>Add to Cart</span>
-          </button>
-          {% endif %}
-        </div>
-      </div>
-    </article>
-    {% endfor %}
-  </div>
-
-  <div id="noProductMatches" class="hidden text-center py-12 text-slate-500 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl mt-4">
-    No products found in this category filter.
-  </div>
-
-  <div class="text-center mt-8">
-    <a href="/products"
-      class="inline-flex items-center gap-2 bg-brand-700 hover:bg-slate-800 text-white dark:bg-accent-200 dark:hover:bg-slate-100 dark:text-slate-950 font-bold px-8 py-3 rounded-xl transition-colors shadow">
-      <span>Browse Complete Catalog</span>
-      <i class="fas fa-arrow-right text-xs"></i>
-    </a>
-  </div>
-  {% else %}
-  <div class="text-center py-16 text-slate-500 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-    No products available yet. Check back soon!
-  </div>
-  {% endif %}
-</section>
-
-
-<!-- ============================================================
-     6B. HIGHLY RATED — horizontal-scroll rail, compact cards
-     ============================================================ -->
-{% if top_rated|default([]) %}
-<section class="max-w-7xl mx-auto px-4 py-8">
-  <div class="flex items-end justify-between mb-4">
-    <div>
-      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Customer Favorites</span>
-      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Highly Rated</h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">4★ and up, straight from real buyer reviews</p>
-    </div>
-    <a href="/products?sort=rating_desc" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group shrink-0">
-      <span>See All</span>
-      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
-    </a>
-  </div>
-
-  <div class="relative" data-scroll-rail>
-    <button type="button" data-scroll-prev aria-label="Scroll left"
-      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
-      <i data-lucide="chevron-left" class="w-4 h-4"></i>
-    </button>
-
-    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
-      {% for p in top_rated %}
-      {% set price = p.discount_price if p.discount_price else p.price %}
-      {% set has_discount = p.discount_price and p.discount_price < p.price %}
-      {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
-      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
-      {% set out_of_stock = p.stock_quantity <= 0 %}
-      <article data-product-card data-product-url="/product/{{ p.id }}"
-        class="group shrink-0 snap-start w-[136px] sm:w-[160px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
-        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
-          {% if not out_of_stock %}
-          <span class="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
-            ★ {{ "%.1f"|format(p.average_rating) }}
-          </span>
-          {% else %}
-          <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
-            <span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span>
-          </div>
-          {% endif %}
-          {% if primary_image %}
-          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
-          {% else %}
-          <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
-          {% endif %}
-        </div>
-        <div class="p-2">
-          <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
-            {{ p.name }}
-          </h3>
-          <div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
-            <span>{{ p.review_count }} review{{ 's' if p.review_count != 1 else '' }}</span>
-          </div>
-          <div class="mt-1 flex items-baseline gap-1">
-            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
-            {% if has_discount %}
-            <span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>
-            {% endif %}
-          </div>
-        </div>
-      </article>
-      {% endfor %}
-    </div>
-
-    <button type="button" data-scroll-next aria-label="Scroll right"
-      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
-      <i data-lucide="chevron-right" class="w-4 h-4"></i>
-    </button>
-  </div>
-</section>
-{% endif %}
 
 
 <!-- ============================================================
