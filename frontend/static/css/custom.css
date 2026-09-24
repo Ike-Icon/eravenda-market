@@ -634,6 +634,30 @@ html[data-theme="dark"] .card-quick-btn {
   border-bottom: none;
 }
 
+.settings-back {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 2.5rem;
+  padding: 0 .9rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: .875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.settings-back:hover { border-color: var(--ev-green, currentColor); }
+.settings-back:focus-visible { outline: 2px solid var(--ev-green, currentColor); outline-offset: 2px; }
+.settings-back i { transition: transform .15s ease; }
+.settings-back:hover i { transform: translateX(-2px); }
+@media (prefers-reduced-motion: reduce) {
+  .settings-back, .settings-back i { transition: none; }
+  .settings-back:hover i { transform: none; }
+}
+
 .settings-label {
   font-size: .875rem;
   font-weight: 500;
@@ -734,7 +758,9 @@ html[data-theme="dark"] .toggle-slider {
   outline-offset: 2px;
 }
 @media (max-width: 520px) {
-  .settings-row { align-items: flex-start; gap: 12px; }
+  /* Wrap so a wide control (the theme toggle) drops under its label instead of
+     pushing past the edge of the card. */
+  .settings-row { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
   .theme-toggle { width: 100%; max-width: 250px; }
   .theme-toggle-option { flex: 1; min-width: 0; padding-inline: 7px; }
   .theme-toggle-option span { font-size: .7rem; }

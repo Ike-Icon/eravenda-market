@@ -3,7 +3,12 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="font-head text-2xl font-bold mb-6">Settings</h1>
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/" id="settingsBack" class="settings-back" aria-label="Go back to the previous page">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i><span>Back</span>
+    </a>
+    <h1 class="font-head text-2xl font-bold">Settings</h1>
+  </div>
 
   <!-- Appearance -->
   <div class="settings-section">
@@ -101,4 +106,22 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Back returns to the page the person came from. Theme, density and the
+  // cart/wishlist badges are re-applied when that page is shown again (see the
+  // pageshow/storage listeners in main.js), so nothing needs a manual refresh.
+  // With no earlier page on this site (opened from a bookmark or a new tab),
+  // the link's own href takes them to the home page.
+  document.getElementById("settingsBack").addEventListener("click", (e) => {
+    let fromThisSite = false;
+    try { fromThisSite = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (_) {}
+    if (fromThisSite && history.length > 1) {
+      e.preventDefault();
+      history.back();
+    }
+  });
+</script>
 {% endblock %}

@@ -3,23 +3,23 @@
 
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 py-8">
-  <h1 class="font-head text-2xl font-semibold mb-6">Your cart</h1>
+  <h1 class="font-head text-2xl font-semibold mb-6"><i class="fas fa-cart-shopping text-brand-500 mr-2" aria-hidden="true"></i>Your cart</h1>
   <div id="guestCartBanner" class="hidden mb-4 bg-brand-50 border border-brand-200 rounded-md p-3 text-sm text-brand-800">
-    <a href="/login?next=/cart" class="font-semibold underline">Log in</a> or <a href="/register" class="font-semibold underline">create an account</a> to save your cart permanently.
+    <i class="fas fa-circle-info mr-1.5" aria-hidden="true"></i><a href="/login?next=/cart" class="font-semibold underline">Log in</a> or <a href="/register" class="font-semibold underline">create an account</a> to save your cart permanently.
   </div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
     <div id="cartItems" class="md:col-span-2 space-y-4">
       <p class="text-slate-500">Loading your cart…</p>
     </div>
     <div class="border border-slate-200 rounded-md p-5 h-fit">
-      <h3 class="font-semibold mb-3">Order summary</h3>
+      <h3 class="font-semibold mb-3"><i class="fas fa-receipt text-brand-500 mr-2" aria-hidden="true"></i>Order summary</h3>
       <div class="flex justify-between text-sm py-1">
         <span>Subtotal</span><span id="sumSubtotal">₵0.00</span>
       </div>
       <p class="text-xs text-slate-500 mt-2">Delivery is calculated per seller at checkout.</p>
       <a id="checkoutBtn" href="/checkout"
          class="mt-4 block text-center bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2 rounded-md transition-colors">
-        Proceed to checkout
+        <i class="fas fa-lock mr-2" aria-hidden="true"></i>Proceed to checkout
       </a>
     </div>
   </div>
@@ -30,13 +30,22 @@
 <script>
   function money(n) { return `₵${Number(n).toFixed(2)}`; }
 
+  // Trash icon on phones (saves width in the row); icon + label from sm up.
+  function removeButton(attr, id) {
+    return `<button type="button" ${attr}="${id}" title="Remove from cart" aria-label="Remove from cart"
+      class="mt-1 inline-flex items-center justify-center gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-2 sm:py-1 rounded-md text-xs text-red-600 hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500">
+      <i class="fas fa-trash-can" aria-hidden="true"></i><span class="hidden sm:inline">Remove</span></button>`;
+  }
+
+  const EMPTY_CART_HTML = `<div class="text-center py-12 text-slate-500"><i class="fas fa-cart-shopping text-4xl text-slate-300 mb-3 block" aria-hidden="true"></i>Your cart is empty. <a href="/products" class="text-brand-600 font-semibold">Start shopping</a>.</div>`;
+
   function renderGuestCart() {
     const el = document.getElementById("cartItems");
     const items = GuestCart.getItems();
     document.getElementById("guestCartBanner").classList.remove("hidden");
 
     if (!items.length) {
-      el.innerHTML = `<div class="text-center py-12 text-slate-500">Your cart is empty. <a href="/products" class="text-brand-600 font-semibold">Start shopping</a>.</div>`;
+      el.innerHTML = EMPTY_CART_HTML;
       document.getElementById("sumSubtotal").textContent = "₵0.00";
       document.getElementById("checkoutBtn").classList.add("pointer-events-none", "opacity-50");
       return;
@@ -55,7 +64,7 @@
         <input type="number" class="guest-qty-input w-11 sm:w-16 shrink-0 border border-slate-300 rounded px-1 sm:px-2 py-1 text-center text-sm" value="${item.quantity}" min="1" data-product-id="${item.product_id}">
         <div class="text-right shrink-0">
           <div class="text-sm sm:text-base font-semibold">${money(Number(item.price) * item.quantity)}</div>
-          <button class="text-xs text-red-600 hover:underline mt-1" data-guest-remove="${item.product_id}">Remove</button>
+          ${removeButton("data-guest-remove", item.product_id)}
         </div>
       </div>`).join("");
 
@@ -80,7 +89,7 @@
       document.getElementById("sumSubtotal").textContent = money(cart.subtotal);
 
       if (!cart.items.length) {
-        el.innerHTML = `<div class="text-center py-12 text-slate-500">Your cart is empty. <a href="/products" class="text-brand-600 font-semibold">Start shopping</a>.</div>`;
+        el.innerHTML = EMPTY_CART_HTML;
         document.getElementById("checkoutBtn").classList.add("pointer-events-none", "opacity-50");
         return;
       }
@@ -103,7 +112,7 @@
             <input type="number" class="qty-input w-11 sm:w-16 shrink-0 border border-slate-300 rounded px-1 sm:px-2 py-1 text-center text-sm" value="${item.quantity}" min="1" max="${maxStock}" data-item-id="${item.id}">
             <div class="text-right shrink-0">
               <div class="text-sm sm:text-base font-semibold">${money(price * item.quantity)}</div>
-              <button class="text-xs text-red-600 hover:underline mt-1" data-remove="${item.id}">Remove</button>
+              ${removeButton("data-remove", item.id)}
             </div>
           </div>`;
       }).join("");

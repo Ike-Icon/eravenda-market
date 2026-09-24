@@ -2,9 +2,9 @@
 {% block title %}Wishlist — Eravenda Market{% endblock %}
 {% block content %}
 <section class="max-w-6xl mx-auto px-4 py-8">
-  <h1 class="font-head text-2xl font-semibold mb-2">My wishlist</h1>
+  <h1 class="font-head text-2xl font-semibold mb-2"><i class="fas fa-heart text-red-500 mr-2" aria-hidden="true"></i>My wishlist</h1>
   <div id="guestWishlistBanner" class="hidden mb-4 bg-brand-50 border border-brand-200 rounded-md p-3 text-sm text-brand-800">
-    <a href="/login?next=/wishlist" class="font-semibold underline">Log in</a> or <a href="/register" class="font-semibold underline">create an account</a> to save your wishlist permanently.
+    <i class="fas fa-circle-info mr-1.5" aria-hidden="true"></i><a href="/login?next=/wishlist" class="font-semibold underline">Log in</a> or <a href="/register" class="font-semibold underline">create an account</a> to save your wishlist permanently.
   </div>
   <div id="wishlist" class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <p class="text-slate-500 col-span-full">Loading…</p>
@@ -14,13 +14,15 @@
 {% block scripts %}<script>
 const money = n => `₵${Number(n).toFixed(2)}`;
 
+const EMPTY_WISHLIST_HTML = '<div class="col-span-full py-12 text-center text-slate-500"><i class="fas fa-heart text-4xl text-slate-300 mb-3 block" aria-hidden="true"></i>Your wishlist is empty. <a href="/products" class="text-brand-600 font-semibold">Browse products</a> and save your favourites.</div>';
+
 function renderGuestWishlist() {
   const el = document.getElementById("wishlist");
   document.getElementById("guestWishlistBanner").classList.remove("hidden");
   const ids = GuestWishlist.getItems();
 
   if (!ids.length) {
-    el.innerHTML = '<p class="text-slate-500 col-span-full py-12 text-center">Your wishlist is empty. <a href="/products" class="text-brand-600 font-semibold">Browse products</a> and save your favourites.</p>';
+    el.innerHTML = EMPTY_WISHLIST_HTML;
     return;
   }
 
@@ -29,7 +31,7 @@ function renderGuestWishlist() {
       <a href="/product/${id}"><div class="aspect-square bg-slate-100 flex items-center justify-center text-2xl text-slate-300">🛍️</div></a>
       <div class="p-3">
         <p class="text-sm text-slate-500">Product saved in your local wishlist.</p>
-        <button class="mt-2 text-xs text-red-600 hover:underline" data-guest-wish-remove="${id}">Remove</button>
+        <button type="button" class="mt-2 inline-flex items-center gap-1.5 px-2 py-1.5 -ml-2 rounded-md text-xs text-red-600 hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500" data-guest-wish-remove="${id}"><i class="fas fa-trash-can" aria-hidden="true"></i>Remove</button>
       </div>
     </article>`).join("");
 
@@ -46,7 +48,7 @@ async function loadWishlist() {
   try {
     const items = await apiFetch("/wishlist");
     if (!items.length) {
-      el.innerHTML = '<p class="text-slate-500 col-span-full py-12 text-center">Your wishlist is empty. <a href="/products" class="text-brand-600 font-semibold">Browse products</a> and save your favourites.</p>';
+      el.innerHTML = EMPTY_WISHLIST_HTML;
       return;
     }
     el.innerHTML = items.map(({product: p}) => {
@@ -55,7 +57,7 @@ async function loadWishlist() {
       return `<article data-product-card data-product-url="/product/${p.id}" tabindex="0" role="link" class="border rounded-md overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
         <div class="aspect-square bg-slate-100">${img ? `<img class="w-full h-full object-cover" src="${img.image_url}" alt="">` : '<div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>'}</div>
         <div class="p-3 text-sm font-semibold">${p.name}<div class="text-xs text-amber-600 mt-1">★ ${Number(p.average_rating || 0).toFixed(1)} <span class="text-slate-400">(${p.review_count || 0})</span></div><div class="flex flex-wrap gap-1 mt-1">${badges}</div><div class="mt-1">${money(p.discount_price || p.price)}</div></div>
-        <button class="w-full p-2 text-sm text-red-600" data-id="${p.id}">Remove</button>
+        <button type="button" class="w-full p-2 text-sm text-red-600 inline-flex items-center justify-center gap-2 hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500" data-id="${p.id}" aria-label="Remove ${String(p.name).replaceAll('"', '&quot;')} from wishlist"><i class="fas fa-trash-can" aria-hidden="true"></i>Remove</button>
       </article>`;
     }).join("");
     if (window.lucide) lucide.createIcons();
@@ -66,7 +68,7 @@ async function loadWishlist() {
       const card = b.closest("[data-product-card], article");
       if (card) card.remove();
       if (!el.querySelector("[data-product-card], article")) {
-        el.innerHTML = '<p class="text-slate-500 col-span-full py-12 text-center">Your wishlist is empty. <a href="/products" class="text-brand-600 font-semibold">Browse products</a> and save your favourites.</p>';
+        el.innerHTML = EMPTY_WISHLIST_HTML;
       }
     });
   } catch (e) {

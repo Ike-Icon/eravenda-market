@@ -1598,3 +1598,28 @@ document.addEventListener("DOMContentLoaded", () => {
   UserSettings.init();
 });
 
+// ------------------------------------------------------------------
+// Keep preferences current without a manual refresh.
+// The browser's Back button can restore a page from its back/forward cache
+// exactly as it was left, so a theme or density change made on the Settings
+// page would not show until a reload. Re-apply the saved preferences (and the
+// cart/wishlist badges) when a page is restored, and when another tab changes
+// them.
+// ------------------------------------------------------------------
+function syncSavedPreferences() {
+  ThemeSwitcher._apply(ThemeSwitcher.getMode());
+  ThemeSwitcher._syncControls();
+  UserSettings._apply(UserSettings.get());
+}
+
+window.addEventListener("pageshow", (e) => {
+  if (!e.persisted) return;
+  syncSavedPreferences();
+  refreshCartBadge();
+  refreshWishlistBadge();
+});
+
+window.addEventListener("storage", (e) => {
+  if (e.key === null || e.key === "erv_theme" || e.key === "erv_settings") syncSavedPreferences();
+});
+
