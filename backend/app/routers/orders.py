@@ -209,7 +209,9 @@ def checkout(
     for store_id, items in items_by_store.items():
         store = db.query(models.Store).filter(models.Store.id == store_id).first()
         subtotal = sum(_unit_price_for(item) * item.quantity for item in items)
-        delivery_fee = delivery_fee_for(address, store)
+        # Pickup skips the delivery fee entirely — the buyer collects from the
+        # seller directly, so there's nothing to price a delivery run for.
+        delivery_fee = 0 if payload.is_pickup else delivery_fee_for(address, store)
         commission_amount = round(sum(
             _unit_price_for(item) * item.quantity
             * product_commission_rate(item.product, store, db) / 100
@@ -224,6 +226,7 @@ def checkout(
             address_id=address.id,
             subtotal=subtotal,
             delivery_fee=delivery_fee,
+            is_pickup=payload.is_pickup,
             commission_amount=commission_amount,
             total_amount=total_amount,
             payment_method=payload.payment_method,

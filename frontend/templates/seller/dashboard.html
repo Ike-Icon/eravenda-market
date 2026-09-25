@@ -92,20 +92,12 @@
 
                 <div>
                   <h3 class="font-semibold text-slate-900 mb-1">1. Seller Commission</h3>
-                  <p>EraVenda's recommended launch rate is <strong>8% flat</strong> across product categories, and no category rate will ever exceed <strong>10%</strong>. The commission is deducted automatically before your payout, at these category rates:</p>
-                  <ul class="list-disc pl-5 mt-2 space-y-1">
-                    <li><strong>4.5%</strong> for groceries and perishables</li>
-                    <li><strong>6.5%</strong> for electronics and phones</li>
-                    <li><strong>9.5%</strong> for home, kitchen and household goods</li>
-                    <li><strong>10%</strong> for fashion and beauty</li>
-                    <li><strong>8%</strong> standard rate for other product categories</li>
-                  </ul>
-                  <p class="mt-2"><strong>Launch offer:</strong> for the first 90 days from 14 October 2026, or the first 20 vendors, whichever comes first, eligible vendors pay half the standard rate. Rates may be adjusted with 30 days' notice, and will never be raised above the 10% cap.</p>
+                  <p>EraVenda's launch rate is a flat <strong>5%</strong> on every product, across all categories — the same rate for every seller, kept simple and fair while EraVenda is new to the public. The commission is deducted automatically before your payout. This is a launch-time rate and may be revised later (including moving to category-specific rates), with at least 30 days' notice, and no category rate will ever exceed <strong>10%</strong>.</p>
                 </div>
 
                 <div>
                   <h3 class="font-semibold text-slate-900 mb-1">2. What you take home</h3>
-                  <p>For a GHS 100 sale at the 8% standard rate: GHS 8.00 EraVenda commission plus an estimated GHS 2.25 Paystack fee leaves approximately <strong>GHS 89.75</strong> before any delivery-fee split. Paystack fees are estimates and may vary by payment method.</p>
+                  <p>For a GHS 100 sale at the 5% flat rate: GHS 5.00 EraVenda commission plus an estimated GHS 2.25 Paystack fee leaves approximately <strong>GHS 92.75</strong> before any delivery-fee split. Paystack fees are estimates and may vary by payment method.</p>
                 </div>
 
                 <div>
@@ -148,7 +140,7 @@
 
           <label class="flex gap-3 text-sm text-slate-600 mt-4">
             <input id="storeTermsAccepted" type="checkbox" required class="mt-1">
-            <span>I have read and agree to the <strong>Eravenda Seller Terms &amp; Conditions</strong>. I understand the launch and category commission policy, payouts follow the settlement schedule, and I am responsible for product accuracy, order fulfillment and applicable taxes.</span>
+            <span>I have read and agree to the <strong>Eravenda Seller Terms &amp; Conditions</strong>. I understand the commission policy, payouts follow the settlement schedule, and I am responsible for product accuracy, order fulfillment and applicable taxes.</span>
           </label>
 
           <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Submit for review</button>
@@ -196,7 +188,7 @@
         <h1 class="font-head text-2xl font-semibold break-words min-w-0">${escapeHtml(store.store_name)}</h1>
         ${badgeHtml(store.status)}
       </div>
-          <p class="text-slate-500 mb-6">Product commission follows the launch offer and category policy shown in your seller terms.</p>
+          <p class="text-slate-500 mb-6">Product commission follows the flat launch rate shown in your seller terms.</p>
 
       ${statusNote ? `<div class="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-md p-3 mb-6 break-words">${statusNote}</div>` : ""}
 

@@ -95,7 +95,7 @@
             </table>
           </div>
           <div class="flex flex-wrap justify-between gap-2 font-semibold border-t border-slate-200 pt-3 mt-1">
-            <span>Total (incl. ₵${Number(o.delivery_fee).toFixed(2)} delivery)</span>
+            <span>Total (${o.is_pickup ? "pickup — no delivery fee" : `incl. ₵${Number(o.delivery_fee).toFixed(2)} delivery`})</span>
             <span>${money(o.total_amount)}</span>
           </div>
           ${o.status === "pending" ? `

@@ -29,6 +29,11 @@
     <div class="border border-slate-200 rounded-md p-5 h-fit">
       <h3 class="font-semibold mb-3">Order summary</h3>
       <fieldset class="mb-4 text-sm space-y-2">
+        <legend class="font-semibold mb-2">Getting your order</legend>
+        <label class="flex gap-2"><input type="radio" name="fulfillment_method" value="delivery" id="deliveryRadio" checked> Delivery</label>
+        <label class="flex gap-2"><input type="radio" name="fulfillment_method" value="pickup" id="pickupRadio"> Pickup — no delivery fee</label>
+      </fieldset>
+      <fieldset class="mb-4 text-sm space-y-2">
         <legend class="font-semibold mb-2">Payment method</legend>
         <label class="flex gap-2"><input type="radio" name="payment_method" value="mobile_money" checked> Mobile Money (secure online payment)</label>
         <label id="codOptionLabel" class="flex gap-2"><input type="radio" name="payment_method" id="codRadio" value="cash_on_delivery"> Pay on delivery</label>
@@ -111,7 +116,10 @@
     let delivery = 0;
     let deliveryNote = "Choose a delivery address to see the delivery fee.";
     const storeCount = new Set(cart.items.map(i => i.product.store_id)).size;
-    if (selectedAddressId) {
+    const isPickup = document.getElementById("pickupRadio").checked;
+    if (isPickup) {
+      deliveryNote = "You'll collect this order from the seller — no delivery fee is added.";
+    } else if (selectedAddressId) {
       try {
         const quote = await apiFetch("/orders/delivery-quote", { method: "POST", body: { address_id: selectedAddressId } });
         delivery = Number(quote.delivery_fee);
@@ -123,11 +131,14 @@
     el.innerHTML = `
       <div class="flex justify-between"><span>${cart.items.length} item(s), ${storeCount} seller(s)</span></div>
       <div class="flex justify-between"><span>Subtotal</span><span>${money(cart.subtotal)}</span></div>
-      <div class="flex justify-between"><span>Delivery</span><span>${money(delivery)}</span></div>
+      <div class="flex justify-between"><span>${isPickup ? "Pickup" : "Delivery"}</span><span>${money(delivery)}</span></div>
       <p class="text-xs text-slate-500">${deliveryNote}</p>
       <div class="flex justify-between font-semibold border-t border-slate-200 pt-2 mt-2"><span>Total</span><span>${money(cart.subtotal + delivery)}</span></div>
     `;
   }
+
+  document.getElementById("deliveryRadio").addEventListener("change", loadSummary);
+  document.getElementById("pickupRadio").addEventListener("change", loadSummary);
 
   document.getElementById("newAddressToggle").addEventListener("click", () => {
     document.getElementById("addressForm").classList.toggle("hidden");
@@ -153,7 +164,8 @@
     }
     try {
       const payment_method = document.querySelector('[name="payment_method"]:checked').value;
-      await apiFetch("/orders/checkout", { method: "POST", body: { address_id: selectedAddressId, payment_method } });
+      const is_pickup = document.getElementById("pickupRadio").checked;
+      await apiFetch("/orders/checkout", { method: "POST", body: { address_id: selectedAddressId, payment_method, is_pickup } });
       window.location.href = "/orders.html?placed=1";
     } catch (err) {
       errBox.textContent = err.message;

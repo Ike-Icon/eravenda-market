@@ -409,6 +409,7 @@ class WishlistOut(BaseModel):
 class CheckoutRequest(BaseModel):
     address_id: str
     payment_method: PaymentMethod = PaymentMethod.mobile_money
+    is_pickup: bool = False
 
 
 class OrderItemOut(BaseModel):
@@ -434,6 +435,7 @@ class OrderOut(BaseModel):
     status: OrderStatus
     subtotal: float
     delivery_fee: float
+    is_pickup: bool = False
     commission_amount: float
     total_amount: float
     payment_method: PaymentMethod
@@ -469,10 +471,7 @@ class DeliveryQuoteOut(BaseModel):
 class ProductCommissionPolicyOut(BaseModel):
     standard_rate: float
     category_rates: dict[str, float]
-    launch_start_date: str
-    launch_end_date: str
-    launch_vendor_cap: int
-    discount: str
+    category_rate_cap: float
 
 
 class DeliveryRegistration(BaseModel):

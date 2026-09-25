@@ -286,6 +286,7 @@ class Order(Base):
     status = Column(Enum(OrderStatus), nullable=False, default=OrderStatus.pending)
     subtotal = Column(Numeric(12, 2), nullable=False)
     delivery_fee = Column(Numeric(12, 2), nullable=False, default=0)
+    is_pickup = Column(Boolean, nullable=False, default=False)
     commission_amount = Column(Numeric(12, 2), nullable=False, default=0)
     total_amount = Column(Numeric(12, 2), nullable=False)
     payment_method = Column(Enum(PaymentMethod), nullable=False, default=PaymentMethod.mobile_money)
