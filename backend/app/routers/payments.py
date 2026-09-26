@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
 from .. import models, schemas, auth
 from ..database import get_db
-from ..email_utils import ADMIN_NOTIFICATION_EMAIL, send_email, SITE_URL
+from ..email_utils import ADMIN_NOTIFICATION_EMAIL, SUPPORT_EMAIL, send_email, SITE_URL
 from ..service_pricing import service_commission_for
 
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -56,8 +56,9 @@ def _finalize_product_payment(db: Session, payment: models.Payment, order: model
     order.status = models.OrderStatus.paid
     db.commit()
 
+    buyer = db.query(models.User).filter(models.User.id == order.buyer_id).first()
+
     try:
-        buyer = db.query(models.User).filter(models.User.id == order.buyer_id).first()
         product_summary = ", ".join(
             f"{item.product_name} x{item.quantity}" for item in order.items
         ) or "Product order"
@@ -78,6 +79,37 @@ def _finalize_product_payment(db: Session, payment: models.Payment, order: model
         )
     except Exception:
         logger.exception("Could not send product-payment notification for order %s", order.id)
+
+    if buyer and buyer.email:
+        try:
+            first_name = (buyer.full_name or "").strip().split(" ")[0] or "there"
+            item_lines = "\n".join(
+                f"- {item.product_name} x{item.quantity} — GHS {float(item.line_total):.2f}"
+                for item in order.items
+            ) or "- Your items"
+            fulfillment_line = (
+                "You've chosen pickup, so no delivery fee has been charged — collect your order from the seller."
+                if order.is_pickup
+                else f"Delivery fee: GHS {float(order.delivery_fee):.2f}"
+            )
+            send_email(
+                to=buyer.email,
+                subject=f"Your EraVenda order {order.order_number} is confirmed",
+                body=(
+                    f"Hi {first_name},\n\n"
+                    f"Thanks for your order! Payment for order {order.order_number} from "
+                    f"{order.store.store_name if order.store else 'the seller'} has been confirmed.\n\n"
+                    f"{item_lines}\n\n"
+                    f"Subtotal: GHS {float(order.subtotal):.2f}\n"
+                    f"{fulfillment_line}\n"
+                    f"Total paid: GHS {float(order.total_amount):.2f}\n\n"
+                    f"Track your order any time here:\n{SITE_URL}/orders/track?order_id={order.id}\n\n"
+                    "— The EraVenda Market team"
+                ),
+                reply_to=SUPPORT_EMAIL,
+            )
+        except Exception:
+            logger.exception("Could not send buyer order confirmation for order %s", order.id)
 
 
 @router.post("/initialize", response_model=schemas.PaymentInitOut)
@@ -192,10 +224,11 @@ def _finalize_service_payment(db: Session, payment: models.ServicePayment, booki
     booking.payout_status = models.PayoutStatus.pending
     db.commit()
 
+    client = db.query(models.User).filter(models.User.id == booking.client_id).first()
+    handyman = booking.handyman
+    job_summary = (booking.details or "Handyman service").strip()
+
     try:
-        client = db.query(models.User).filter(models.User.id == booking.client_id).first()
-        handyman = booking.handyman
-        job_summary = (booking.details or "Handyman service").strip()
         subject_summary = " ".join(job_summary.split())
         send_email(
             to=ADMIN_NOTIFICATION_EMAIL,
@@ -214,6 +247,26 @@ def _finalize_service_payment(db: Session, payment: models.ServicePayment, booki
         )
     except Exception:
         logger.exception("Could not send handyman-payment notification for booking %s", booking.id)
+
+    if client and client.email:
+        try:
+            first_name = (client.full_name or "").strip().split(" ")[0] or "there"
+            handyman_name = handyman.professional_name or handyman.job_title if handyman else "your handyman"
+            send_email(
+                to=client.email,
+                subject="Your EraVenda handyman payment is confirmed",
+                body=(
+                    f"Hi {first_name},\n\n"
+                    f"Thanks for your payment! Your job with {handyman_name} has been confirmed as paid.\n\n"
+                    f"Job: {job_summary}\n"
+                    f"Amount paid: GHS {float(payment.amount):.2f}\n\n"
+                    f"View your booking any time here:\n{SITE_URL}/services/bookings/{booking.id}\n\n"
+                    "— The EraVenda Market team"
+                ),
+                reply_to=SUPPORT_EMAIL,
+            )
+        except Exception:
+            logger.exception("Could not send client payment confirmation for booking %s", booking.id)
 
 
 @router.post("/service/initialize", response_model=schemas.PaymentInitOut)
