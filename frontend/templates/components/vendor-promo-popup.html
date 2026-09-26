@@ -1,0 +1,150 @@
+<!--
+  Vendor recruitment popup.
+
+  Isaac's ask: run a 30-day awareness push telling buyers EraVenda is open
+  for sellers and handyman professionals to register, shown on every page
+  load (not just once per visitor) for the campaign's duration.
+
+  Campaign window is a hard-coded date range below rather than "30 days
+  from first page load per visitor" — that would make the campaign run
+  indefinitely for anyone who hasn't visited yet, which defeats the "run it
+  for 30 days" instruction. A fixed end date means it reliably stops for
+  everyone at the same time, and is one line to extend if needed.
+
+  Logged-in buyers ARE shown this popup by design — the role check below
+  only excludes people who are already vendors (seller/admin/delivery), so
+  a "buyer" role always falls through to display it. That's the only
+  audience left out on purpose.
+-->
+<div id="vendorPromoModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 overflow-y-auto" style="background:rgba(11,45,32,0.55);">
+  <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative border border-slate-200 my-8">
+    <button id="vendorPromoClose" type="button" aria-label="Close" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-md hover:bg-slate-50 z-10">
+      <i class="fas fa-xmark"></i>
+    </button>
+
+    <!-- Brand mark: the same icon badge used in the site header, so this
+         reads as an official EraVenda message rather than a generic banner ad. -->
+    <div class="flex items-center gap-2.5 mb-4">
+      <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="shrink-0">
+        <defs>
+          <linearGradient id="ev-promo-green" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0F766E" />
+            <stop offset="100%" stop-color="#0A5C36" />
+          </linearGradient>
+          <linearGradient id="ev-promo-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F59E0B" />
+            <stop offset="100%" stop-color="#D97706" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="48" height="48" rx="14" fill="url(#ev-promo-green)" />
+        <path d="M18 16 C18 11.5, 30 11.5, 30 16" stroke="url(#ev-promo-gold)" stroke-width="3.5" stroke-linecap="round" fill="none" />
+        <path d="M16 22 H32 M16 28 H27 M16 34 H32" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" />
+      </svg>
+      <span class="font-head text-sm font-bold text-brand-700 tracking-wide">ERAVENDA MARKET</span>
+    </div>
+
+    <h2 class="font-head text-lg font-bold text-slate-900 mb-2">Now open for sellers &amp; service professionals</h2>
+    <p class="text-sm text-slate-600 mb-4">
+      List your products or offer your handyman services and reach buyers across Sunyani and all of Ghana.
+      Launch commission is a flat 5% on products and 4% on handyman jobs — no listing fees, no monthly charges.
+    </p>
+
+    <!-- Two small original icon illustrations (not stock photos) giving the
+         two paths — selling products vs. offering a service — a visual anchor. -->
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-center">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="mx-auto mb-1.5">
+          <rect x="1.5" y="12" width="33" height="21" rx="3" fill="#eaf5f0" stroke="#1c6b4f" stroke-width="1.6"/>
+          <path d="M10 12V9a8 8 0 0 1 16 0v3" stroke="#1c6b4f" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+          <path d="M9 18v3M27 18v3" stroke="#c98a22" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <p class="text-xs font-semibold text-slate-700">Sell products</p>
+        <p class="text-[11px] text-slate-500 mt-0.5">List items, manage orders, get paid</p>
+      </div>
+      <div class="rounded-md border border-slate-200 bg-slate-50 p-3 text-center">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="mx-auto mb-1.5">
+          <circle cx="18" cy="18" r="16.5" fill="#eaf5f0" stroke="#1c6b4f" stroke-width="1.6"/>
+          <path d="M13 23l7-7m0 0 3.5-3.5a2 2 0 0 0-3-3L17 13m3 3-3-3m-6 12.5 1.5 1.5" stroke="#1c6b4f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="24" r="1.6" fill="#c98a22"/>
+        </svg>
+        <p class="text-xs font-semibold text-slate-700">Offer services</p>
+        <p class="text-[11px] text-slate-500 mt-0.5">Handyman jobs, verified profile</p>
+      </div>
+    </div>
+
+    <ul class="text-xs text-slate-600 space-y-1.5 mb-5">
+      <li class="flex gap-2"><i class="fas fa-check text-brand-600 mt-0.5"></i><span>Reach buyers across Sunyani and nationwide in Ghana</span></li>
+      <li class="flex gap-2"><i class="fas fa-check text-brand-600 mt-0.5"></i><span>Simple listing and booking tools, no tech skill needed</span></li>
+      <li class="flex gap-2"><i class="fas fa-check text-brand-600 mt-0.5"></i><span>Paystack payouts by mobile money or card</span></li>
+    </ul>
+
+    <div id="vendorPromoCtas" class="flex flex-col sm:flex-row gap-2">
+      <!-- Filled in by script below based on whether the visitor is logged in. -->
+    </div>
+    <p id="vendorPromoLoginHint" class="hidden text-xs text-slate-400 mt-3 text-center">
+      Already have an account? <a href="/login?next=%2Faccount%23seller-application" class="text-brand-700 font-semibold hover:underline">Log in</a>
+    </p>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Campaign window: 2026-09-26 through 2026-10-26 (30 days). Extend by
+  // editing PROMO_END — nothing else needs to change to run it longer.
+  var PROMO_START = new Date("2026-09-26T00:00:00Z");
+  var PROMO_END = new Date("2026-10-26T00:00:00Z");
+  var now = new Date();
+  if (now < PROMO_START || now >= PROMO_END) return;
+
+  // Skip on pages where the visitor is already mid-signup, mid-checkout, or
+  // already managing a vendor dashboard — showing a "become a seller" ad
+  // there interrupts the exact flow it's trying to promote, or pitches
+  // people who are already vendors.
+  var skipPrefixes = [
+    "/register", "/login", "/services/register", "/delivery/register",
+    "/reset-password", "/forgot-password", "/checkout", "/cart",
+    "/admin", "/seller", "/professional", "/delivery-dashboard",
+  ];
+  var path = window.location.pathname;
+  if (skipPrefixes.some(function (p) { return path === p || path.indexOf(p + "/") === 0 || path.indexOf(p + ".html") === 0; })) return;
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var modal = document.getElementById("vendorPromoModal");
+    var ctas = document.getElementById("vendorPromoCtas");
+    var loginHint = document.getElementById("vendorPromoLoginHint");
+    if (!modal || !ctas) return;
+
+    var user = (typeof Auth !== "undefined" && Auth.isLoggedIn()) ? Auth.getUser() : null;
+    // Already a seller, admin, or delivery partner — nothing to pitch them.
+    // A "buyer" role (or a logged-out visitor) falls through and sees the popup.
+    if (user && (user.role === "seller" || user.role === "admin" || user.role === "delivery")) return;
+
+    var buttonClass = "flex-1 text-center text-sm font-semibold rounded-md px-4 py-2.5 transition-colors";
+    if (user) {
+      ctas.innerHTML =
+        '<a href="/account#seller-application" class="' + buttonClass + ' bg-brand-600 text-white hover:bg-brand-700">Become a Seller</a>' +
+        '<a href="/services/register" class="' + buttonClass + ' border border-brand-200 text-brand-700 hover:bg-brand-50">Offer Your Services</a>';
+    } else {
+      ctas.innerHTML =
+        '<a href="/register" class="' + buttonClass + ' bg-brand-600 text-white hover:bg-brand-700">Sign Up Free</a>';
+      loginHint.classList.remove("hidden");
+    }
+
+    function closePromo() {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    document.getElementById("vendorPromoClose").addEventListener("click", closePromo);
+    modal.addEventListener("click", function (e) {
+      if (e.target === modal) closePromo();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closePromo();
+    });
+
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  });
+})();
+</script>
