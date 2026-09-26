@@ -63,19 +63,19 @@ def on_startup():
     run_migrations()
     Base.metadata.create_all(bind=engine)
 
-    # SMTP_HOST etc. are declared with `sync: false` in render.yaml, which
-    # means Render does NOT fill them in for you — they start blank until
-    # someone enters real values in the dashboard's Environment tab. With
-    # SMTP_HOST unset, send_email() quietly logs the email instead of
+    # RESEND_API_KEY is declared with `sync: false` in render.yaml, which
+    # means Render does NOT fill it in for you — it starts blank until
+    # someone enters a real value in the dashboard's Environment tab. With
+    # RESEND_API_KEY unset, send_email() quietly logs the email instead of
     # sending it (so local dev works with zero setup), which makes "why
     # isn't the reset email arriving?" very hard to debug in production
     # unless it's called out loudly at boot.
-    if not email_utils.SMTP_HOST:
+    if not email_utils.RESEND_API_KEY:
         logger.warning(
-            "SMTP_HOST is not set — password reset, welcome, and contact "
-            "emails will be logged to this console instead of actually "
-            "sent. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD and "
-            "FROM_EMAIL in the Render dashboard's Environment tab to fix this."
+            "RESEND_API_KEY is not set — password reset, welcome, and contact "
+            "emails will be logged to this console instead of actually sent. "
+            "Set RESEND_API_KEY and FROM_EMAIL in the Render dashboard's "
+            "Environment tab to fix this (see docs/resend-email-setup.md)."
         )
 
 

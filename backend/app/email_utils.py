@@ -1,30 +1,34 @@
 """
-Minimal email sending.
+Minimal email sending, over Resend's HTTPS API.
 
-No third-party email service is wired in — that's a deliberate choice,
-since which provider you want (SendGrid, Postmark, AWS SES, etc.) is a
-business decision, not something to bake in silently.
+Switched from raw SMTP because Render's free web-service plan blocks
+outbound traffic on SMTP ports 25/465/587 (a deliberate anti-spam
+restriction), so Gmail SMTP could never actually deliver mail from this
+app while it stays on that plan. Resend sends over plain HTTPS instead,
+so the port block doesn't apply and this keeps working on the free plan.
 
-Instead: if SMTP_HOST is set in .env, this sends real mail over SMTP
-(works with Gmail, Mailtrap, SendGrid's SMTP relay, or your own mail
-server). If it's not set, it just logs the email to the console, so
+If RESEND_API_KEY isn't set, this just logs the email to the console, so
 password reset and the contact form both work end-to-end in local dev
 without any setup, and you never lose a reset link during testing.
 """
 
 import os
-import smtplib
 import logging
 from html import escape
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+
+import httpx  # type: ignore[reportMissingImports]
 
 logger = logging.getLogger("eravenda.email")
 
-SMTP_HOST = os.getenv("SMTP_HOST")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+RESEND_API_URL = "https://api.resend.com/emails"
+
+# Must be an address "you@yourdomain.com" on a domain verified in the Resend
+# dashboard (Domains -> Add Domain -> add the DKIM/SPF records at your DNS
+# provider). Until a domain is verified, Resend only accepts FROM_EMAIL as
+# onboarding@resend.dev, and even then it will only deliver TO the email
+# address you signed up to Resend with — fine for testing, not for real
+# customers. See docs/resend-email-setup.md for the full walkthrough.
 FROM_EMAIL = os.getenv("FROM_EMAIL", "no-reply@eravenda.com")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", FROM_EMAIL)
 ADMIN_NOTIFICATION_EMAIL = os.getenv("ADMIN_NOTIFICATION_EMAIL", "asieduisaac5775@gmail.com")
@@ -62,29 +66,37 @@ def _html_email(body: str) -> str:
 
 
 def send_email(to: str, subject: str, body: str, reply_to: str | None = None) -> None:
-    if not SMTP_HOST:
-        logger.info("=== EMAIL (console fallback, SMTP_HOST not set) ===")
+    if not RESEND_API_KEY:
+        logger.info("=== EMAIL (console fallback, RESEND_API_KEY not set) ===")
         logger.info("To: %s", to)
         logger.info("Subject: %s", subject)
         logger.info("Body:\n%s", body)
         logger.info("=== END EMAIL ===")
         return
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = FROM_EMAIL
-    msg["To"] = to
+    payload = {
+        "from": FROM_EMAIL,
+        "to": [to],
+        "subject": subject,
+        "text": body,
+        "html": _html_email(body),
+    }
     if reply_to:
-        msg["Reply-To"] = reply_to
+        payload["reply_to"] = reply_to
 
-    msg.attach(MIMEText(body, "plain", "utf-8"))
-    msg.attach(MIMEText(_html_email(body), "html", "utf-8"))
-
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        if SMTP_USER and SMTP_PASSWORD:
-            server.login(SMTP_USER, SMTP_PASSWORD)
-        server.sendmail(FROM_EMAIL, [to], msg.as_string())
+    # Same 10s ceiling the old SMTP path used: fail fast on a network hiccup
+    # rather than hanging the request (and whatever button triggered it).
+    with httpx.Client(timeout=10) as client:
+        res = client.post(
+            RESEND_API_URL,
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            json=payload,
+        )
+    if res.status_code >= 400:
+        # Surfaced to the caller's try/except, same as an smtplib exception
+        # used to be — every send_email() call site already logs and swallows
+        # this rather than letting a failed email break the request it's on.
+        raise RuntimeError(f"Resend API error {res.status_code}: {res.text[:300]}")
 
 
 def send_role_welcome_email(to: str, full_name: str, role_label: str, next_steps: list[str], dashboard_path: str) -> None:
