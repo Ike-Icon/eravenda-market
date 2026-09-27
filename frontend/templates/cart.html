@@ -55,7 +55,9 @@
 
     el.innerHTML = items.map(item => `
       <div class="flex items-center gap-2 sm:gap-4 border border-slate-200 rounded-md p-3" data-product-id="${item.product_id}">
-        ${item.image_url ? `<img src="${item.image_url}" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded shrink-0">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded flex items-center justify-center text-2xl text-slate-300 shrink-0">🛍️</div>`}
+        <button type="button" class="cart-item-image shrink-0 ${item.image_url ? "cursor-pointer" : "cursor-default"}" ${item.image_url ? "" : "tabindex=\"-1\" aria-hidden=\"true\""} aria-label="View larger product image">
+          ${item.image_url ? `<img src="${item.image_url}" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded flex items-center justify-center text-2xl text-slate-300">🛍️</div>`}
+        </button>
         <div class="flex-1 min-w-0">
           <div class="text-sm sm:text-base font-medium truncate">${item.name || "Product"}</div>
           ${(item.option || item.color || item.size) ? `<div class="text-xs text-slate-500 mt-0.5 truncate">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}${(item.color || item.option) && item.size ? " · " : ""}${item.size ? `Size: ${item.size}` : ""}</div>` : ""}
@@ -68,6 +70,10 @@
         </div>
       </div>`).join("");
 
+    el.querySelectorAll(".cart-item-image").forEach((btn, i) => {
+      const item = items[i];
+      if (item.image_url) btn.addEventListener("click", () => openImageLightbox(item.image_url, item.name || "Product"));
+    });
     el.querySelectorAll(".guest-qty-input").forEach(input => {
       input.addEventListener("change", () => {
         GuestCart.updateQuantity(input.dataset.productId, parseInt(input.value, 10) || 1);
@@ -103,7 +109,9 @@
         const img = (p.images || []).find(i => i.is_primary) || (p.images || [])[0];
         return `
           <div class="flex items-center gap-2 sm:gap-4 border border-slate-200 rounded-md p-3" data-item-id="${item.id}">
-            ${img ? `<img src="${img.image_url}" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded shrink-0">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded shrink-0"></div>`}
+            <button type="button" class="cart-item-image shrink-0 ${img ? "cursor-pointer" : "cursor-default"}" ${img ? "" : "tabindex=\"-1\" aria-hidden=\"true\""} aria-label="View larger product image">
+              ${img ? `<img src="${img.image_url}" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded"></div>`}
+            </button>
             <div class="flex-1 min-w-0">
               <div class="text-sm sm:text-base font-medium truncate">${p.name}</div>
               ${(item.option || item.color) ? `<div class="text-xs text-slate-500 mt-0.5 truncate">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}</div>` : ""}
@@ -117,6 +125,11 @@
           </div>`;
       }).join("");
 
+      el.querySelectorAll(".cart-item-image").forEach((btn, i) => {
+        const p = cart.items[i].product;
+        const img = (p.images || []).find(im => im.is_primary) || (p.images || [])[0];
+        if (img) btn.addEventListener("click", () => openImageLightbox(img.image_url, p.name));
+      });
       el.querySelectorAll(".qty-input").forEach(input => {
         input.addEventListener("change", async () => {
           await apiFetch(`/cart/items/${input.dataset.itemId}`, { method: "PUT", body: { product_id: "", quantity: parseInt(input.value, 10) || 1 } });

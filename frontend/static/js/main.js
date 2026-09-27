@@ -709,7 +709,7 @@ async function renderAuthState() {
         ${deliveryLink}
         <a href="/orders.html" class="py-1 hover:text-brand-600">Orders</a>
         <div class="border-t border-slate-100 pt-3 mt-1 flex flex-col gap-2">
-          <a href="/products" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-store text-brand-500 mr-2"></i>Products</a>
+          <a href="/products" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-store text-brand-500 mr-2"></i>Marketplace</a>
           <a href="/services" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
         </div>
         <a href="/services" class="pl-6 py-1 hover:text-brand-600">Hire a Handyman</a>
@@ -910,10 +910,34 @@ function initProductGallery() {
     stage.classList.remove("is-dragging");
     window.setTimeout(() => { stage.dataset.dragged = ""; }, 0);
   });
-  document.querySelectorAll("[data-gallery-thumbnail]").forEach((button) => button.addEventListener("click", () => {
-    image.src = button.dataset.imageSrc;
-    if (modalImage) modalImage.src = button.dataset.imageSrc;
-  }));
+  const thumbButtons = Array.from(document.querySelectorAll("[data-gallery-thumbnail]"));
+  const galleryUrls = thumbButtons.length ? thumbButtons.map((b) => b.dataset.imageSrc) : (image ? [image.src] : []);
+  let galleryIndex = Math.max(0, galleryUrls.indexOf(image ? image.src : ""));
+  const highlightThumb = () => {
+    thumbButtons.forEach((b, i) => {
+      b.classList.toggle("border-brand-500", i === galleryIndex);
+      b.classList.toggle("ring-2", i === galleryIndex);
+      b.classList.toggle("ring-brand-500", i === galleryIndex);
+    });
+  };
+  const showImage = (index) => {
+    if (!galleryUrls.length) return;
+    galleryIndex = (index + galleryUrls.length) % galleryUrls.length;
+    const src = galleryUrls[galleryIndex];
+    image.src = src;
+    if (modalImage) modalImage.src = src;
+    highlightThumb();
+  };
+  thumbButtons.forEach((button, i) => button.addEventListener("click", () => showImage(i)));
+  stage.querySelector("[data-gallery-prev]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    showImage(galleryIndex - 1);
+  });
+  stage.querySelector("[data-gallery-next]")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    showImage(galleryIndex + 1);
+  });
+  highlightThumb();
   const open = () => {
     if (stage.dataset.dragged === "true") return;
     if (!modal) return;

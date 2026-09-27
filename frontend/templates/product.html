@@ -47,6 +47,16 @@
         <button type="button" class="product-main-image w-full h-full" data-gallery-open aria-label="Open high-resolution image of {{ product.name }}">
           <img id="mainImg" src="{{ primary_image.image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}" data-gallery-image>
         </button>
+        {% if images|length > 1 %}
+        <button type="button" data-gallery-prev aria-label="Show previous image of {{ product.name }}"
+                class="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 text-slate-700 shadow hover:bg-white flex items-center justify-center">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button type="button" data-gallery-next aria-label="Show next image of {{ product.name }}"
+                class="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 text-slate-700 shadow hover:bg-white flex items-center justify-center">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+        {% endif %}
         {% else %}
         <span class="text-4xl text-slate-300">🛍️</span>
         {% endif %}

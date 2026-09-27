@@ -103,7 +103,7 @@
   var skipPrefixes = [
     "/register", "/login", "/services/register", "/delivery/register",
     "/reset-password", "/forgot-password", "/checkout", "/cart",
-    "/admin", "/seller", "/professional", "/delivery-dashboard",
+    "/admin", "/seller", "/professional", "/delivery/dashboard",
   ];
   var path = window.location.pathname;
   if (skipPrefixes.some(function (p) { return path === p || path.indexOf(p + "/") === 0 || path.indexOf(p + ".html") === 0; })) return;
