@@ -1268,3 +1268,33 @@ dialog#quickViewModal[open] {
   border-color: #1c6b4f;
   color: #ffffff;
 }
+
+/* ============================================================
+   Rich text editor — seller add/edit product description field
+   (bold/italic/underline/bulleted list). Shared by add-product.html
+   and edit-product.html via initRichTextEditor() in main.js.
+   ============================================================ */
+.rich-text-input {
+  min-height: 110px;
+}
+.rich-text-input:empty:before {
+  content: attr(data-placeholder);
+  color: #94a3b8; /* slate-400, matches other placeholder text on the page */
+  pointer-events: none;
+}
+.rich-text-toolbar button[data-rt-active="true"] {
+  background: #1c6b4f; /* brand-500 */
+  color: #ffffff;
+}
+
+/* ============================================================
+   Rich text content — renders the sanitized HTML sellers write with the
+   description editor above. Tailwind's reset strips default list/paragraph
+   styling, so restore just enough for a seller's bullets and paragraph
+   breaks to actually show up on the product page.
+   ============================================================ */
+.rich-text-content p { margin-bottom: 0.75em; }
+.rich-text-content p:last-child { margin-bottom: 0; }
+.rich-text-content ul { list-style: disc; padding-left: 1.25em; margin-bottom: 0.75em; }
+.rich-text-content ol { list-style: decimal; padding-left: 1.25em; margin-bottom: 0.75em; }
+.rich-text-content li { margin-bottom: 0.25em; }

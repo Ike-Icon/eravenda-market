@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, List, Any, Literal
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator  # pyright: ignore[reportMissingImports]
+import bleach  # type: ignore[reportMissingImports]
 
 from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus, PaymentMethod, ServiceStatus, ServiceBookingStatus, DeliveryStatus
 
@@ -272,6 +273,28 @@ def _normalize_product_sizes(value):
     return normalized
 
 
+# Sellers can now format the product description with a small toolbar
+# (bold/italic/underline/bulleted list) on the add/edit product pages. The
+# browser sends that back as HTML, so it's sanitized here — server-side,
+# not just in the editor's own JS — to a short allowlist before it's ever
+# stored or shown to a buyer. This is the one place every client (the web
+# UI today, anything else that calls this API later) has to pass through,
+# so it's the only place this really needs enforcing. Deliberately no
+# links/images/headings: this is for emphasis within a paragraph, not for
+# a seller to embed a link to somewhere off-platform.
+_DESCRIPTION_ALLOWED_TAGS = ["b", "strong", "i", "em", "u", "ul", "ol", "li", "br", "p"]
+
+
+def _sanitize_description_html(value):
+    if value is None:
+        return None
+    cleaned = bleach.clean(value, tags=_DESCRIPTION_ALLOWED_TAGS, attributes={}, strip=True).strip()
+    # bleach.clean() only strips disallowed tags — an empty result still
+    # collapses to "" here so "no description" stays None, not "<p></p>".
+    text_only = bleach.clean(cleaned, tags=[], strip=True).strip()
+    return cleaned if text_only else None
+
+
 class ProductCreate(BaseModel):
     name: str
     category_id: str
@@ -287,6 +310,11 @@ class ProductCreate(BaseModel):
     options: Optional[List[Any]] = None
     sizes: Optional[List[Any]] = None
     cod_eligible: bool = True
+
+    @field_validator("description")
+    @classmethod
+    def sanitize_description(cls, value):
+        return _sanitize_description_html(value)
 
     @field_validator("colors")
     @classmethod
@@ -319,6 +347,11 @@ class ProductUpdate(BaseModel):
     options: Optional[List[Any]] = None
     sizes: Optional[List[Any]] = None
     cod_eligible: Optional[bool] = None
+
+    @field_validator("description")
+    @classmethod
+    def sanitize_description(cls, value):
+        return _sanitize_description_html(value)
 
     @field_validator("colors")
     @classmethod

@@ -1594,6 +1594,64 @@ function initQuickViewModal() {
 }
 
 // ------------------------------------------------------------------
+// Rich text editor — bold/italic/underline/bulleted-list toolbar for the
+// seller product-description field (add-product.html, edit-product.html).
+// Kept deliberately small: execCommand is old and only semi-standard, but
+// for four basic commands on a same-origin form it's the simplest thing
+// that works everywhere without pulling in a whole editor library, matching
+// how the rest of this site avoids frontend frameworks.
+//
+// Usage: wrap a `contenteditable` div with `.rich-text-input` inside a
+// `[data-rich-text]` container that also holds `[data-rt-cmd]` toolbar
+// buttons (see add-product.html). Read the result at submit time with
+// `getRichTextValue(container)`; populate an existing value (edit page)
+// with `setRichTextValue(container, html)`.
+// ------------------------------------------------------------------
+function getRichTextValue(container) {
+  const input = container?.querySelector(".rich-text-input");
+  if (!input) return null;
+  const html = input.innerHTML.trim();
+  // A div that's visually empty (user typed then deleted everything) can
+  // still contain a stray "<br>" — treat that the same as truly empty.
+  const textOnly = input.textContent.trim();
+  return textOnly ? html : null;
+}
+
+function setRichTextValue(container, html) {
+  const input = container?.querySelector(".rich-text-input");
+  if (input) input.innerHTML = html || "";
+}
+
+function initRichTextEditor() {
+  document.querySelectorAll("[data-rich-text]").forEach((container) => {
+    const input = container.querySelector(".rich-text-input");
+    if (!input) return;
+    const buttons = Array.from(container.querySelectorAll("[data-rt-cmd]"));
+    const refreshActiveStates = () => {
+      buttons.forEach((btn) => {
+        let active = false;
+        try { active = document.queryCommandState(btn.dataset.rtCmd); } catch (e) { active = false; }
+        btn.dataset.rtActive = active ? "true" : "false";
+      });
+    };
+    buttons.forEach((btn) => {
+      // mousedown (not click) + preventDefault keeps the text selection in
+      // the editable div intact — a click would blur it first, and
+      // execCommand needs the selection to still be there.
+      btn.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+        input.focus();
+        document.execCommand(btn.dataset.rtCmd, false, null);
+        refreshActiveStates();
+      });
+    });
+    input.addEventListener("keyup", refreshActiveStates);
+    input.addEventListener("mouseup", refreshActiveStates);
+    input.addEventListener("focus", refreshActiveStates);
+  });
+}
+
+// ------------------------------------------------------------------
 // Boot
 // ------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
@@ -1620,6 +1678,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initQuickViewModal();
   ThemeSwitcher.init();
   UserSettings.init();
+  initRichTextEditor();
 });
 
 // ------------------------------------------------------------------

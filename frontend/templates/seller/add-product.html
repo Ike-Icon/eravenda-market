@@ -32,7 +32,16 @@
 
       <div>
         <label class="block text-sm font-medium mb-1.5">Description</label>
-        <textarea name="description" placeholder="Condition, specs, what's in the box…" class="w-full border border-slate-300 rounded-md px-3 py-2.5"></textarea>
+        <div data-rich-text="description">
+          <div class="rich-text-toolbar flex gap-1 mb-0 border border-slate-300 border-b-0 rounded-t-md bg-slate-50 p-1.5">
+            <button type="button" data-rt-cmd="bold" class="w-8 h-8 rounded hover:bg-slate-200 font-bold text-sm" aria-label="Bold" title="Bold">B</button>
+            <button type="button" data-rt-cmd="italic" class="w-8 h-8 rounded hover:bg-slate-200 italic text-sm" aria-label="Italic" title="Italic">I</button>
+            <button type="button" data-rt-cmd="underline" class="w-8 h-8 rounded hover:bg-slate-200 underline text-sm" aria-label="Underline" title="Underline">U</button>
+            <span class="w-px bg-slate-300 my-1"></span>
+            <button type="button" data-rt-cmd="insertUnorderedList" class="w-8 h-8 rounded hover:bg-slate-200 text-sm" aria-label="Bulleted list" title="Bulleted list"><i class="fas fa-list-ul"></i></button>
+          </div>
+          <div class="rich-text-input w-full border border-slate-300 rounded-b-md px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500" contenteditable="true" data-placeholder="Condition, specs, what's in the box…"></div>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -376,7 +385,7 @@
     const payload = {
       name: fd.get("name"),
       category_id: fd.get("category_id"),
-      description: fd.get("description") || null,
+      description: getRichTextValue(document.querySelector('[data-rich-text="description"]')),
       brand: fd.get("brand") || null,
       condition: fd.get("condition"),
       sku: fd.get("sku") || null,
