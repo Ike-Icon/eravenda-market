@@ -72,6 +72,19 @@
         {% endfor %}
       </div>
       {% endif %}
+
+      {% if product.specifications %}
+      <!-- Specs sit under the images on large screens (this column is otherwise short).
+           Below lg they stay in the info column, so each list shows exactly once. -->
+      <section class="hidden lg:block mt-6 border border-slate-200 rounded-xl bg-white p-5" aria-labelledby="specsHeading">
+        <h2 id="specsHeading" class="font-head text-base font-semibold text-slate-800 mb-3">Product specifications</h2>
+        <ul class="space-y-1.5 text-sm text-slate-600 list-disc list-outside pl-5 break-words">
+          {% for spec in product.specifications %}
+          <li>{{ spec }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
     </div>
 
     <!-- COLUMN 2 — Product info -->
@@ -152,7 +165,7 @@
       <div class="mt-4 text-slate-600 rich-text-content">{{ (product.description or "No description provided for this product yet.") | safe }}</div>
 
       {% if product.specifications %}
-      <ul class="mt-3 space-y-1 text-sm text-slate-600 list-disc list-inside">
+      <ul class="lg:hidden mt-3 space-y-1 text-sm text-slate-600 list-disc list-inside">
         {% for spec in product.specifications %}
         <li>{{ spec }}</li>
         {% endfor %}
@@ -309,7 +322,7 @@
       <button type="button" data-product-tab="shipping" class="product-tab px-5 py-3 text-sm font-semibold text-slate-500">Shipping</button>
       <button type="button" data-product-tab="returns" class="product-tab px-5 py-3 text-sm font-semibold text-slate-500">Returns</button>
     </div>
-    <div data-product-panel="details" class="p-5 text-sm text-slate-600"><div class="rich-text-content">{{ (product.description or 'No additional product details provided.') | safe }}</div>{% if product.specifications %}<ul class="list-disc list-inside mt-3 space-y-1">{% for spec in product.specifications %}<li>{{ spec }}</li>{% endfor %}</ul>{% endif %}</div>
+    <div data-product-panel="details" class="p-5 text-sm text-slate-600"><div class="rich-text-content">{{ (product.description or 'No additional product details provided.') | safe }}</div>{% if product.specifications %}<ul class="lg:hidden list-disc list-inside mt-3 space-y-1">{% for spec in product.specifications %}<li>{{ spec }}</li>{% endfor %}</ul>{% endif %}</div>
     <div data-product-panel="shipping" class="hidden p-5 text-sm text-slate-600">Shipping fees and delivery times are calculated at checkout based on your delivery location and the store's location.</div>
     <div data-product-panel="returns" class="hidden p-5 text-sm text-slate-600">For return or exchange requests, contact the seller through Eravenda support with your order details. Eligibility depends on the item's condition and the seller's applicable return terms.</div>
   </div>
