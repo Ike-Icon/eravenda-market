@@ -3,6 +3,17 @@
 {% block title %}EraVenda — Ghana's Marketplace for Products & Handyman Services{% endblock %}
 {% block meta_description %}Shop thousands of quality products from verified Ghanaian sellers or book trusted, background-checked handymen for electrical, plumbing, AC repair, and more. Escrow-protected checkout and tracked delivery across Ghana.{% endblock %}
 
+{% block structured_data %}
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Eravenda Market",
+  "url": site_url,
+} | tojson }}
+</script>
+{% endblock %}
+
 {% block content %}
 
 <!-- ============================================================

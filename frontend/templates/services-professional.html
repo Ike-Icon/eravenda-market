@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ worker.professional_name or worker.job_title }} — EraVenda Handyman Hub{% endblock %}
+{% block meta_description %}Hire {{ worker.professional_name or worker.job_title }}{% if worker.company_name %} ({{ worker.company_name }}){% endif %} — {{ worker.custom_job_title or worker.job_title }} on Eravenda Market.{% endblock %}
 {% block content %}
 <section class="max-w-6xl mx-auto px-4 py-10">
   <a href="/services" class="text-sm font-semibold text-brand-700">← Back to professionals</a>

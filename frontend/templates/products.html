@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{% if search_query %}Results for "{{ search_query }}"{% else %}Browse products{% endif %} — Eravenda Market{% endblock %}
+{% block meta_description %}{% if search_query %}Products matching "{{ search_query }}" on Eravenda Market — shop from independent sellers across Ghana.{% else %}Browse thousands of products from independent sellers across Ghana on Eravenda Market.{% endif %}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">

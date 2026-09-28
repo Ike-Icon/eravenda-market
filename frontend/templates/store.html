@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ store.store_name }} — Eravenda Market{% endblock %}
 {% block meta_description %}Shop products from {{ store.store_name }} on Eravenda Market.{% endblock %}
+{% block og_type %}website{% endblock %}
+{% block og_image %}
+{% if store.logo_url %}
+<meta property="og:image" content="{{ store.logo_url }}">
+{% else %}
+<meta property="og:image" content="{{ site_url }}/static/img/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+{% endif %}
+{% endblock %}
+{% block twitter_card %}{{ 'summary_large_image' if store.logo_url else 'summary' }}{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">

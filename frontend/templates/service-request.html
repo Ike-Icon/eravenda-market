@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Request {{ worker.custom_job_title or worker.job_title }} — EraVenda Handyman Hub{% endblock %}
+{% block robots_meta %}noindex, nofollow{% endblock %}
 {% block content %}
 <section class="max-w-2xl mx-auto px-4 py-10">
   <a href="/services" class="text-sm text-brand-600 font-semibold">← Back to Handyman Hub</a>

@@ -2,16 +2,27 @@ databases:
   - name: eravenda-db
     databaseName: eravenda
     user: eravenda
-    plan: free
+    # Left unset on purpose: whichever plan is set in the Render Dashboard
+    # stays as-is on every future Blueprint sync. Pin an explicit value here
+    # (e.g. basic-1gb) only if you want this file to be the source of truth
+    # for the plan too — see https://render.com/docs/blueprint-spec#database-fields
+    # for the current instance-type names.
 
 services:
   - type: web
     name: eravenda-api
     runtime: python
-    plan: free
+    # Left unset on purpose — see the database's `plan` comment above. Before
+    # this file explicitly said `free`, which would silently downgrade the
+    # live paid service back to free on the next Blueprint sync (e.g. a git
+    # push), losing always-on hosting and undoing the upgrade.
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: python -m app.migrate && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Lets Render confirm a new instance is actually serving before it retires
+    # the old one — zero-downtime deploys, which only take effect on a paid
+    # plan (a free instance has just the one instance regardless).
+    healthCheckPath: /healthz
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.0

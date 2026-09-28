@@ -1,6 +1,56 @@
 {% extends "base.html" %}
 {% block title %}{{ product.name }} — Eravenda Market{% endblock %}
 {% block meta_description %}{{ ((product.description or product.name) | striptags)[:155] }}{% endblock %}
+{% block og_type %}product{% endblock %}
+{% set primary_image_preview = (product.images | selectattr("is_primary") | list | first) or (product.images | first) if product.images else None %}
+{% block og_image %}
+{% if primary_image_preview %}
+<meta property="og:image" content="{{ primary_image_preview.image_url }}">
+{% else %}
+<meta property="og:image" content="{{ site_url }}/static/img/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+{% endif %}
+{% endblock %}
+{% block twitter_card %}{{ 'summary_large_image' if primary_image_preview else 'summary' }}{% endblock %}
+
+{% block structured_data %}
+{% set ld_price = product.discount_price if (product.discount_price and product.discount_price < product.price) else product.price %}
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": product.name,
+  "description": (product.description or product.name) | striptags,
+  "sku": product.sku or product.id,
+  "image": ((product.images or []) | map(attribute="image_url") | list) or None,
+  "brand": {"@type": "Brand", "name": product.brand} if product.brand else None,
+  "offers": {
+    "@type": "Offer",
+    "url": canonical_url,
+    "priceCurrency": "GHS",
+    "price": "%.2f" | format(ld_price),
+    "availability": "https://schema.org/InStock" if product.stock_quantity and product.stock_quantity > 0 else "https://schema.org/OutOfStock",
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "%.1f" | format(product.average_rating),
+    "reviewCount": product.review_count,
+  } if product.review_count and product.review_count > 0 else None,
+} | compact | tojson }}
+</script>
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Home", "item": site_url},
+    {"@type": "ListItem", "position": 2, "name": product.category.name, "item": site_url ~ "/products?category_id=" ~ product.category_id} if product.category else None,
+    {"@type": "ListItem", "position": 3, "name": product.name, "item": canonical_url},
+  ] | select | list,
+} | tojson }}
+</script>
+{% endblock %}
 
 {% set price = product.discount_price if product.discount_price else product.price %}
 {% set has_discount = product.discount_price and product.discount_price < product.price %}

@@ -5,6 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Eravenda Market — Shop from independent sellers across Ghana{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}Eravenda Market connects buyers with independent sellers across Ghana.{% endblock %}">
+  <link rel="canonical" href="{% block canonical %}{{ canonical_url|default(site_url) }}{% endblock %}">
+  <meta name="robots" content="{% block robots_meta %}index, follow{% endblock %}">
+
+  <!-- Open Graph / Twitter: what a shared link shows on WhatsApp, Facebook, X, etc.
+       Each block below defaults to the site-wide values and is overridden per
+       page (product.html sets og_image to the product photo, for example). -->
+  <meta property="og:site_name" content="Eravenda Market">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:url" content="{{ canonical_url|default(site_url) }}">
+  <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
+  {% block og_image %}
+  <meta property="og:image" content="{{ site_url }}/static/img/og-default.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Eravenda Market — shop it, fix it.">
+  {% endblock %}
+  <meta name="twitter:card" content="{% block twitter_card %}summary{% endblock %}">
+  <meta name="twitter:title" content="{{ self.og_title() }}">
+  <meta name="twitter:description" content="{{ self.og_description() }}">
 
   <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
   <link rel="icon" type="image/x-icon" href="../static/img/favicon.ico">
@@ -67,6 +87,16 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   {% block extra_head %}{% endblock %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Eravenda Market",
+  "url": "{{ site_url }}",
+  "logo": "{{ site_url }}/static/img/favicon.svg"
+}
+</script>
+{% block structured_data %}{% endblock %}
 </head>
 <body class="font-body text-slate-900 bg-white flex min-h-screen flex-col">
 

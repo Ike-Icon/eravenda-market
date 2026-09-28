@@ -130,6 +130,11 @@ PRODUCTS_PAGE_SIZE = 24
 PRODUCTS_PAGE_MAX = 500
 
 templates = Jinja2Templates(directory=str(FRONTEND_DIR / "templates"))
+# Used when building JSON-LD in templates: {"a": 1, "b": None} | compact -> {"a": 1}.
+# Keeps optional structured-data fields (aggregateRating, brand, ...) out of the
+# JSON entirely when there's nothing to say, instead of shipping "field": null,
+# which trips validators like Google's Rich Results Test.
+templates.env.filters["compact"] = lambda d: {k: v for k, v in d.items() if v is not None}
 
 # New Tailwind-based assets (main.js, config.js, custom.css) for the
 # templated pages below.
@@ -179,9 +184,24 @@ def page_context(request: Request, db: Session, **extra) -> dict:
         "categories": categories,
         "category_tree": category_tree,
         "current_year": datetime.utcnow().year,
+        "site_url": SITE_URL,
+        # Self-referencing canonical for every page. `page` is dropped because
+        # our list pages paginate client-side (history.replaceState, no
+        # server reload) — every ?page=N is the same document as far as a
+        # crawler should be concerned, so they'd otherwise look like
+        # duplicate content competing against each other in search results.
+        "canonical_url": _canonical_url(request),
     }
     context.update(extra)
     return context
+
+
+def _canonical_url(request: Request) -> str:
+    query = "&".join(
+        f"{k}={v}" for k, v in request.query_params.multi_items() if k != "page"
+    )
+    path = request.url.path.rstrip("/") or "/"
+    return f"{SITE_URL}{path}" + (f"?{query}" if query else "")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -618,6 +638,16 @@ def order_tracking_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("order-tracking.html", page_context(request, db))
 
 
+@app.get("/healthz")
+def healthz():
+    # Deliberately does not touch the database: Render's paid plans use this
+    # (see healthCheckPath in render.yaml) to confirm a new instance is ready
+    # before routing traffic to it and retiring the old one (zero-downtime
+    # deploys). It needs to answer fast regardless of DB load, so it can't
+    # depend on the DB being reachable.
+    return {"status": "ok"}
+
+
 @app.get("/robots.txt")
 def robots_txt():
     return FileResponse(FRONTEND_DIR / "robots.txt", media_type="text/plain")
@@ -637,21 +667,45 @@ def sitemap(db: Session = Depends(get_db)):
     catalog this size; if you grow past a few thousand products, cache
     this behind a short TTL instead of hitting the database every time.
     """
-    urls = [SITE_URL, f"{SITE_URL}/products"]
+    # Static pages worth indexing. Account, checkout, dashboard and other
+    # private/transactional pages are marked noindex in their own template
+    # (robots_meta block) and left out of here entirely.
+    static_urls = [
+        SITE_URL, f"{SITE_URL}/products", f"{SITE_URL}/services",
+        f"{SITE_URL}/services/register", f"{SITE_URL}/delivery/register",
+        f"{SITE_URL}/about", f"{SITE_URL}/contact", f"{SITE_URL}/faq",
+        f"{SITE_URL}/terms", f"{SITE_URL}/privacy", f"{SITE_URL}/delivery/terms",
+    ]
 
     approved_products = db.query(models.Product.id, models.Product.updated_at).filter(
         models.Product.status == models.ProductStatus.approved
     ).all()
 
+    approved_stores = db.query(models.Store.id).filter(
+        models.Store.status == models.StoreStatus.approved
+    ).all()
+
+    approved_handymen = db.query(models.HandymanProfile.id).filter(
+        models.HandymanProfile.status == models.ServiceStatus.approved
+    ).all()
+
     xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
 
-    for url in urls:
-        xml_parts.append(f"<url><loc>{url}</loc><changefreq>daily</changefreq></url>")
+    for url in static_urls:
+        xml_parts.append(f"<url><loc>{url}</loc><changefreq>weekly</changefreq></url>")
 
     for product_id, updated_at in approved_products:
         loc = f"{SITE_URL}/product/{product_id}"
         lastmod = updated_at.strftime("%Y-%m-%d") if updated_at else ""
         xml_parts.append(f"<url><loc>{loc}</loc><lastmod>{lastmod}</lastmod><changefreq>weekly</changefreq></url>")
+
+    for (store_id,) in approved_stores:
+        loc = f"{SITE_URL}/store/{store_id}"
+        xml_parts.append(f"<url><loc>{loc}</loc><changefreq>weekly</changefreq></url>")
+
+    for (handyman_id,) in approved_handymen:
+        loc = f"{SITE_URL}/services/professional/{handyman_id}"
+        xml_parts.append(f"<url><loc>{loc}</loc><changefreq>weekly</changefreq></url>")
 
     xml_parts.append("</urlset>")
     xml = "".join(xml_parts)
