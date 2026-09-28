@@ -1356,6 +1356,133 @@ function initProductCards() {
 }
 
 // ------------------------------------------------------------------
+// Module: Pagination
+// One shared pager for every list of products on the site (browse,
+// store, wishlist, seller and admin lists). The page decides what a
+// "page" of items means via onPage(start, end); the pager owns the
+// page number, the numbered buttons, the "Showing a–b of N" text and,
+// optionally, keeping ?page= in the URL so refresh/share lands on the
+// same page.
+//
+//   const pager = createPager({ nav, summary, count, pageSize: 24,
+//                               syncUrl: true, onPage: (start, end) => {...} });
+//   pager.render(totalItems);                 // after (re)filtering
+//   pager.render(totalItems, { reset: true }) // filters changed -> page 1
+// ------------------------------------------------------------------
+function pagerPageNumbers(current, totalPages) {
+  const wanted = new Set([1, totalPages, current - 1, current, current + 1]);
+  const sorted = [...wanted].filter(n => n >= 1 && n <= totalPages).sort((a, b) => a - b);
+  const out = [];
+  sorted.forEach((n, i) => {
+    if (i && n - sorted[i - 1] > 1) out.push('…');
+    out.push(n);
+  });
+  return out;
+}
+
+function createPager(opts) {
+  const {
+    nav = null,          // <nav> that receives the numbered buttons
+    summary = null,      // optional element for the "Showing a–b of N" text
+    count = null,        // optional second element for the same text (e.g. above the grid)
+    pageSize = 24,
+    noun = 'product',
+    syncUrl = false,
+    param = 'page',
+    scrollTarget = null, // element to scroll to after a page change
+    onPage = () => {},
+  } = opts || {};
+
+  let currentPage = 1;
+  if (syncUrl) {
+    const fromUrl = parseInt(new URLSearchParams(location.search).get(param) || '1', 10);
+    currentPage = Number.isFinite(fromUrl) && fromUrl >= 1 ? fromUrl : 1;
+  }
+  let lastTotal = 0;
+
+  function buildNav(totalPages) {
+    if (!nav) return;
+    nav.innerHTML = '';
+    const showNav = totalPages > 1;
+    nav.classList.toggle('hidden', !showNav);
+    nav.classList.toggle('flex', showNav);
+    if (!showNav) return;
+
+    // whitespace-nowrap: labels like "‹ Prev" must never wrap onto two lines on narrow phones.
+    const base = 'min-w-[36px] sm:min-w-[38px] h-9 px-2.5 sm:px-3 rounded-md border text-sm font-medium items-center justify-center whitespace-nowrap';
+    // On phones the row of numbers is replaced by a compact "Page X of Y" so the
+    // whole pager stays on one line at 360px; numbers appear from the sm breakpoint up.
+    const make = (label, page, { active = false, disabled = false, aria = '', numbered = false } = {}) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      if (aria) b.setAttribute('aria-label', aria);
+      if (active) b.setAttribute('aria-current', 'page');
+      b.className = base + (numbered ? ' hidden sm:flex' : ' flex') + (active
+        ? ' bg-brand-500 border-brand-500 text-white'
+        : ' bg-white border-slate-300 text-slate-700 hover:bg-slate-50')
+        + (disabled ? ' opacity-40 pointer-events-none' : '');
+      b.disabled = disabled;
+      b.addEventListener('click', () => goTo(page, true));
+      return b;
+    };
+
+    nav.appendChild(make('‹ Prev', currentPage - 1, { disabled: currentPage === 1, aria: 'Previous page' }));
+    const mobileLabel = document.createElement('span');
+    mobileLabel.textContent = `Page ${currentPage} of ${totalPages}`;
+    mobileLabel.className = 'sm:hidden px-1 text-sm font-medium text-slate-600 whitespace-nowrap';
+    nav.appendChild(mobileLabel);
+    pagerPageNumbers(currentPage, totalPages).forEach(n => {
+      if (n === '…') {
+        const gap = document.createElement('span');
+        gap.textContent = '…';
+        gap.className = 'hidden sm:inline px-1 text-slate-400';
+        nav.appendChild(gap);
+      } else {
+        nav.appendChild(make(String(n), n, { active: n === currentPage, aria: 'Page ' + n, numbered: true }));
+      }
+    });
+    nav.appendChild(make('Next ›', currentPage + 1, { disabled: currentPage === totalPages, aria: 'Next page' }));
+  }
+
+  function render(total, { reset = false, scroll = false } = {}) {
+    lastTotal = total;
+    if (reset) currentPage = 1;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+    const start = (currentPage - 1) * pageSize;
+    const end = Math.min(start + pageSize, total);
+
+    onPage(start, end);
+
+    const left = total - end;
+    const text = total
+      ? `Showing ${start + 1}–${end} of ${total} ${noun}(s)` + (left > 0 ? ` · ${left} more to see` : '')
+      : `0 ${noun}(s) found`;
+    if (count) count.textContent = text;
+    if (summary) summary.textContent = total ? text : '';
+    buildNav(totalPages);
+
+    if (syncUrl) {
+      const url = new URL(location.href);
+      if (currentPage > 1) url.searchParams.set(param, currentPage); else url.searchParams.delete(param);
+      history.replaceState(null, '', url);
+    }
+    if (scroll) {
+      const target = scrollTarget || count || summary;
+      if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function goTo(page, scroll) {
+    currentPage = page;
+    render(lastTotal, { scroll: !!scroll });
+  }
+
+  return { render, goTo, get page() { return currentPage; } };
+}
+
+// ------------------------------------------------------------------
 // Module: Homepage Enhancements
 // Mode switcher, flash countdown, product tabs, quick view modal
 // ------------------------------------------------------------------

@@ -2,7 +2,6 @@
 {% block title %}{% if search_query %}Results for "{{ search_query }}"{% else %}Browse products{% endif %} — Eravenda Market{% endblock %}
 
 {% block content %}
-{% set page_size = 24 %}
 <div class="max-w-7xl mx-auto px-4 py-8">
   <h1 class="font-head text-2xl font-semibold mb-4">
     {% if search_query %}Results for "{{ search_query }}"{% else %}All products{% endif %}
@@ -105,6 +104,11 @@
       </form>
 
       <p id="productResultCount" class="text-sm text-slate-500 mb-4 scroll-mt-28">{{ products|default([])|length }} product(s) found</p>
+      {% if products_not_shown|default(0) > 0 %}
+      <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-4">
+        {{ products_not_shown }} more product(s) match but aren't listed here. Use the search box or a category to narrow the results.
+      </p>
+      {% endif %}
   {% if products|default([]) %}
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
     {% for p in products %}
@@ -112,7 +116,7 @@
     {% set has_discount = p.discount_price and p.discount_price < p.price %}
     {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
     {% set out_of_stock = p.stock_quantity <= 0 %}
-    <article data-product-card data-product-url="/product/{{ p.id }}" data-category="{{ p.category_id }}" data-parent-category="{{ p.category.parent_id if p.category else '' }}" data-stock="{{ p.stock_quantity }}" data-cod="{{ 'true' if p.cod_eligible else 'false' }}" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500{% if loop.index > page_size %} hidden{% endif %}">
+    <article data-product-card data-product-url="/product/{{ p.id }}" data-category="{{ p.category_id }}" data-parent-category="{{ p.category.parent_id if p.category else '' }}" data-stock="{{ p.stock_quantity }}" data-cod="{{ 'true' if p.cod_eligible else 'false' }}" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500{% if loop.index > page_size|default(24) %} hidden{% endif %}">
       <div class="relative aspect-square bg-slate-100 lazy-img">
         {% if has_discount and not out_of_stock %}
         <span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">
@@ -178,86 +182,24 @@ const activeFilterBadge = document.getElementById('activeFilterBadge');
 // Runs over whatever the filters below currently match, so the sidebar
 // filters, quick search and pages all work together. The URL's ?page=
 // is kept in sync so a refresh or shared link lands on the same page.
-const PAGE_SIZE = {{ page_size }};
-const paginationNav = document.getElementById('productPagination');
-const pageSummary = document.getElementById('productPageSummary');
-let currentPage = parseInt(new URLSearchParams(location.search).get('page') || '1', 10) || 1;
+// createPager() lives in /static/js/main.js and is shared with the store,
+// wishlist, seller and admin product lists.
+const PAGE_SIZE = {{ page_size|default(24) }};
 let filteredCards = productCards.slice();
 let lastFilterSignature = null;
 
-function pageNumbers(current, totalPages) {
-  const wanted = new Set([1, totalPages, current - 1, current, current + 1]);
-  const sorted = [...wanted].filter(n => n >= 1 && n <= totalPages).sort((a, b) => a - b);
-  const out = [];
-  sorted.forEach((n, i) => {
-    if (i && n - sorted[i - 1] > 1) out.push('…');
-    out.push(n);
-  });
-  return out;
-}
-
-function renderPagination(totalPages) {
-  if (!paginationNav) return;
-  paginationNav.innerHTML = '';
-  const showNav = totalPages > 1;
-  paginationNav.classList.toggle('hidden', !showNav);
-  paginationNav.classList.toggle('flex', showNav);
-  if (!showNav) return;
-
-  const base = 'min-w-[38px] h-9 px-3 rounded-md border text-sm font-medium flex items-center justify-center';
-  const make = (label, page, { active = false, disabled = false, aria = '' } = {}) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = label;
-    if (aria) b.setAttribute('aria-label', aria);
-    if (active) b.setAttribute('aria-current', 'page');
-    b.className = base + (active
-      ? ' bg-brand-500 border-brand-500 text-white'
-      : ' bg-white border-slate-300 text-slate-700 hover:bg-slate-50')
-      + (disabled ? ' opacity-40 pointer-events-none' : '');
-    b.disabled = disabled;
-    b.addEventListener('click', () => { currentPage = page; renderPage(true); });
-    return b;
-  };
-
-  paginationNav.appendChild(make('‹ Prev', currentPage - 1, { disabled: currentPage === 1, aria: 'Previous page' }));
-  pageNumbers(currentPage, totalPages).forEach(n => {
-    if (n === '…') {
-      const gap = document.createElement('span');
-      gap.textContent = '…';
-      gap.className = 'px-1 text-slate-400';
-      paginationNav.appendChild(gap);
-    } else {
-      paginationNav.appendChild(make(String(n), n, { active: n === currentPage, aria: 'Page ' + n }));
-    }
-  });
-  paginationNav.appendChild(make('Next ›', currentPage + 1, { disabled: currentPage === totalPages, aria: 'Next page' }));
-}
-
-function renderPage(scrollToTop) {
-  const total = filteredCards.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  currentPage = Math.min(Math.max(currentPage, 1), totalPages);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const end = Math.min(start + PAGE_SIZE, total);
-
-  productCards.forEach(card => card.classList.add('hidden'));
-  filteredCards.slice(start, end).forEach(card => card.classList.remove('hidden'));
-
-  const left = total - end;
-  const summary = total
-    ? `Showing ${start + 1}–${end} of ${total} product(s)` + (left > 0 ? ` · ${left} more to see` : '')
-    : '0 product(s) found';
-  if (resultCount) resultCount.textContent = summary;
-  if (pageSummary) pageSummary.textContent = total ? summary : '';
-  renderPagination(totalPages);
-
-  const url = new URL(location.href);
-  if (currentPage > 1) url.searchParams.set('page', currentPage); else url.searchParams.delete('page');
-  history.replaceState(null, '', url);
-
-  if (scrollToTop && resultCount) resultCount.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+const pager = createPager({
+  nav: document.getElementById('productPagination'),
+  summary: document.getElementById('productPageSummary'),
+  count: resultCount,
+  pageSize: PAGE_SIZE,
+  noun: 'product',
+  syncUrl: true,
+  onPage: (start, end) => {
+    productCards.forEach(card => card.classList.add('hidden'));
+    filteredCards.slice(start, end).forEach(card => card.classList.remove('hidden'));
+  },
+});
 
 function applyCategoryFilters() {
   const selectedCategories = categoryFilterInputs.filter(input => input.checked).map(input => String(input.value));
@@ -280,10 +222,10 @@ function applyCategoryFilters() {
   // A different filter state means a different result set, so start again
   // from page 1 (the very first run keeps the page from the URL).
   const signature = JSON.stringify([selectedCategories, searchTerm, stockOnly, codOnlyChecked]);
-  if (lastFilterSignature !== null && signature !== lastFilterSignature) currentPage = 1;
+  const filtersChanged = lastFilterSignature !== null && signature !== lastFilterSignature;
   lastFilterSignature = signature;
   filteredCards = filtered;
-  renderPage(false);
+  pager.render(filtered.length, { reset: filtersChanged });
 
   // Keep the mobile quick chips in sync with whichever categories are checked.
   quickChips.forEach(chip => {

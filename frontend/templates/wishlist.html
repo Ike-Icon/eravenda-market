@@ -9,10 +9,31 @@
   <div id="wishlist" class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <p class="text-slate-500 col-span-full">Loading…</p>
   </div>
+  <nav id="wishlistPagination" class="hidden mt-8 flex-wrap items-center justify-center gap-1.5" aria-label="Wishlist pages"></nav>
+  <p id="wishlistPageSummary" class="mt-3 text-center text-xs text-slate-500"></p>
 </section>
 {% endblock %}
 {% block scripts %}<script>
 const money = n => `₵${Number(n).toFixed(2)}`;
+
+// Wishlist pagination. Cards are rendered for the whole list, then every card
+// outside the current page is hidden; the pager (createPager, main.js) owns the
+// page number and buttons. Call paginateWishlist() after any change to the list.
+const wishlistPager = createPager({
+  nav: document.getElementById("wishlistPagination"),
+  summary: document.getElementById("wishlistPageSummary"),
+  scrollTarget: document.querySelector("h1"),
+  pageSize: 12,
+  noun: "item",
+  onPage: (start, end) => {
+    document.querySelectorAll("#wishlist > article").forEach((card, i) => {
+      card.classList.toggle("hidden", i < start || i >= end);
+    });
+  },
+});
+function paginateWishlist() {
+  wishlistPager.render(document.querySelectorAll("#wishlist > article").length);
+}
 
 const EMPTY_WISHLIST_HTML = '<div class="col-span-full py-12 text-center text-slate-500"><i class="fas fa-heart text-4xl text-slate-300 mb-3 block" aria-hidden="true"></i>Your wishlist is empty. <a href="/products" class="text-brand-600 font-semibold">Browse products</a> and save your favourites.</div>';
 
@@ -23,6 +44,7 @@ function renderGuestWishlist() {
 
   if (!ids.length) {
     el.innerHTML = EMPTY_WISHLIST_HTML;
+    paginateWishlist();
     return;
   }
 
@@ -41,6 +63,7 @@ function renderGuestWishlist() {
       renderGuestWishlist();
     });
   });
+  paginateWishlist();
 }
 
 async function loadWishlist() {
@@ -49,6 +72,7 @@ async function loadWishlist() {
     const items = await apiFetch("/wishlist");
     if (!items.length) {
       el.innerHTML = EMPTY_WISHLIST_HTML;
+      paginateWishlist();
       return;
     }
     el.innerHTML = items.map(({product: p}) => {
@@ -62,6 +86,7 @@ async function loadWishlist() {
     }).join("");
     if (window.lucide) lucide.createIcons();
     if (typeof initProductCards === "function") initProductCards();
+    paginateWishlist();
     el.querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
       await apiFetch(`/wishlist/${b.dataset.id}`, {method: "DELETE"});
       refreshWishlistBadge();
@@ -70,6 +95,9 @@ async function loadWishlist() {
       if (!el.querySelector("[data-product-card], article")) {
         el.innerHTML = EMPTY_WISHLIST_HTML;
       }
+      // Re-page after a removal: pulls the next item onto this page and steps
+      // back a page if the last one just emptied.
+      paginateWishlist();
     });
   } catch (e) {
     el.innerHTML = `<p class="text-red-600 col-span-full">Couldn't load your wishlist: ${e.message}</p>`;

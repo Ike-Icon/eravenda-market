@@ -121,6 +121,14 @@ def health_check(db: Session = Depends(get_db)):
 # ============================================================
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 
+# Cards per page on the browse (/products) and store (/store/{id}) pages.
+# Passed to the templates as `page_size` so the server-rendered markup and the
+# browser-side pager can never disagree about it.
+PRODUCTS_PAGE_SIZE = 24
+# Upper bound on how many products /products sends to the browser to page
+# through (the pager works client-side so the sidebar filters span everything).
+PRODUCTS_PAGE_MAX = 500
+
 templates = Jinja2Templates(directory=str(FRONTEND_DIR / "templates"))
 
 # New Tailwind-based assets (main.js, config.js, custom.css) for the
@@ -293,9 +301,12 @@ def products_page(
     # The page paginates in the browser (products.html), so that its category,
     # stock and Pay-on-Delivery filters can work across every product rather
     # than just the current page. Previously this was capped at 60 with no
-    # way to reach the rest. 500 keeps the page size sane; if the catalogue
-    # ever outgrows that, move to server-side pagination.
-    products_list = query.limit(500).all()
+    # way to reach the rest. PRODUCTS_PAGE_MAX keeps the page size sane; when
+    # more products match than that, the template shows a "narrow your search"
+    # notice (products_not_shown). If the catalogue outgrows this, move to
+    # server-side pagination.
+    total_matching = query.count()
+    products_list = query.limit(PRODUCTS_PAGE_MAX).all()
 
     return templates.TemplateResponse(
         "products.html",
@@ -306,6 +317,10 @@ def products_page(
             selected_category_id=category_id,
             sort=sort,
             cod_only=cod_only,
+            page_size=PRODUCTS_PAGE_SIZE,
+            # Non-zero only when more products match than the page can hold, so
+            # the template can say so instead of silently dropping the rest.
+            products_not_shown=max(0, total_matching - len(products_list)),
         ),
     )
 
@@ -363,7 +378,8 @@ def store_page(store_id: str, request: Request, db: Session = Depends(get_db)):
     )
 
     return templates.TemplateResponse(
-        "store.html", page_context(request, db, store=store, products=products_list)
+        "store.html",
+        page_context(request, db, store=store, products=products_list, page_size=PRODUCTS_PAGE_SIZE),
     )
 
 
