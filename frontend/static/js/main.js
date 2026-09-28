@@ -1769,7 +1769,17 @@ function getRichTextValue(container) {
 
 function setRichTextValue(container, html) {
   const input = container?.querySelector(".rich-text-input");
-  if (input) input.innerHTML = html || "";
+  if (!input) return;
+  let value = html || "";
+  // Older listings were typed into a plain textarea, so they hold raw text with
+  // newlines and no tags. Loaded as HTML that would collapse into one line (and
+  // a stray "<" would be swallowed), so escape it and keep the line breaks.
+  if (value && !/<\/?[a-z][^>]*>/i.test(value)) {
+    value = value
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/\r?\n/g, "<br>");
+  }
+  input.innerHTML = value;
 }
 
 function initRichTextEditor() {

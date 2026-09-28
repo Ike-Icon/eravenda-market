@@ -521,8 +521,11 @@
 
     try {
       await apiFetch(`/products/${productId}`, { method: "PUT", body: payload });
-      for (const url of pendingImages) {
-        await apiFetch(`/products/${productId}/images?image_url=${encodeURIComponent(url)}&is_primary=false`, { method: "POST" });
+      // Same rule as the add page: if the product has no photos left, the first
+      // new upload becomes the cover instead of leaving the listing without one.
+      const needsCover = existingImagesList.length === 0;
+      for (const [i, url] of pendingImages.entries()) {
+        await apiFetch(`/products/${productId}/images?image_url=${encodeURIComponent(url)}&is_primary=${needsCover && i === 0}`, { method: "POST" });
       }
       okBox.textContent = "Product updated.";
       okBox.classList.remove("hidden");
