@@ -28,7 +28,9 @@ services:
       - key: ALLOWED_ORIGINS
         sync: false
       - key: SITE_URL
-        value: https://eravenda-api.onrender.com
+        # Public address of the site (no trailing slash). Used for Paystack
+        # payment callbacks, email links and the sitemap.
+        value: https://eravenda.com
       - key: SUPPORT_EMAIL
         sync: false
       - key: RESEND_API_KEY
