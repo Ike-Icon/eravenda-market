@@ -57,11 +57,16 @@ async def security_headers(request: Request, call_next):
 
 @app.on_event("startup")
 def on_startup():
-    # Existing PostgreSQL tables are not changed by SQLAlchemy create_all().
-    # Run the checked-in, idempotent migrations first so pages such as
-    # /services and /services/register always match the ORM schema.
-    run_migrations()
+    # Create any missing tables first, then run the migrations. The order
+    # matters on a brand-new database: most migrations ALTER core tables
+    # (users, products, orders...) and fail with 'relation "users" does not
+    # exist' if those tables haven't been created yet. On an existing
+    # database create_all() only adds tables that are missing and leaves the
+    # rest alone, so the migrations below still bring older tables up to date
+    # (they are all idempotent), which keeps pages such as /services and
+    # /services/register matching the ORM schema.
     Base.metadata.create_all(bind=engine)
+    run_migrations()
 
     # RESEND_API_KEY is declared with `sync: false` in render.yaml, which
     # means Render does NOT fill it in for you — it starts blank until
@@ -285,7 +290,12 @@ def products_page(
     else:
         query = query.order_by(models.Product.created_at.desc())
 
-    products_list = query.limit(60).all()
+    # The page paginates in the browser (products.html), so that its category,
+    # stock and Pay-on-Delivery filters can work across every product rather
+    # than just the current page. Previously this was capped at 60 with no
+    # way to reach the rest. 500 keeps the page size sane; if the catalogue
+    # ever outgrows that, move to server-side pagination.
+    products_list = query.limit(500).all()
 
     return templates.TemplateResponse(
         "products.html",

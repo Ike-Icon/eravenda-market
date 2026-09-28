@@ -889,6 +889,12 @@ function initProductGallery() {
     stage.style.setProperty("--gallery-x", `${x * -18}px`);
     stage.style.setProperty("--gallery-y", `${y * -18}px`);
   };
+  const navButtons = [stage.querySelector("[data-gallery-prev]"), stage.querySelector("[data-gallery-next]")].filter(Boolean);
+  const openButton = stage.querySelector("[data-gallery-open]");
+  let pointerDownTarget = null;
+  let pointerDownX = 0;
+  let pointerDownY = 0;
+  const DRAG_THRESHOLD_PX = 6; // real clicks almost always have a pixel or two of jitter between down and up; only count it as an actual drag past this distance.
   stage.addEventListener("pointerenter", playHoverTimeline);
   stage.addEventListener("pointerleave", () => {
     cancelHoverTimeline();
@@ -897,13 +903,30 @@ function initProductGallery() {
   });
   stage.addEventListener("pointermove", (event) => { if (event.pointerType !== "touch" || stage.hasPointerCapture(event.pointerId)) setPan(event); });
   stage.addEventListener("pointerdown", (event) => {
+    // Bug fix: record the real element that was pressed before anything
+    // else happens. This matters because once `setPointerCapture` is
+    // called below, browsers retarget the resulting mouseup/click for this
+    // interaction to `stage` itself — the button that was actually pressed
+    // never sees that click. That's what made the arrows and "click to
+    // open" appear broken. pointerDownTarget is captured here, before any
+    // retargeting can occur, and is what the click handlers further down
+    // use to figure out what was really pressed.
+    pointerDownTarget = event.target;
+    pointerDownX = event.clientX;
+    pointerDownY = event.clientY;
+    // The arrows never need drag-to-pan, so skip capture for them entirely
+    // — with no capture, their own click listeners fire normally with no
+    // retargeting involved at all.
+    if (navButtons.some((btn) => btn.contains(event.target))) return;
     stage.setPointerCapture(event.pointerId);
     stage.dataset.dragged = "";
     stage.classList.add("is-dragging");
     setPan(event);
   });
   stage.addEventListener("pointermove", (event) => {
-    if (stage.hasPointerCapture(event.pointerId)) stage.dataset.dragged = "true";
+    if (!stage.hasPointerCapture(event.pointerId)) return;
+    const movedPx = Math.hypot(event.clientX - pointerDownX, event.clientY - pointerDownY);
+    if (movedPx > DRAG_THRESHOLD_PX) stage.dataset.dragged = "true";
   });
   stage.addEventListener("pointerup", (event) => {
     if (stage.hasPointerCapture(event.pointerId)) stage.releasePointerCapture(event.pointerId);
@@ -929,14 +952,8 @@ function initProductGallery() {
     highlightThumb();
   };
   thumbButtons.forEach((button, i) => button.addEventListener("click", () => showImage(i)));
-  stage.querySelector("[data-gallery-prev]")?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    showImage(galleryIndex - 1);
-  });
-  stage.querySelector("[data-gallery-next]")?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    showImage(galleryIndex + 1);
-  });
+  stage.querySelector("[data-gallery-prev]")?.addEventListener("click", () => showImage(galleryIndex - 1));
+  stage.querySelector("[data-gallery-next]")?.addEventListener("click", () => showImage(galleryIndex + 1));
   highlightThumb();
   const open = () => {
     if (stage.dataset.dragged === "true") return;
@@ -946,7 +963,13 @@ function initProductGallery() {
     modal.classList.add("flex");
     document.body.classList.add("overflow-hidden");
   };
-  stage.querySelector("[data-gallery-open]")?.addEventListener("click", open);
+  // Listens on `stage`, not the open button directly — see the note in the
+  // pointerdown handler above on why the button's own click can't be
+  // trusted here. pointerDownTarget (captured before any retargeting) is
+  // what actually tells us the open button/image was the one pressed.
+  stage.addEventListener("click", () => {
+    if (openButton && pointerDownTarget && openButton.contains(pointerDownTarget)) open();
+  });
   modal?.querySelectorAll("[data-gallery-close]").forEach((button) => button.addEventListener("click", () => {
     modal.classList.add("hidden"); modal.classList.remove("flex"); document.body.classList.remove("overflow-hidden");
   }));

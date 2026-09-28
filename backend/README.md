@@ -74,13 +74,13 @@ the seller's proceeds before payout. The rate depends on the product's category,
 **no category rate may ever exceed 10%** — this is enforced in code by
 `standard_product_rate()` in `app/product_pricing.py`, not just documented here.
 
-| Category | Standard rate |
-| -------- | -------------:|
-| Groceries and perishables | 4.5% |
-| Electronics and phones | 6.5% |
-| Home, kitchen and household goods | 9.5% |
-| Fashion, beauty, clothing and accessories | 10% |
-| Other / unclassified | 8% (default) |
+| Category                                  | Standard rate |
+| ----------------------------------------- | ------------: |
+| Groceries and perishables                 |          4.5% |
+| Electronics and phones                    |          6.5% |
+| Home, kitchen and household goods         |          9.5% |
+| Fashion, beauty, clothing and accessories |           10% |
+| Other / unclassified                      |  8% (default) |
 
 Handyman/professional bookings use a separate flat **4%** service commission
 (`app/service_pricing.py`), well inside the 10% product-category ceiling above.
