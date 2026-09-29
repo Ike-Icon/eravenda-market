@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError  # pyright: ignore[reportMissingImport
 from .. import models, schemas, auth
 from ..database import get_db
 from ..service_pricing import service_charge_for, service_commission_for
-from ..email_utils import send_email, SITE_URL
+from ..email_utils import send_email, SITE_URL, SUPPORT_EMAIL
 from .products import _sync_stock_from_variants
 import logging
 
@@ -172,6 +172,21 @@ def approve_store(store_id: str, db: Session = Depends(get_db)):
     store.owner.role = models.UserRole.seller
     db.commit()
     db.refresh(store)
+
+    try:
+        send_email(
+            store.owner.email,
+            "Your EraVenda store has been approved!",
+            (
+                f"Hi {(store.owner.full_name or '').split(' ')[0] or 'there'},\n\n"
+                f"Good news — {store.store_name} is now approved and live on EraVenda Market.\n\n"
+                "Add your products and they'll go live after a quick review, same as your store did.\n\n"
+                f"Go to your seller dashboard:\n{SITE_URL}/seller/dashboard.html\n\n"
+                "— The EraVenda Market team"
+            ),
+        )
+    except Exception:
+        logger.exception("Could not send store approval email for store %s", store.id)
     return store
 
 
@@ -184,6 +199,23 @@ def reject_store(store_id: str, payload: schemas.StoreDecision, db: Session = De
     store.rejection_reason = payload.rejection_reason
     db.commit()
     db.refresh(store)
+
+    try:
+        reason_line = f"\nReason given: {payload.rejection_reason}\n" if payload.rejection_reason else ""
+        send_email(
+            store.owner.email,
+            "Update on your EraVenda store application",
+            (
+                f"Hi {(store.owner.full_name or '').split(' ')[0] or 'there'},\n\n"
+                f"Your store application for {store.store_name} wasn't approved this time.\n"
+                f"{reason_line}\n"
+                f"You're welcome to update your details and reapply any time here:\n{SITE_URL}/seller/dashboard.html\n\n"
+                f"If you'd like more feedback, just reply to this email or reach us at {SUPPORT_EMAIL}.\n\n"
+                "— The EraVenda Market team"
+            ),
+        )
+    except Exception:
+        logger.exception("Could not send store rejection email for store %s", store.id)
     return store
 
 
@@ -201,6 +233,21 @@ def approve_service_worker(profile_id: str, verified_pro: bool = False, backgrou
     profile.verified_pro = verified_pro
     profile.background_checked = background_checked
     db.commit(); db.refresh(profile)
+
+    try:
+        send_email(
+            profile.user.email,
+            "You're approved on EraVenda Services!",
+            (
+                f"Hi {(profile.user.full_name or '').split(' ')[0] or 'there'},\n\n"
+                f"Good news — your {profile.custom_job_title or profile.job_title} profile is now "
+                "approved and live. Clients can find and book you starting now.\n\n"
+                f"Go to your dashboard:\n{SITE_URL}/professional/dashboard.html\n\n"
+                "— The EraVenda Market team"
+            ),
+        )
+    except Exception:
+        logger.exception("Could not send service-worker approval email for profile %s", profile.id)
     return profile
 
 
@@ -345,6 +392,21 @@ def reject_service_worker(profile_id: str, db: Session = Depends(get_db)):
     profile.verified_pro = False
     profile.background_checked = False
     db.commit(); db.refresh(profile)
+
+    try:
+        send_email(
+            profile.user.email,
+            "Update on your EraVenda Services application",
+            (
+                f"Hi {(profile.user.full_name or '').split(' ')[0] or 'there'},\n\n"
+                "Your service professional application wasn't approved this time.\n\n"
+                f"You're welcome to update your details and reapply any time here:\n{SITE_URL}/services/register\n\n"
+                f"If you'd like more feedback, just reply to this email or reach us at {SUPPORT_EMAIL}.\n\n"
+                "— The EraVenda Market team"
+            ),
+        )
+    except Exception:
+        logger.exception("Could not send service-worker rejection email for profile %s", profile.id)
     return profile
 
 
@@ -411,6 +473,21 @@ def approve_product(product_id: str, db: Session = Depends(get_db)):
     product.rejection_reason = None
     db.commit()
     db.refresh(product)
+
+    try:
+        owner = product.store.owner
+        send_email(
+            owner.email,
+            f"Your product is live: {product.name}",
+            (
+                f"Hi {(owner.full_name or '').split(' ')[0] or 'there'},\n\n"
+                f"{product.name} has been approved and is now visible to buyers on EraVenda Market.\n\n"
+                f"View your listing:\n{SITE_URL}/product/{product.id}\n\n"
+                "— The EraVenda Market team"
+            ),
+        )
+    except Exception:
+        logger.exception("Could not send product approval email for product %s", product.id)
     return product
 
 
@@ -423,6 +500,24 @@ def reject_product(product_id: str, payload: schemas.StoreDecision, db: Session 
     product.rejection_reason = payload.rejection_reason
     db.commit()
     db.refresh(product)
+
+    try:
+        owner = product.store.owner
+        reason_line = f"\nReason given: {payload.rejection_reason}\n" if payload.rejection_reason else ""
+        send_email(
+            owner.email,
+            f"Your product listing needs changes: {product.name}",
+            (
+                f"Hi {(owner.full_name or '').split(' ')[0] or 'there'},\n\n"
+                f"{product.name} wasn't approved this time.\n"
+                f"{reason_line}\n"
+                f"You can edit and resubmit it any time here:\n{SITE_URL}/seller/products.html\n\n"
+                f"If you'd like more feedback, just reply to this email or reach us at {SUPPORT_EMAIL}.\n\n"
+                "— The EraVenda Market team"
+            ),
+        )
+    except Exception:
+        logger.exception("Could not send product rejection email for product %s", product.id)
     return product
 
 
@@ -642,6 +737,17 @@ def record_cod_payment(payload: schemas.CODPaymentRecord, db: Session = Depends(
         order.status = models.OrderStatus.paid
     db.commit()
     db.refresh(payment)
+
+    # Same admin/buyer/seller emails an online payment triggers — see
+    # _notify_product_payment's docstring for why this calls the notification
+    # half only, not _finalize_product_payment (which would override the
+    # already-delivered guard above).
+    from .payments import _notify_product_payment
+    try:
+        _notify_product_payment(db, payment, order)
+    except Exception:
+        logger.exception("Could not send COD payment notifications for order %s", order.id)
+
     return {"id": payment.id, "order_number": order.order_number, "amount": float(payment.amount), "reference": payment.provider_reference, "status": payment.status.value}
 
 

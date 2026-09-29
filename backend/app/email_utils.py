@@ -31,7 +31,7 @@ RESEND_API_URL = "https://api.resend.com/emails"
 # customers. See docs/resend-email-setup.md for the full walkthrough.
 FROM_EMAIL = os.getenv("FROM_EMAIL", "no-reply@eravenda.com")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", FROM_EMAIL)
-ADMIN_NOTIFICATION_EMAIL = os.getenv("ADMIN_NOTIFICATION_EMAIL", "asieduisaac5775@gmail.com")
+ADMIN_NOTIFICATION_EMAIL = os.getenv("ADMIN_NOTIFICATION_EMAIL", "support@eravenda.com")
 DEFAULT_EMAIL_FLYER_URL = "https://res.cloudinary.com/ni2pcrua/image/upload/v1789391753/EraVenda_Banner.jpg"
 EMAIL_FLYER_URL = os.getenv("EMAIL_FLYER_URL", DEFAULT_EMAIL_FLYER_URL).strip() or DEFAULT_EMAIL_FLYER_URL
 
@@ -44,7 +44,7 @@ EMAIL_FLYER_URL = os.getenv("EMAIL_FLYER_URL", DEFAULT_EMAIL_FLYER_URL).strip() 
 # SITE_URL env var could silently send buyers a password-reset link that
 # only worked on someone's laptop. Now deployed on Render, so the one
 # correct fallback is the live API URL.
-SITE_URL = os.getenv("SITE_URL", "https://eravenda-api.onrender.com").rstrip("/")
+SITE_URL = os.getenv("SITE_URL", "https://eravenda.com").rstrip("/")
 
 
 def _html_email(body: str) -> str:

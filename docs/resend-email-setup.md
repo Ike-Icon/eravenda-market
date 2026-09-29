@@ -24,38 +24,54 @@ with zero setup.
    **Full access** (or **Sending access** if you want to be stricter).
 3. Copy the key — it starts with `re_` and is only shown once.
 
-## 2. Decide what you can send FROM, right now
+## 2. Verify eravenda.com in Resend
 
-Resend needs to know you actually control the domain in your `from`
-address, so there are two options:
+You already own the domain, so do this now:
 
-**Testing (no domain needed):** use `onboarding@resend.dev` as
-`FROM_EMAIL`. This works immediately, but Resend will only deliver to the
-email address you signed up to Resend with — fine for confirming the
-whole flow works end to end, not for real buyers or sellers. This is
-already the default in `backend/.env`.
+1. In the Resend dashboard, go to **Domains > Add Domain** and enter
+   `eravenda.com`.
+2. Resend gives you a handful of DNS records — usually one or two DKIM
+   `TXT`/`CNAME` records, an `MX` + `TXT` pair for the `send` subdomain it
+   uses for the technical return-path, and it may ask for an `SPF`
+   `TXT` record on the root domain. Add each one in Cloudflare
+   (**DNS > Records**), exactly as Resend shows them, with the proxy
+   status set to **DNS only** (grey cloud) — these are mail records, not
+   web traffic, so they must never be proxied.
+3. Verification is usually done within a few minutes, sometimes up to a
+   few hours. The Domains page shows **Verified** once it's picked up.
 
-**Production (needs a domain you own):** once you buy a domain for
-Eravenda, go to **Domains > Add Domain** in the Resend dashboard, enter
-it, and add the DKIM/SPF (and optionally DMARC) records it gives you at
-your domain registrar's DNS settings. Verification usually takes a few
-minutes to a few hours depending on the registrar. Once it shows
-**Verified**, set `FROM_EMAIL` to any address on that domain, e.g.
-`no-reply@eravenda.com` — you don't need a real inbox behind it, Resend
-just needs to confirm you own the domain.
+**Important — don't break support@eravenda.com's forwarding.** You
+already have `support@eravenda.com` set up as a rerouting address, which
+almost certainly means there's already an `MX` record (and possibly an
+`SPF` `TXT` record) on `eravenda.com` for that forwarding to work. A
+domain can only have **one** SPF record — if Resend's setup asks you to
+add a new `SPF` `TXT` record and one already exists (it'll look like
+`v=spf1 ...`), don't add a second one; instead edit the existing record
+so it includes Resend's mechanism in the same line, e.g.
+`v=spf1 include:_spf.resend.com include:<your-current-provider> ~all`.
+Two separate SPF records is invalid and can cause your existing
+`support@eravenda.com` forwarding to start failing spam checks. If
+you're not sure what's already there, check Cloudflare's DNS records
+for `eravenda.com` before adding anything, or paste what Resend gives
+you here and I'll tell you exactly how to merge it.
 
-Gmail addresses (`@gmail.com`) can never be used as `FROM_EMAIL` here —
-you don't control that domain's DNS, so Resend won't let you send as it.
-`SUPPORT_EMAIL` and `ADMIN_NOTIFICATION_EMAIL` are unaffected by any of
-this; those are just destination addresses (they can stay Gmail), only
-the `from` address is restricted.
+Once verified, set `FROM_EMAIL` to `no-reply@eravenda.com` (or any
+address on the domain) — you don't need a real inbox behind it, Resend
+just needs to confirm you own the domain. `SUPPORT_EMAIL` and
+`ADMIN_NOTIFICATION_EMAIL` are unaffected by any of this; those are just
+destination addresses, only the `from` address needs a verified domain.
+Until verification finishes, `FROM_EMAIL` can stay
+`onboarding@resend.dev` (Resend's shared sandbox address) — that works
+immediately but only delivers to the inbox you signed up to Resend with,
+so it's fine for testing the flow but not for real buyers or sellers.
 
 ## 3. Put the values in place
 
 Two places, same two variables:
 
 - **Local `.env`** (`backend/.env`): set `RESEND_API_KEY` to the key from
-  step 1, and `FROM_EMAIL` per step 2.
+  step 1, and `FROM_EMAIL` per step 2. `SUPPORT_EMAIL` and
+  `ADMIN_NOTIFICATION_EMAIL` already default to `support@eravenda.com`.
 - **Render dashboard**, your web service's **Environment** tab: same two
   keys, same values. `render.yaml` already declares both with
   `sync: false`, which means Render leaves them blank until you fill
@@ -90,3 +106,27 @@ way a failed SMTP send used to. Every call site (`routers/auth.py`,
 `send_email()` call in its own `try/except` and just logs a failure
 rather than breaking the request it's on, so nothing else needed to
 change when the sending mechanism switched from SMTP to Resend.
+
+## Who gets emailed, for what
+
+| Event | Buyer / Client | Seller / Pro | Admin |
+|---|---|---|---|
+| Password reset requested | reset link | — | — |
+| Contact form submitted | — | — | message, reply-to the sender |
+| Seller applies for a store | welcome + status | — | — |
+| Store approved / rejected | — | approval or reason | — |
+| Product approved / rejected | — | approval or reason | — |
+| Product order paid (online or COD) | order confirmation | "you've got a sale" | payment summary |
+| Handyman applies | welcome + status | — | — |
+| Handyman profile approved / rejected | — | approval or reason | — |
+| Client requests a booking | — | new job request | request summary |
+| Handyman booking paid | payment confirmation | — | payment summary |
+| Delivery partner applies | welcome + status | — | — |
+| Delivery application approved / rejected | — | approval or reason | — |
+| Order marked delivered | delivery confirmation | delivery confirmation | delivery confirmation |
+
+Cash-on-delivery payments (`record_cod_payment` in `routers/admin.py`)
+send the same buyer/seller/admin emails as an online payment — both
+paths call the shared `_notify_product_payment()` in
+`routers/payments.py`, so there's one place that owns what that email
+says.

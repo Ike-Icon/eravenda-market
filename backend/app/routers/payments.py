@@ -55,7 +55,15 @@ def _finalize_product_payment(db: Session, payment: models.Payment, order: model
     payment.paid_at = datetime.utcnow()
     order.status = models.OrderStatus.paid
     db.commit()
+    _notify_product_payment(db, payment, order)
 
+
+def _notify_product_payment(db: Session, payment: models.Payment, order: models.Order) -> None:
+    """Admin + buyer + seller emails for a confirmed product payment. Split out
+    from _finalize_product_payment so record_cod_payment (admin.py) can send the
+    same notifications for a cash-on-delivery order without also running the
+    online-payment status logic above (which would wrongly reopen an order
+    already marked delivered — see the guard in record_cod_payment)."""
     buyer = db.query(models.User).filter(models.User.id == order.buyer_id).first()
 
     try:
@@ -110,6 +118,29 @@ def _finalize_product_payment(db: Session, payment: models.Payment, order: model
             )
         except Exception:
             logger.exception("Could not send buyer order confirmation for order %s", order.id)
+
+    seller = order.store.owner if order.store else None
+    if seller and seller.email:
+        try:
+            item_lines = "\n".join(
+                f"- {item.product_name} x{item.quantity} — GHS {float(item.line_total):.2f}"
+                for item in order.items
+            ) or "- Order items"
+            send_email(
+                to=seller.email,
+                subject=f"You've got a sale — order {order.order_number}",
+                body=(
+                    f"Hi {(seller.full_name or '').strip().split(' ')[0] or 'there'},\n\n"
+                    f"Payment for order {order.order_number} has been confirmed. Time to get it ready.\n\n"
+                    f"{item_lines}\n\n"
+                    f"Order total: GHS {float(order.total_amount):.2f}\n\n"
+                    f"View and manage this order in your seller dashboard:\n{SITE_URL}/seller/orders.html\n\n"
+                    "— The EraVenda Market team"
+                ),
+                reply_to=SUPPORT_EMAIL,
+            )
+        except Exception:
+            logger.exception("Could not send seller sale notification for order %s", order.id)
 
 
 @router.post("/initialize", response_model=schemas.PaymentInitOut)

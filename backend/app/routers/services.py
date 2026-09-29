@@ -9,7 +9,7 @@ from sqlalchemy import func
 
 from .. import auth, models, schemas
 from ..database import get_db
-from ..email_utils import ADMIN_NOTIFICATION_EMAIL, send_email, send_role_welcome_email
+from ..email_utils import ADMIN_NOTIFICATION_EMAIL, SITE_URL, send_email, send_role_welcome_email
 from ..service_pricing import service_charge_for, service_commission_for
 
 router = APIRouter(prefix="/services", tags=["services"])
@@ -213,6 +213,26 @@ def request_service(payload: schemas.ServiceBookingCreate, db: Session = Depends
         )
     except Exception:
         logger.exception("Could not send service-request notification for booking %s", booking.id)
+
+    if professional and professional.email:
+        try:
+            send_email(
+                to=professional.email,
+                subject=f"New job request from {current_user.full_name}",
+                body=(
+                    f"Hi {(professional.full_name or '').strip().split(' ')[0] or 'there'},\n\n"
+                    f"{current_user.full_name} has requested your services on EraVenda.\n\n"
+                    f"JOB REQUEST\n{payload.details}\n\n"
+                    f"Location: {payload.location or 'Not provided'}\n"
+                    f"Preferred contact: {payload.preferred_contact or 'Not provided'} "
+                    f"({payload.contact_details or current_user.phone or current_user.email})\n\n"
+                    f"View and respond from your dashboard:\n{SITE_URL}/professional/dashboard.html\n\n"
+                    "— The EraVenda Market team"
+                ),
+                reply_to=current_user.email,
+            )
+        except Exception:
+            logger.exception("Could not send service-request notification to professional for booking %s", booking.id)
     return booking
 
 
