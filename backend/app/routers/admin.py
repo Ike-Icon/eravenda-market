@@ -753,7 +753,19 @@ def record_cod_payment(payload: schemas.CODPaymentRecord, db: Session = Depends(
 
 @router.get("/users", response_model=list[schemas.UserOut])
 def list_users(db: Session = Depends(get_db)):
-    return db.query(models.User).order_by(models.User.created_at.desc()).all()
+    users = db.query(models.User).order_by(models.User.created_at.desc()).all()
+    # A handyman isn't a UserRole — see the field's docstring in schemas.py —
+    # so "is this user a professional" is answered by a second, cheap query
+    # rather than N+1 queries or a join that complicates the ordering above.
+    professional_ids = {
+        row[0] for row in db.query(models.HandymanProfile.user_id).all()
+    }
+    out = []
+    for user in users:
+        item = schemas.UserOut.model_validate(user)
+        item.is_professional = user.id in professional_ids
+        out.append(item)
+    return out
 
 
 @router.put("/users/{user_id}/suspend", response_model=schemas.UserOut)

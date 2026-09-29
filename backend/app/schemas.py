@@ -41,6 +41,11 @@ class UserOut(BaseModel):
     city: Optional[str] = None
     sub_town: Optional[str] = None
     created_at: datetime
+    # There's no "professional" UserRole — a handyman keeps whatever base role
+    # they had (almost always "buyer") and is distinguished only by having a
+    # HandymanProfile row. Set explicitly in list_users(); defaults to False
+    # here only so this field is never silently missing from the response.
+    is_professional: bool = False
 
 
 class UserUpdate(BaseModel):

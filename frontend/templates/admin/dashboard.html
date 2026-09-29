@@ -187,8 +187,29 @@
       <!-- Users -->
       <section data-panel="users" class="admin-panel hidden">
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3"><div class="min-w-0"><h2 class="font-head text-xl font-bold">Account management</h2><p class="text-sm text-slate-500">Suspend an account to block sign-in, or remove it permanently.</p></div><input id="userSearch" type="search" placeholder="Search name or email" class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full sm:w-auto sm:shrink-0"></div>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+            <div class="min-w-0">
+              <h2 class="font-head text-xl font-bold">Account management</h2>
+              <p class="text-sm text-slate-500">Suspend an account to block sign-in, or remove it permanently.
+                <span id="userTotalCount" class="font-semibold text-slate-700"></span>
+              </p>
+            </div>
+            <input id="userSearch" type="search" placeholder="Search name or email" class="border border-slate-300 rounded-lg px-3 py-2 text-sm w-full sm:w-auto sm:shrink-0">
+          </div>
+          <!-- Role filter: role covers buyer/seller/delivery/admin; "Professionals" is
+               not a UserRole (see is_professional on the API response) so it's handled
+               as its own button rather than folded into the role buttons below. -->
+          <div id="userRoleFilters" class="flex flex-wrap gap-2 mb-4">
+            <button type="button" data-role-filter="all" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-brand-50 text-brand-700">All</button>
+            <button type="button" data-role-filter="buyer" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-600">Buyers</button>
+            <button type="button" data-role-filter="seller" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-600">Sellers</button>
+            <button type="button" data-role-filter="delivery" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-600">Delivery</button>
+            <button type="button" data-role-filter="professional" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-600">Professionals</button>
+            <button type="button" data-role-filter="admin" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-600">Admins</button>
+          </div>
           <div id="userList" class="space-y-2 max-h-[650px] overflow-y-auto"></div>
+          <nav id="userPagination" class="hidden mt-5 flex-wrap items-center justify-center gap-1.5" aria-label="Account pages"></nav>
+          <p id="userPageSummary" class="mt-2 text-center text-xs text-slate-500"></p>
         </section>
       </section>
 
@@ -686,14 +707,66 @@ if (document.getElementById('refreshCOD')) {
 
 // -------------------- Users --------------------
 let allUsers = [];
-async function loadUsers() { allUsers = await apiFetch('/admin/users'); renderUsers(allUsers); }
-function renderUsers(list) {
+let filteredUsers = [];
+let activeUserRoleFilter = 'all';
+let lastUserFilterSignature = null;
+
+// createPager (main.js) owns the page number and buttons; drawUsers renders
+// just the rows for whichever page it's given.
+const userPager = createPager({
+  nav: document.getElementById('userPagination'),
+  summary: document.getElementById('userPageSummary'),
+  scrollTarget: document.getElementById('userList'),
+  pageSize: 20,
+  noun: 'account',
+  onPage: (start, end) => drawUsers(filteredUsers.slice(start, end)),
+});
+
+async function loadUsers() {
+  allUsers = await apiFetch('/admin/users');
+  document.getElementById('userTotalCount').textContent = `· ${allUsers.length} total`;
+  applyUserFilters();
+}
+
+function applyUserFilters() {
+  const term = document.getElementById('userSearch').value.trim().toLowerCase();
+  filteredUsers = allUsers.filter(x => {
+    if (activeUserRoleFilter === 'professional' && !x.is_professional) return false;
+    if (activeUserRoleFilter !== 'all' && activeUserRoleFilter !== 'professional' && x.role !== activeUserRoleFilter) return false;
+    if (term && !`${x.full_name} ${x.email}`.toLowerCase().includes(term)) return false;
+    return true;
+  });
+  const signature = `${activeUserRoleFilter}|${term}`;
+  const filtersChanged = lastUserFilterSignature !== null && signature !== lastUserFilterSignature;
+  lastUserFilterSignature = signature;
+  userPager.render(filteredUsers.length, { reset: filtersChanged });
+}
+
+function drawUsers(list) {
   const el = document.getElementById('userList');
-  el.innerHTML = list.map(x => `<div class="border border-slate-100 rounded-lg p-3 flex flex-wrap justify-between items-center gap-3"><div><strong>${esc(x.full_name)}</strong><span class="text-xs ml-2 px-2 py-1 rounded-full bg-slate-100 capitalize">${esc(x.role)}</span>${!x.is_active ? '<span class="text-xs ml-1 px-2 py-1 rounded-full bg-red-50 text-red-700">Suspended</span>' : ''}<p class="text-xs text-slate-500 mt-1">${esc(x.email)}</p></div><div class="flex gap-3 shrink-0"><button data-suspend="${x.id}" class="text-xs text-amber-700 font-semibold">${x.is_active ? 'Suspend' : 'Reactivate'}</button><button data-delete-user="${x.id}" class="text-xs text-red-600 font-semibold">Delete</button></div></div>`).join('');
+  if (!list.length) {
+    el.innerHTML = `<p class="text-sm text-slate-500 py-6 text-center">No accounts match this filter.</p>`;
+    return;
+  }
+  el.innerHTML = list.map(x => `<div class="border border-slate-100 rounded-lg p-3 flex flex-wrap justify-between items-center gap-3"><div><strong>${esc(x.full_name)}</strong><span class="text-xs ml-2 px-2 py-1 rounded-full bg-slate-100 capitalize">${esc(x.role)}</span>${x.is_professional ? '<span class="text-xs ml-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700">Professional</span>' : ''}${!x.is_active ? '<span class="text-xs ml-1 px-2 py-1 rounded-full bg-red-50 text-red-700">Suspended</span>' : ''}<p class="text-xs text-slate-500 mt-1">${esc(x.email)}</p></div><div class="flex gap-3 shrink-0"><button data-suspend="${x.id}" class="text-xs text-amber-700 font-semibold">${x.is_active ? 'Suspend' : 'Reactivate'}</button><button data-delete-user="${x.id}" class="text-xs text-red-600 font-semibold">Delete</button></div></div>`).join('');
   el.querySelectorAll('[data-suspend]').forEach(b => b.onclick = async () => { const x = allUsers.find(v => v.id === b.dataset.suspend); await apiFetch(`/admin/users/${b.dataset.suspend}/${x.is_active ? 'suspend' : 'reactivate'}`, { method: 'PUT' }); loadUsers(); });
   el.querySelectorAll('[data-delete-user]').forEach(b => b.onclick = async () => { if (!confirm('Permanently delete this account? This cannot be undone.')) return; try { await apiFetch(`/admin/users/${b.dataset.deleteUser}`, { method: 'DELETE' }); loadUsers(); } catch (e) { alert(e.message); } });
 }
-document.getElementById('userSearch').oninput = e => renderUsers(allUsers.filter(x => `${x.full_name} ${x.email}`.toLowerCase().includes(e.target.value.toLowerCase())));
+
+document.getElementById('userSearch').oninput = applyUserFilters;
+document.querySelectorAll('#userRoleFilters [data-role-filter]').forEach(btn => {
+  btn.onclick = () => {
+    activeUserRoleFilter = btn.dataset.roleFilter;
+    document.querySelectorAll('#userRoleFilters [data-role-filter]').forEach(b => {
+      const on = b === btn;
+      b.classList.toggle('bg-brand-50', on);
+      b.classList.toggle('text-brand-700', on);
+      b.classList.toggle('bg-slate-100', !on);
+      b.classList.toggle('text-slate-600', !on);
+    });
+    applyUserFilters();
+  };
+});
 
 // -------------------- Boot --------------------
 async function refresh() {
