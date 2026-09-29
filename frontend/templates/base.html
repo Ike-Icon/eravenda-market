@@ -26,13 +26,18 @@
   <meta name="twitter:title" content="{{ self.og_title() }}">
   <meta name="twitter:description" content="{{ self.og_description() }}">
 
+  <!-- Google reads the favicon from the homepage's <link rel="icon">, so this
+       has to resolve correctly there specifically. Every href here is root-
+       relative (leading "/") on purpose: a relative path like "../static/..."
+       resolves differently depending on how many segments are in the current
+       page's URL, so it silently 404s on some pages (e.g. /services/professional/{id})
+       even though it happens to work on shallow ones. There used to be a second,
+       broken <link rel="icon"> here too (wrong path, always 404ing) — removed,
+       since a duplicate icon tag that fails to load is only more confusing for
+       crawlers than having just the one correct one. -->
   <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
-  <link rel="icon" type="image/x-icon" href="../static/img/favicon.ico">
+  <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
   <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
-
-  <!-- Modern SVG Favicon -->
-{# <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}"> #}
-<link rel="icon" type="image/svg+xml" href="./static/favicon.svg">
 
   <!-- Apply saved theme before paint to avoid flash -->
   <script>
