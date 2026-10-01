@@ -64,6 +64,12 @@
     </div>
     <div id="addressList"><p class="text-slate-500 text-sm">Loading…</p></div>
   </div>
+  <div class="border border-slate-200 rounded-md p-6 mt-6">
+    <h3 class="font-semibold mb-4">Stores you follow</h3>
+    <div id="followingGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"><p class="text-slate-500 text-sm col-span-full">Loading…</p></div>
+    <nav id="followingPagination" class="hidden mt-5 flex-wrap items-center justify-center gap-1.5" aria-label="Followed store pages"></nav>
+    <p id="followingPageSummary" class="mt-2 text-center text-xs text-slate-500"></p>
+  </div>
   <div id="seller-application" class="border border-slate-200 rounded-md p-6 mt-6">
     <h3 class="font-semibold">Sell on Eravenda</h3>
     <p class="text-sm text-slate-500 mt-1">Apply with your store details. An admin will review your store before your account becomes a seller account.</p>
@@ -338,7 +344,54 @@
     }
   }
 
+  // ---- Stores you follow ----
+  let followedStores = [];
+  const followingPager = createPager({
+    nav: document.getElementById("followingPagination"),
+    summary: document.getElementById("followingPageSummary"),
+    scrollTarget: document.getElementById("followingGrid"),
+    pageSize: 12,
+    noun: "store",
+    onPage: (start, end) => drawFollowing(followedStores.slice(start, end)),
+  });
+
+  function drawFollowing(list) {
+    const el = document.getElementById("followingGrid");
+    if (!list.length) {
+      el.innerHTML = `<p class="text-slate-500 text-sm col-span-full">You're not following any stores yet. Visit a store page and tap Follow to keep up with new arrivals.</p>`;
+      return;
+    }
+    el.innerHTML = list.map(({ store }) => `
+      <a href="/store/${store.id}" class="block border border-slate-200 rounded-md p-3 hover:border-brand-500 transition-colors">
+        ${store.logo_url
+          ? `<img src="${escapeHtmlAddr(store.logo_url)}" alt="" class="w-10 h-10 rounded-full object-cover border border-slate-200 mb-2">`
+          : `<div class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-head font-bold mb-2">${escapeHtmlAddr((store.store_name || "?")[0].toUpperCase())}</div>`}
+        <p class="text-sm font-semibold truncate">${escapeHtmlAddr(store.store_name)}</p>
+        <p class="text-xs text-slate-500 mt-0.5">${store.follower_count} follower${store.follower_count === 1 ? "" : "s"}</p>
+        <button type="button" data-unfollow="${store.id}" class="mt-2 text-xs text-red-600 font-semibold hover:underline">Unfollow</button>
+      </a>`).join("");
+    el.querySelectorAll("[data-unfollow]").forEach(btn => btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        await apiFetch(`/stores/${btn.dataset.unfollow}/follow`, { method: "DELETE" });
+        loadFollowing();
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    }));
+  }
+
+  async function loadFollowing() {
+    try {
+      followedStores = await apiFetch("/stores/following");
+      followingPager.render(followedStores.length);
+    } catch (err) {
+      document.getElementById("followingGrid").innerHTML = `<p class="text-red-600 text-sm col-span-full">${err.message}</p>`;
+    }
+  }
+
   loadProfile();
   loadAddresses();
+  loadFollowing();
 </script>
 {% endblock %}

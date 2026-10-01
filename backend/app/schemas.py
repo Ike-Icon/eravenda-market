@@ -166,6 +166,26 @@ class StoreOut(BaseModel):
     commission_rate: float
     rejection_reason: Optional[str] = None
     created_at: datetime
+    follower_count: int = 0
+
+
+# A store's followers, as seen by that store's own seller — deliberately not
+# the full UserOut (name + email + phone + role + ...): a follower didn't
+# hand their contact details to this seller, so only what's needed to show
+# "who follows you" (name, avatar, since when) is exposed here.
+class StoreFollowerOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    full_name: str
+    avatar_key: str = "Avery"
+    followed_at: datetime
+
+
+class StoreFollowOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    store: StoreOut
+    created_at: datetime
 
 
 # ---------- CATEGORIES ----------

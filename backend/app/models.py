@@ -121,6 +121,7 @@ class User(Base):
     addresses = relationship("Address", back_populates="user", cascade="all, delete-orphan")
     store = relationship("Store", back_populates="owner", uselist=False, cascade="all, delete-orphan")
     wishlist_items = relationship("Wishlist", back_populates="user", cascade="all, delete-orphan")
+    store_follows = relationship("StoreFollow", back_populates="user", cascade="all, delete-orphan")
 
 
 class Address(Base):
@@ -161,11 +162,15 @@ class Store(Base):
     # now calculated from the price tier and snapshotted on each order item.
     commission_rate = Column(Numeric(5, 2), nullable=False, default=0.00)
     rejection_reason = Column(Text)
+    # Denormalized from store_follows — see the migration for why (same
+    # pattern as Product.review_count below).
+    follower_count = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     owner = relationship("User", back_populates="store")
     products = relationship("Product", back_populates="store", cascade="all, delete-orphan")
+    followers = relationship("StoreFollow", back_populates="store", cascade="all, delete-orphan")
 
 
 class Category(Base):
@@ -273,6 +278,19 @@ class Wishlist(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="wishlist_items")
     product = relationship("Product", back_populates="wishlisted_by")
+
+
+class StoreFollow(Base):
+    __tablename__ = "store_follows"
+    __table_args__ = (UniqueConstraint("user_id", "store_id", name="uq_store_follow_user_store"),)
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    store_id = Column(UUID(as_uuid=False), ForeignKey("stores.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="store_follows")
+    store = relationship("Store", back_populates="followers")
 
 
 class Order(Base):

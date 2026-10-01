@@ -170,8 +170,10 @@
 
     let products = [];
     let orders = [];
+    let followers = [];
     try { products = await apiFetch("/products/store/mine"); } catch {}
     try { orders = await apiFetch("/orders/store/mine"); } catch {}
+    try { followers = await apiFetch("/stores/me/followers"); } catch {}
 
     const revenue = orders
       .filter(o => o.status !== "cancelled")
@@ -263,7 +265,7 @@
         </form>
       </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div class="border border-slate-200 rounded-md p-4 min-w-0">
           <div class="font-head text-xl sm:text-2xl font-bold truncate">${products.length}</div>
           <div class="text-xs text-slate-500">Products listed</div>
@@ -275,6 +277,10 @@
         <div class="border border-slate-200 rounded-md p-4 min-w-0">
           <div class="font-head text-xl sm:text-2xl font-bold truncate">${money(revenue)}</div>
           <div class="text-xs text-slate-500">Net earnings so far</div>
+        </div>
+        <div class="border border-slate-200 rounded-md p-4 min-w-0">
+          <div class="font-head text-xl sm:text-2xl font-bold truncate">${followers.length}</div>
+          <div class="text-xs text-slate-500">Followers</div>
         </div>
       </div>
 
@@ -300,9 +306,48 @@
             </table>
           </div>` : `<p class="text-slate-500 text-sm">No orders yet.</p>`}
       </div>
+
+      <div class="border border-slate-200 rounded-md p-5 mt-6">
+        <h3 class="font-semibold mb-3">Followers</h3>
+        <div id="followersList" class="space-y-2"></div>
+        <nav id="followersPagination" class="hidden mt-4 flex-wrap items-center justify-center gap-1.5" aria-label="Follower pages"></nav>
+        <p id="followersPageSummary" class="mt-2 text-center text-xs text-slate-500"></p>
+      </div>
     `;
     initLocationSelects(document.getElementById("storeInfoForm"));
     wireStoreInfoForm(store);
+    renderFollowersList(followers);
+  }
+
+  // Paginated list of everyone following this store — the mirror image of
+  // "Stores you follow" on the buyer's account page. followers is the array
+  // renderStoreDashboard() already fetched from /stores/me/followers.
+  function renderFollowersList(followers) {
+    const followersPager = createPager({
+      nav: document.getElementById("followersPagination"),
+      summary: document.getElementById("followersPageSummary"),
+      scrollTarget: document.getElementById("followersList"),
+      pageSize: 10,
+      noun: "follower",
+      onPage: (start, end) => drawFollowers(followers.slice(start, end)),
+    });
+    followersPager.render(followers.length);
+  }
+
+  function drawFollowers(list) {
+    const el = document.getElementById("followersList");
+    if (!list.length) {
+      el.innerHTML = `<p class="text-slate-500 text-sm">No one follows your store yet.</p>`;
+      return;
+    }
+    el.innerHTML = list.map(f => `
+      <div class="border border-slate-100 rounded-md p-3 flex items-center gap-3">
+        <img src="${avatarImageUrl(f.avatar_key || "Avery")}" alt="" class="w-9 h-9 rounded-full bg-slate-100 shrink-0">
+        <div class="min-w-0">
+          <p class="text-sm font-semibold truncate">${escapeHtml(f.full_name)}</p>
+          <p class="text-xs text-slate-500">Following since ${new Date(f.followed_at).toLocaleDateString()}</p>
+        </div>
+      </div>`).join("");
   }
 
   function wireStoreInfoForm(store) {
