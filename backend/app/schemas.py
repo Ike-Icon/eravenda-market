@@ -483,6 +483,9 @@ class OrderItemOut(BaseModel):
     color: Optional[str] = None
     option: Optional[str] = None
     size: Optional[str] = None
+    # Read from OrderItem.image_url — a property, not a column; see its
+    # docstring in models.py for why this isn't snapshotted at order time.
+    image_url: Optional[str] = None
 
 
 class OrderOut(BaseModel):

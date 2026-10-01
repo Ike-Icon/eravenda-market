@@ -358,6 +358,29 @@ class OrderItem(Base):
     size = Column(String(60), nullable=True)
 
     order = relationship("Order", back_populates="items")
+    # One-directional on purpose — Product doesn't need a back-reference to
+    # every order item that's ever referenced it. Deleting a product with
+    # existing orders is already blocked at the database level (no ondelete
+    # on product_id's FK; see admin.delete_product's IntegrityError handling),
+    # so this relationship is safe to rely on: it can never point at a
+    # since-deleted product.
+    product = relationship("Product")
+
+    @property
+    def image_url(self) -> str | None:
+        """The product's current primary photo (or its first photo), used to
+        show a thumbnail in order tracking and in order-related emails. Not
+        snapshotted at order time like product_name/unit_price are — if a
+        seller swaps their product photos later, past orders show the new
+        one. Accepted trade-off: the alternative (a stored column, backfilled
+        for old orders from whatever's live today anyway) adds a migration
+        and checkout-time write for a cosmetic field, with no real accuracy
+        gain over just reading it live."""
+        images = self.product.images if self.product else None
+        if not images:
+            return None
+        primary = next((img for img in images if img.is_primary), None)
+        return (primary or images[0]).image_url
 
 
 class DeliveryProfile(Base):

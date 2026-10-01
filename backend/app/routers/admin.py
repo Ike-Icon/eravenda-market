@@ -16,6 +16,14 @@ import logging
 
 logger = logging.getLogger("eravenda.admin")
 
+
+def _product_thumbnail_items(product: models.Product) -> list[dict]:
+    """Single-item list for send_email's `items` param — the product's own
+    primary photo, for the approve/reject emails below."""
+    primary = next((img for img in (product.images or []) if img.is_primary), None)
+    image = primary or (product.images[0] if product.images else None)
+    return [{"name": product.name, "image_url": image.image_url if image else None}]
+
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(auth.require_role(models.UserRole.admin))])
 
 
@@ -485,6 +493,7 @@ def approve_product(product_id: str, db: Session = Depends(get_db)):
                 f"View your listing:\n{SITE_URL}/product/{product.id}\n\n"
                 "— The EraVenda Market team"
             ),
+            items=_product_thumbnail_items(product),
         )
     except Exception:
         logger.exception("Could not send product approval email for product %s", product.id)
@@ -515,6 +524,7 @@ def reject_product(product_id: str, payload: schemas.StoreDecision, db: Session 
                 f"If you'd like more feedback, just reply to this email or reach us at {SUPPORT_EMAIL}.\n\n"
                 "— The EraVenda Market team"
             ),
+            items=_product_thumbnail_items(product),
         )
     except Exception:
         logger.exception("Could not send product rejection email for product %s", product.id)

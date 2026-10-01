@@ -88,7 +88,7 @@
               <tbody>
                 ${o.items.map(i => `
                   <tr class="border-t border-slate-100">
-                    <td class="py-2">${escapeHtml(i.product_name)}</td>
+                    <td class="py-2"><div class="flex items-center gap-2.5">${i.image_url ? `<img src="${escapeHtml(i.image_url)}" alt="" class="w-9 h-9 rounded-md object-cover border border-slate-200 shrink-0">` : `<div class="w-9 h-9 rounded-md bg-slate-100 shrink-0"></div>`}<span>${escapeHtml(i.product_name)}</span></div></td>
                     <td class="py-2">x${i.quantity}</td>
                     <td class="py-2 text-right">${money(i.line_total)} ${o.status === "delivered" ? `<a class="rate-product text-xs text-accent-600 ml-2" href="/orders/review?order_id=${encodeURIComponent(o.id)}&item_id=${encodeURIComponent(i.id)}">Rate this</a>` : ""}</td>
                   </tr>`).join("")}

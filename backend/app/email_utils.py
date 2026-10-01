@@ -47,9 +47,41 @@ EMAIL_FLYER_URL = os.getenv("EMAIL_FLYER_URL", DEFAULT_EMAIL_FLYER_URL).strip() 
 SITE_URL = os.getenv("SITE_URL", "https://eravenda.com").rstrip("/")
 
 
-def _html_email(body: str) -> str:
+def _item_thumbnail_html(item: dict) -> str:
+    """One row: a 48x48 product thumbnail plus name (and quantity/price when
+    given). Falls back to a blank placeholder square rather than skipping the
+    row when a product has no photo, so the list still lines up."""
+    image_url = item.get("image_url")
+    thumb = (
+        f'<img src="{escape(image_url)}" alt="" width="48" height="48" '
+        'style="display:block;width:48px;height:48px;object-fit:cover;'
+        'border-radius:6px;border:1px solid #d8e5de;">'
+        if image_url
+        else '<div style="width:48px;height:48px;border-radius:6px;background:#eef3f0;'
+        'border:1px solid #d8e5de;"></div>'
+    )
+    detail_bits = []
+    if item.get("quantity") is not None:
+        detail_bits.append(f"Qty {item['quantity']}")
+    if item.get("line_total") is not None:
+        detail_bits.append(f"GHS {float(item['line_total']):.2f}")
+    detail = f'<div style="color:#5b6b63;font-size:13px;margin-top:2px;">{escape(" · ".join(detail_bits))}</div>' if detail_bits else ""
+    return f"""<tr>
+        <td style="padding:8px 0;width:56px;vertical-align:top;">{thumb}</td>
+        <td style="padding:8px 0 8px 12px;vertical-align:top;font-size:14px;">
+            <div style="font-weight:600;">{escape(item.get("name") or "")}</div>
+            {detail}
+        </td>
+    </tr>"""
+
+
+def _html_email(body: str, items: list[dict] | None = None) -> str:
         paragraphs = "<br>".join(escape(body).splitlines())
         banner = f'<img src="{escape(EMAIL_FLYER_URL)}" alt="EraVenda Market" style="display:block;width:100%;max-width:600px;height:auto;margin:0 auto 24px;border:0;">'
+        items_html = ""
+        if items:
+            rows = "".join(_item_thumbnail_html(item) for item in items)
+            items_html = f'<table role="presentation" style="width:100%;border-collapse:collapse;margin:16px 0;">{rows}</table>'
         return f"""<!doctype html>
 <html lang="en">
     <body style="margin:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif;color:#24352e;">
@@ -57,7 +89,7 @@ def _html_email(body: str) -> str:
             <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #d8e5de;border-radius:10px;overflow:hidden;">
                 <div style="padding:20px;line-height:1.6;font-size:15px;text-align:center;">
                     {banner}
-                    <div style="text-align:left;">{paragraphs}</div>
+                    <div style="text-align:left;">{paragraphs}{items_html}</div>
                 </div>
             </div>
         </div>
@@ -65,7 +97,18 @@ def _html_email(body: str) -> str:
 </html>"""
 
 
-def send_email(to: str, subject: str, body: str, reply_to: str | None = None) -> None:
+def send_email(
+    to: str,
+    subject: str,
+    body: str,
+    reply_to: str | None = None,
+    items: list[dict] | None = None,
+) -> None:
+    """items, when given, renders as a thumbnail + name (+ qty/price if present)
+    block in the HTML version only — the plain-text `body` already has its own
+    text-only item list (e.g. "- Widget x2 — GHS 40.00") built by the caller,
+    since a plain-text email can't show an image anyway. Each dict: {"name",
+    "image_url" (optional), "quantity" (optional), "line_total" (optional)}."""
     if not RESEND_API_KEY:
         logger.info("=== EMAIL (console fallback, RESEND_API_KEY not set) ===")
         logger.info("To: %s", to)
@@ -79,7 +122,7 @@ def send_email(to: str, subject: str, body: str, reply_to: str | None = None) ->
         "to": [to],
         "subject": subject,
         "text": body,
-        "html": _html_email(body),
+        "html": _html_email(body, items),
     }
     if reply_to:
         payload["reply_to"] = reply_to

@@ -65,6 +65,18 @@ def _notify_product_payment(db: Session, payment: models.Payment, order: models.
     online-payment status logic above (which would wrongly reopen an order
     already marked delivered — see the guard in record_cod_payment)."""
     buyer = db.query(models.User).filter(models.User.id == order.buyer_id).first()
+    # Built once, shared by all three emails below: the plain-text item list
+    # each already built for its own body, plus the same items as thumbnail
+    # rows for send_email's `items` (HTML-only — see its docstring).
+    email_items = [
+        {
+            "name": item.product_name,
+            "image_url": item.image_url,
+            "quantity": item.quantity,
+            "line_total": float(item.line_total),
+        }
+        for item in order.items
+    ]
 
     try:
         product_summary = ", ".join(
@@ -84,6 +96,7 @@ def _notify_product_payment(db: Session, payment: models.Payment, order: models.
                 f"Products: {product_summary}\n"
             ),
             reply_to=buyer.email if buyer else None,
+            items=email_items,
         )
     except Exception:
         logger.exception("Could not send product-payment notification for order %s", order.id)
@@ -115,6 +128,7 @@ def _notify_product_payment(db: Session, payment: models.Payment, order: models.
                     "— The EraVenda Market team"
                 ),
                 reply_to=SUPPORT_EMAIL,
+                items=email_items,
             )
         except Exception:
             logger.exception("Could not send buyer order confirmation for order %s", order.id)
@@ -138,6 +152,7 @@ def _notify_product_payment(db: Session, payment: models.Payment, order: models.
                     "— The EraVenda Market team"
                 ),
                 reply_to=SUPPORT_EMAIL,
+                items=email_items,
             )
         except Exception:
             logger.exception("Could not send seller sale notification for order %s", order.id)
