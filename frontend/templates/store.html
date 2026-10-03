@@ -49,9 +49,17 @@
       <!-- data-owner-id lets the button hide itself for the store's own owner without
            a server round trip — the server can't know who's logged in (auth is a
            client-held JWT, not a session), so this comparison happens in JS. -->
-      <button type="button" id="followStoreBtn" data-store-id="{{ store.id }}" data-owner-id="{{ store.owner_id }}" class="text-sm font-semibold px-4 py-2 rounded-md border border-brand-500 text-brand-700 hover:bg-brand-50 transition-colors whitespace-nowrap shrink-0">
-        <i class="fas fa-plus mr-1.5" aria-hidden="true"></i>Follow
-      </button>
+      <div class="flex items-stretch gap-2 w-full sm:w-auto">
+        <button type="button" id="followStoreBtn" data-store-id="{{ store.id }}" data-owner-id="{{ store.owner_id }}" class="flex-1 sm:flex-none text-sm font-semibold px-4 py-2 rounded-md border border-brand-500 text-brand-700 hover:bg-brand-50 transition-colors whitespace-nowrap shrink-0">
+          <i class="fas fa-plus mr-1.5" aria-hidden="true"></i>Follow
+        </button>
+        <div data-share-wrap class="relative shrink-0">
+          <button type="button" data-share-trigger id="shareStoreBtn" aria-label="Share this store"
+                  class="h-full text-sm font-semibold px-4 py-2 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 transition-colors">
+            <i class="fas fa-share-nodes" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -128,6 +136,15 @@
   });
   pager.render(cards.length);
 })();
+
+// ---- Share this store ----
+document.getElementById("shareStoreBtn").addEventListener("click", (e) => {
+  shareLink(e.currentTarget, {
+    url: "{{ canonical_url }}",
+    title: {{ (store.store_name + " on Eravenda Market") | tojson }},
+    text: {{ ("Check out " + store.store_name + " on Eravenda Market") | tojson }},
+  });
+});
 
 // ---- Follow / unfollow this store ----
 (function () {

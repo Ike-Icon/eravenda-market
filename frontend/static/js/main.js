@@ -1866,3 +1866,63 @@ window.addEventListener("storage", (e) => {
   if (e.key === null || e.key === "erv_theme" || e.key === "erv_settings") syncSavedPreferences();
 });
 
+// ------------------------------------------------------------------
+// Module: Share
+// One button, two paths. If the browser supports the native share sheet
+// (most phones), tapping it hands off to WhatsApp/Messages/Email/etc.
+// directly — and because every product and store page already sets
+// Open Graph tags (og:image = the product photo or store logo), whatever
+// app receives the link renders its own preview with that image, with no
+// extra work needed here. Browsers without navigator.share (most desktop
+// browsers) get a small inline menu instead: copy link, or open a share
+// link for WhatsApp/Facebook/X in a new tab.
+// ------------------------------------------------------------------
+function closeShareMenu() {
+  const existing = document.querySelector("[data-share-menu]");
+  if (existing) existing.remove();
+  document.removeEventListener("click", closeShareMenuOnClickAway, true);
+}
+function closeShareMenuOnClickAway(e) {
+  if (!e.target.closest("[data-share-menu]") && !e.target.closest("[data-share-trigger]")) closeShareMenu();
+}
+async function copyShareLink(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast("Link copied");
+  } catch {
+    window.prompt("Copy this link:", url); // very old browser fallback
+  }
+}
+function openShareMenu(anchor, url, text) {
+  closeShareMenu();
+  const encodedUrl = encodeURIComponent(url);
+  const encodedText = encodeURIComponent(text || "");
+  const menu = document.createElement("div");
+  menu.setAttribute("data-share-menu", "");
+  menu.className = "absolute z-30 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-1 text-sm";
+  menu.innerHTML = `
+    <button type="button" data-share-copy class="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2.5"><i class="fas fa-link w-4 text-slate-400" aria-hidden="true"></i>Copy link</button>
+    <a href="https://wa.me/?text=${encodedText}%20${encodedUrl}" target="_blank" rel="noopener" class="px-3 py-2 hover:bg-slate-50 flex items-center gap-2.5"><i class="fab fa-whatsapp w-4 text-green-500" aria-hidden="true"></i>WhatsApp</a>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" rel="noopener" class="px-3 py-2 hover:bg-slate-50 flex items-center gap-2.5"><i class="fab fa-facebook w-4 text-blue-600" aria-hidden="true"></i>Facebook</a>
+    <a href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}" target="_blank" rel="noopener" class="px-3 py-2 hover:bg-slate-50 flex items-center gap-2.5"><i class="fab fa-x-twitter w-4 text-slate-900" aria-hidden="true"></i>X</a>
+  `;
+  anchor.appendChild(menu);
+  menu.querySelector("[data-share-copy]").addEventListener("click", () => { copyShareLink(url); closeShareMenu(); });
+  // Deferred so the click that opened the menu doesn't immediately close it
+  // via this same listener (it's still bubbling up at this point).
+  setTimeout(() => document.addEventListener("click", closeShareMenuOnClickAway, true), 0);
+}
+async function shareLink(trigger, { url, title, text } = {}) {
+  const shareUrl = url || window.location.href;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text, url: shareUrl });
+    } catch (err) {
+      if (err.name !== "AbortError") console.error(err); // AbortError = user cancelled the sheet, not a failure
+    }
+    return;
+  }
+  const anchor = trigger.closest("[data-share-wrap]");
+  if (anchor) openShareMenu(anchor, shareUrl, text || title || "");
+}
+window.shareLink = shareLink;

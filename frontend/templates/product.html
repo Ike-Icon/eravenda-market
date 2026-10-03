@@ -352,10 +352,19 @@
                 class="w-full border-2 border-accent-500 text-accent-600 hover:bg-accent-50 disabled:opacity-50 font-semibold px-4 py-2.5 rounded-md transition-colors text-sm">
           <i class="fas fa-bolt"></i> Buy Now
         </button>
-        <button id="wishlistBtn" data-product-id="{{ product.id }}"
-                class="w-full border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold px-4 py-2.5 rounded-md transition-colors text-sm">
-          <i class="far fa-heart text-red-500"></i> Add to Wishlist
-        </button>
+        <div class="flex items-stretch gap-2">
+          <button id="wishlistBtn" data-product-id="{{ product.id }}"
+                  class="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold px-4 py-2.5 rounded-md transition-colors text-sm">
+            <i class="far fa-heart text-red-500"></i> Add to Wishlist
+          </button>
+          <div data-share-wrap class="relative shrink-0">
+            <button type="button" data-share-trigger id="shareProductBtn"
+                    aria-label="Share this product"
+                    class="h-full border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold px-4 py-2.5 rounded-md transition-colors text-sm">
+              <i class="fas fa-share-nodes" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
       </div>
       <div id="pdpMessage" class="mt-3 text-sm"></div>
 
@@ -579,6 +588,14 @@
   document.querySelectorAll('.product-tab').forEach(btn => btn.addEventListener('click', () => { const tab=btn.dataset.productTab; document.querySelectorAll('.product-tab').forEach(b=>{b.classList.toggle('text-brand-700',b===btn);b.classList.toggle('border-b-2',b===btn);b.classList.toggle('border-brand-500',b===btn);b.classList.toggle('text-slate-500',b!==btn);});document.querySelectorAll('[data-product-panel]').forEach(p=>p.classList.toggle('hidden',p.dataset.productPanel!==tab)); }));
   (async()=>{const summary=document.getElementById('ratingSummary'), tip=document.getElementById('ratingStats'); if(!summary)return; summary.addEventListener('mouseenter',()=>tip.classList.remove('hidden'));summary.addEventListener('mouseleave',()=>tip.classList.add('hidden')); try{const st=await apiFetch('/reviews/product/{{ product.id }}/stats',{auth:false}); tip.innerHTML=`<div class="font-semibold mb-2">Review statistics</div>${[5,4,3,2,1].map(n=>`<div class="flex items-center gap-2"><span>${n}★</span><div class="h-1.5 bg-slate-200 rounded flex-1"><div class="h-1.5 bg-amber-400 rounded" style="width:${st.total?(st.distribution[n]/st.total*100):0}%"></div></div><span>${st.distribution[n]}</span></div>`).join('')}<div class="mt-2 text-slate-500">${st.comments} written comment${st.comments===1?'':'s'}</div>`; }catch(e){}})();
   (async()=>{if(!Auth.isLoggedIn())return; try{const e=await apiFetch('/reviews/product/{{ product.id }}/eligibility'); if(e.eligible){document.getElementById('reviewFormWrap').classList.remove('hidden'); let rating=0;document.querySelectorAll('#starPicker button').forEach(b=>b.onclick=()=>{rating=+b.dataset.rating;document.querySelectorAll('#starPicker button').forEach(x=>x.classList.toggle('text-amber-500',+x.dataset.rating<=rating));});document.getElementById('submitReview').onclick=async()=>{if(!rating)return;try{await apiFetch('/reviews',{method:'POST',body:{product_id:'{{ product.id }}',order_item_id:e.order_item_id,rating,comment:document.getElementById('reviewComment').value||null}});location.reload();}catch(err){document.getElementById('reviewMessage').textContent=err.message;}};}}catch(e){}})();
+
+  document.getElementById("shareProductBtn").addEventListener("click", (e) => {
+    shareLink(e.currentTarget, {
+      url: "{{ canonical_url }}",
+      title: {{ (product.name + " — Eravenda Market") | tojson }},
+      text: {{ ("Check out " + product.name + " on Eravenda Market") | tojson }},
+    });
+  });
 
   document.getElementById("wishlistBtn").addEventListener("click", async (e) => {
     const btn = e.currentTarget;
