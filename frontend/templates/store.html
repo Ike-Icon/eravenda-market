@@ -27,6 +27,15 @@
     {% endif %}
     <div class="flex-1 min-w-0">
       <h1 class="font-head text-2xl font-semibold">{{ store.store_name }}</h1>
+      {% if store.badge_keys %}
+      <div class="flex flex-wrap gap-2 mt-2">
+        {% for badge in store.badge_keys %}
+        <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+          <i class="fas fa-star text-amber-500 text-[10px]"></i>{{ badge|replace('-', ' ')|title }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
       {% if store.city or store.region %}
       <p class="text-sm text-slate-500 mt-1">
         <i data-lucide="map-pin" class="w-3.5 h-3.5 inline-block align-text-bottom"></i>
@@ -81,7 +90,8 @@
       <div class="p-3">
         <div class="text-sm text-slate-700 line-clamp-2 min-h-[2.5em]">{{ p.name }}</div>
         <div class="text-xs text-amber-600 mt-1">★ {{ "%.1f"|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }} review{{ "s" if p.review_count != 1 else "" }})</span></div>
-{% if p.badge_keys %}<div class="flex flex-wrap gap-1 mt-2">{% for badge in p.badge_keys[:3] %}<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-3 h-3"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}
+{% set p_all_badges = ((store.badge_keys or []) + (p.badge_keys or [])) | unique | list %}
+{% if p_all_badges %}<div class="flex flex-wrap gap-1 mt-2">{% for badge in p_all_badges[:3] %}<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-3 h-3"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}
         <div class="mt-1 font-semibold">
           ₵{{ "%.2f"|format(price) }}
           {% if has_discount %}<span class="text-xs text-slate-400 line-through font-normal ml-1">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}

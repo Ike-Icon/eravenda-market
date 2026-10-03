@@ -988,6 +988,15 @@ BADGE_CATALOG = {
 def badge_catalog(current_user: models.User = Depends(auth.require_role(models.UserRole.admin))):
     return BADGE_CATALOG
 
+@router.patch("/stores/{store_id}/badges")
+def set_store_badges(store_id: str, payload: dict, db: Session = Depends(get_db), current_user: models.User = Depends(auth.require_role(models.UserRole.admin))):
+    store = db.query(models.Store).filter(models.Store.id == store_id).first()
+    if not store: raise HTTPException(status_code=404, detail="Store not found")
+    keys = [k for k in (payload.get("badge_keys") or []) if k in BADGE_CATALOG]
+    store.badge_keys = keys
+    db.commit(); db.refresh(store)
+    return {"badge_keys": keys}
+
 @router.patch("/products/{product_id}/badges")
 def set_product_badges(product_id: str, payload: dict, db: Session = Depends(get_db), current_user: models.User = Depends(auth.require_role(models.UserRole.admin))):
     product = db.query(models.Product).filter(models.Product.id == product_id).first()

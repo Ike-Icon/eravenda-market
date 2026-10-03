@@ -139,14 +139,15 @@
 
     <!-- COLUMN 2 — Product info -->
     <div class="min-w-0">
-      {% if product.badge_keys or product.cod_eligible %}
+      {% set pd_all_badges = (((store.badge_keys if store else []) or []) + (product.badge_keys or [])) | unique | list %}
+      {% if pd_all_badges or product.cod_eligible %}
       <div class="flex flex-wrap gap-2 mb-3">
         {% if product.cod_eligible %}
         <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
           <i class="fas fa-truck text-emerald-600 text-[10px]"></i>Pay on Delivery
         </span>
         {% endif %}
-        {% for badge in product.badge_keys or [] %}
+        {% for badge in pd_all_badges %}
         <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
           <i class="fas fa-star text-amber-500 text-[10px]"></i>{{ badge|replace('-', ' ')|title }}
         </span>
@@ -384,7 +385,7 @@
   </div>
 </section>
 
-{% if related_products %}<section class="max-w-7xl mx-auto px-4 pb-12"><h2 class="font-head text-xl font-semibold mb-4">Related products</h2><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">{% for p in related_products %}{% set rp_price=p.discount_price if p.discount_price else p.price %}{% set rp_img=(p.images | selectattr('is_primary') | list | first) or (p.images | first) %}{% set rp_oos = p.stock_quantity <= 0 %}<article data-product-card data-product-url="/product/{{ p.id }}" tabindex="0" role="link" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"><div class="relative aspect-square bg-slate-100">{% if rp_oos %}<div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none"><span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span></div>{% endif %}{% if rp_img %}<img src="{{ rp_img.image_url }}" class="w-full h-full object-cover{% if rp_oos %} blur-[2px] grayscale opacity-70{% endif %}" loading="lazy" alt="{{ p.name }}">{% endif %}</div><div class="p-2"><div class="text-xs line-clamp-2">{{ p.name }}</div><div class="text-xs text-amber-600 mt-1">★ {{ '%.1f'|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>{% if p.badge_keys %}<div class="flex flex-wrap gap-1 mt-1">{% for badge in p.badge_keys[:2] %}<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}<div class="font-semibold text-sm mt-1">₵{{ '%.2f'|format(rp_price) }}</div></div></article>{% endfor %}</div></section>{% endif %}
+{% if related_products %}<section class="max-w-7xl mx-auto px-4 pb-12"><h2 class="font-head text-xl font-semibold mb-4">Related products</h2><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">{% for p in related_products %}{% set rp_price=p.discount_price if p.discount_price else p.price %}{% set rp_img=(p.images | selectattr('is_primary') | list | first) or (p.images | first) %}{% set rp_oos = p.stock_quantity <= 0 %}<article data-product-card data-product-url="/product/{{ p.id }}" tabindex="0" role="link" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"><div class="relative aspect-square bg-slate-100">{% if rp_oos %}<div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none"><span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span></div>{% endif %}{% if rp_img %}<img src="{{ rp_img.image_url }}" class="w-full h-full object-cover{% if rp_oos %} blur-[2px] grayscale opacity-70{% endif %}" loading="lazy" alt="{{ p.name }}">{% endif %}</div><div class="p-2"><div class="text-xs line-clamp-2">{{ p.name }}</div><div class="text-xs text-amber-600 mt-1">★ {{ '%.1f'|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>{% set rp_all_badges = ((p.store.badge_keys or []) + (p.badge_keys or [])) | unique | list %}{% if rp_all_badges %}<div class="flex flex-wrap gap-1 mt-1">{% for badge in rp_all_badges[:2] %}<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}<div class="font-semibold text-sm mt-1">₵{{ '%.2f'|format(rp_price) }}</div></div></article>{% endfor %}</div></section>{% endif %}
 
 {% if more_from_store %}
 <div class="max-w-7xl mx-auto px-4 pb-12">
@@ -407,7 +408,8 @@
       <div class="p-2">
         <div class="text-xs text-slate-700 line-clamp-2 min-h-[2em]">{{ p.name }}</div>
         <div class="text-xs text-amber-600 mt-1">★ {{ "%.1f"|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>
-        {% if p.badge_keys %}<div class="flex flex-wrap gap-1 mt-1">{% for badge in p.badge_keys[:2] %}<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>{{ badge|replace("-", " ")|title }}</span>{% endfor %}</div>{% endif %}
+        {% set mp_all_badges = ((store.badge_keys or []) + (p.badge_keys or [])) | unique | list %}
+        {% if mp_all_badges %}<div class="flex flex-wrap gap-1 mt-1">{% for badge in mp_all_badges[:2] %}<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>{{ badge|replace("-", " ")|title }}</span>{% endfor %}</div>{% endif %}
         <div class="text-sm font-semibold mt-1">₵{{ "%.2f"|format(mp_price) }}</div>
       </div>
     </a>

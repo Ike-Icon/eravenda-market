@@ -165,6 +165,10 @@ class Store(Base):
     # Denormalized from store_follows — see the migration for why (same
     # pattern as Product.review_count below).
     follower_count = Column(Integer, nullable=False, default=0)
+    # Admin-applied trust/publicity badges — same BADGE_CATALOG as Product and
+    # HandymanProfile's own badge_keys. Shown on the store page and merged
+    # into every one of this store's products on top of their own badges.
+    badge_keys = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

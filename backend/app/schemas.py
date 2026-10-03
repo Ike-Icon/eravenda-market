@@ -167,6 +167,7 @@ class StoreOut(BaseModel):
     rejection_reason: Optional[str] = None
     created_at: datetime
     follower_count: int = 0
+    badge_keys: Optional[List[str]] = None
 
 
 # A store's followers, as seen by that store's own seller — deliberately not
