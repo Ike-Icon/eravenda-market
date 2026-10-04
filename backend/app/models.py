@@ -612,6 +612,20 @@ class NewsletterSubscriber(Base):
     last_sent_at = Column(DateTime, nullable=True)
 
 
+class SiteVisit(Base):
+    """One page view, recorded by a tiny beacon in main.js on every public
+    page. visitor_id is a random ID the browser makes up and keeps in
+    localStorage: no IP address, name or email is stored, so a "visitor" is
+    one browser, not one person. The admin dashboard counts distinct
+    visitor_ids for visitors and rows for page views."""
+    __tablename__ = "site_visits"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    visitor_id = Column(String(64), nullable=False, index=True)
+    path = Column(String(300), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+
 class PlatformSettings(Base):
     """Single-row table (id is always 1) holding every admin-controlled money
     setting: the standard product commission, the seller subscription plan and

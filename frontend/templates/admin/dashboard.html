@@ -55,6 +55,51 @@
           <p class="text-sm text-slate-500">Here's a snapshot of what needs your attention right now. Use the sections on the left to take action.</p>
           <div id="overviewAlerts" class="mt-5 grid sm:grid-cols-2 gap-3"></div>
         </div>
+
+        <!-- Traffic & purchases -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div class="min-w-0">
+              <h2 class="font-head text-xl font-bold">Traffic &amp; purchases</h2>
+              <p id="trafficSince" class="text-sm text-slate-500">Loading...</p>
+            </div>
+            <button id="refreshTraffic" type="button" class="border border-slate-300 bg-white px-3 py-2 rounded-lg text-sm font-semibold self-start sm:self-auto shrink-0">Refresh</button>
+          </div>
+          <div id="trafficHeadline" class="grid sm:grid-cols-3 gap-3 mb-5"></div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[480px]">
+              <thead>
+                <tr class="text-left text-xs uppercase tracking-wide text-slate-400 border-b border-slate-200">
+                  <th class="py-2 pr-3 font-semibold">Metric</th>
+                  <th class="py-2 px-3 font-semibold text-right">Today</th>
+                  <th class="py-2 px-3 font-semibold text-right">7 days</th>
+                  <th class="py-2 px-3 font-semibold text-right">30 days</th>
+                  <th class="py-2 pl-3 font-semibold text-right">All time</th>
+                </tr>
+              </thead>
+              <tbody id="trafficRows"></tbody>
+            </table>
+          </div>
+          <div id="topPages" class="mt-5"></div>
+          <p class="text-xs text-slate-400 mt-4">A visitor is one browser, counted once per period, so one person on two devices counts twice. Paid orders are orders that reached paid, processing, shipped or delivered, dated by when they were placed. Admin visits are not counted.</p>
+        </div>
+
+        <!-- Weekly newsletter -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="min-w-0">
+              <h2 class="font-head text-xl font-bold">Weekly newsletter</h2>
+              <p id="newsletterStatus" class="text-sm text-slate-500">Loading...</p>
+            </div>
+            <div class="flex flex-wrap gap-2 shrink-0">
+              <button id="newsletterTestBtn" type="button" class="border border-slate-300 bg-white px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">Send test to me</button>
+              <button id="newsletterSendBtn" type="button" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">Send digest now</button>
+            </div>
+          </div>
+          <p id="newsletterWarning" class="hidden mt-3 text-sm bg-red-50 text-red-700 border border-red-200 rounded-lg p-3"></p>
+          <p id="newsletterResult" class="mt-3 text-sm text-slate-600" aria-live="polite"></p>
+          <p class="text-xs text-slate-400 mt-3">The digest also goes out by itself every Monday (GitHub Actions). Anyone who already got one in the last 6 days is skipped, so pressing Send twice never double-emails people.</p>
+        </div>
       </section>
 
       <!-- Stores -->
@@ -703,6 +748,98 @@ async function loadDashboardAlerts() {
 
 
 
+// -------------------- Traffic & purchases --------------------
+const fmtInt = n => Number(n || 0).toLocaleString();
+const utcDate = iso => new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + 'Z');
+
+async function loadTraffic() {
+  const since = document.getElementById('trafficSince');
+  if (!since) return;
+  try {
+    const t = await apiFetch('/admin/traffic');
+    since.textContent = t.tracking_since
+      ? `Counting visits since ${utcDate(t.tracking_since).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}.`
+      : 'No visits recorded yet. Counting starts as soon as people open the site.';
+
+    const w = t.last_7_days, d = t.today;
+    const card = (label, value, sub) => `<div class="border border-slate-200 rounded-xl p-4"><p class="text-xs text-slate-500">${label}</p><p class="font-head text-2xl font-bold mt-1">${value}</p><p class="text-xs text-slate-400 mt-0.5">${sub}</p></div>`;
+    document.getElementById('trafficHeadline').innerHTML = [
+      card('Visitors today', fmtInt(d.visitors), `${fmtInt(d.page_views)} page views`),
+      card('Buyers, last 7 days', fmtInt(w.buyers), `${fmtInt(w.paid_orders)} paid order${w.paid_orders === 1 ? '' : 's'}`),
+      card('Visitors who bought, last 7 days', w.conversion_pct === null ? '-' : `${w.conversion_pct}%`, `${fmtInt(w.buyers)} of ${fmtInt(w.visitors)} visitors`),
+    ].join('');
+
+    const periods = [t.today, t.last_7_days, t.last_30_days, t.all_time];
+    const rows = [
+      ['Visitors (unique browsers)', p => fmtInt(p.visitors)],
+      ['Page views', p => fmtInt(p.page_views)],
+      ['Orders placed', p => fmtInt(p.orders_placed)],
+      ['Paid orders', p => fmtInt(p.paid_orders)],
+      ['Buyers who paid', p => fmtInt(p.buyers)],
+      ['Buyers as % of visitors', p => p.conversion_pct === null ? '-' : `${p.conversion_pct}%`],
+    ];
+    document.getElementById('trafficRows').innerHTML = rows.map(([label, fn]) =>
+      `<tr class="border-b border-slate-100"><td class="py-2.5 pr-3 font-medium">${label}</td>${periods.map((p, i) => `<td class="py-2.5 ${i === 0 ? 'px-3' : i === 3 ? 'pl-3' : 'px-3'} text-right">${fn(p)}</td>`).join('')}</tr>`
+    ).join('');
+
+    const pages = t.top_pages_7_days || [];
+    document.getElementById('topPages').innerHTML = pages.length
+      ? `<h3 class="font-semibold text-sm mb-2">Most visited pages, last 7 days</h3><ul class="text-sm divide-y divide-slate-100">${pages.map(p => `<li class="flex justify-between gap-3 py-1.5"><span class="truncate text-slate-600">${esc(p.path)}</span><span class="font-semibold shrink-0">${fmtInt(p.views)}</span></li>`).join('')}</ul>`
+      : '';
+  } catch (err) {
+    since.textContent = `Couldn't load traffic: ${err.message || err}`;
+  }
+}
+document.getElementById('refreshTraffic').onclick = loadTraffic;
+
+// -------------------- Weekly newsletter --------------------
+async function loadNewsletterPanel() {
+  const status = document.getElementById('newsletterStatus');
+  const warning = document.getElementById('newsletterWarning');
+  if (!status) return;
+  try {
+    const d = await apiFetch('/newsletter/admin/subscribers');
+    const last = d.last_digest_at ? utcDate(d.last_digest_at).toLocaleString() : 'never';
+    status.textContent = `${fmtInt(d.active)} active subscriber${d.active === 1 ? '' : 's'} (${fmtInt(d.total)} signed up in total). Last digest: ${last}. Sends from ${d.from_email}.`;
+    let warn = '';
+    if (!d.email_configured) warn = 'Email is not set up on the server: RESEND_API_KEY is missing. Add it in the Render Environment tab and redeploy. Until then nothing can be sent.';
+    else if (/@resend\.dev$/i.test(d.from_email || '')) warn = 'Emails are sent from a Resend test address, which only delivers to the email you signed up to Resend with. Verify your own domain in Resend and set FROM_EMAIL to reach subscribers.';
+    warning.textContent = warn;
+    warning.classList.toggle('hidden', !warn);
+  } catch (err) {
+    status.textContent = `Couldn't load newsletter status: ${err.message || err}`;
+  }
+}
+
+function describeNewsletterSend(r) {
+  if (r.skipped_reason === 'no_new_content') return 'Nothing was sent: no products or sellers were approved in the last 7 days. Use "Send test to me" to preview the email anyway.';
+  if (r.error) return `Stopped: ${r.error}. Sent ${fmtInt(r.sent)}, not sent ${fmtInt(r.failed)}.`;
+  if (r.test) return r.sent ? 'Test email sent to your admin address. Check your inbox and spam folder.' : 'The test email did not send. Check the server logs.';
+  let text = `Sent ${fmtInt(r.sent)} email${r.sent === 1 ? '' : 's'}`;
+  if (r.failed) text += `, ${fmtInt(r.failed)} failed (they will be retried on the next run)`;
+  if (r.skipped_recently) text += `, ${fmtInt(r.skipped_recently)} skipped because they already got one in the last 6 days`;
+  return text + '.';
+}
+
+async function runNewsletterSend(kind) {
+  const result = document.getElementById('newsletterResult');
+  const buttons = [document.getElementById('newsletterTestBtn'), document.getElementById('newsletterSendBtn')];
+  if (kind === 'live' && !confirm('Send this week\'s digest to every active subscriber who has not had one in the last 6 days?')) return;
+  buttons.forEach(b => b.disabled = true);
+  result.textContent = 'Sending... this can take a minute for a long list.';
+  try {
+    const r = await apiFetch(kind === 'test' ? '/newsletter/admin/send-test' : '/newsletter/admin/send-weekly', { method: 'POST' });
+    result.textContent = describeNewsletterSend(r);
+  } catch (err) {
+    result.textContent = `Couldn't send: ${err.message || err}`;
+  } finally {
+    buttons.forEach(b => b.disabled = false);
+    loadNewsletterPanel();
+  }
+}
+document.getElementById('newsletterTestBtn').onclick = () => runNewsletterSend('test');
+document.getElementById('newsletterSendBtn').onclick = () => runNewsletterSend('live');
+
 // -------------------- Stores --------------------
 let allStoresCache = [];
 async function loadPendingStores() {
@@ -1084,6 +1221,8 @@ async function refresh() {
 
   const tasks = {
     'Overview alerts': loadDashboardAlerts(),
+    'Traffic & purchases': loadTraffic(),
+    'Newsletter': loadNewsletterPanel(),
     'Pending stores': loadPendingStores(),
     'All stores': loadAllStores(),
     'Pending products': loadPendingProducts(),

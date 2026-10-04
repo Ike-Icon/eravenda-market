@@ -13,6 +13,7 @@ without any setup, and you never lose a reset link during testing.
 """
 
 import os
+import time
 import logging
 from html import escape
 
@@ -45,6 +46,48 @@ EMAIL_FLYER_URL = os.getenv("EMAIL_FLYER_URL", DEFAULT_EMAIL_FLYER_URL).strip() 
 # only worked on someone's laptop. Now deployed on Render, so the one
 # correct fallback is the live API URL.
 SITE_URL = os.getenv("SITE_URL", "https://eravenda.com").rstrip("/")
+
+RESEND_BATCH_URL = "https://api.resend.com/emails/batch"
+# Resend accepts at most 100 messages per batch call.
+BATCH_MAX = 100
+
+
+class EmailDeliveryError(RuntimeError):
+    """A send failed. Subclasses RuntimeError, so every existing
+    `except Exception` around send_email() keeps working unchanged."""
+
+
+class EmailConfigError(EmailDeliveryError):
+    """Resend refused the API key or the sender address/domain (HTTP 401 or
+    403). Retrying other recipients can't help, so bulk senders stop on this."""
+
+
+def email_configured() -> bool:
+    return bool(RESEND_API_KEY)
+
+
+def _resend_post(client: "httpx.Client", url: str, payload) -> "httpx.Response":
+    """POST to Resend, waiting and retrying when it answers 429 (rate limit)
+    or 5xx. Anything else, including 4xx errors, is returned as-is."""
+    res = client.post(
+        url,
+        headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+        json=payload,
+    )
+    for _ in range(3):
+        if res.status_code != 429 and res.status_code < 500:
+            break
+        try:
+            wait = float(res.headers.get("retry-after", ""))
+        except ValueError:
+            wait = 1.0
+        time.sleep(min(max(wait, 1.0), 10.0))
+        res = client.post(
+            url,
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            json=payload,
+        )
+    return res
 
 
 def _item_thumbnail_html(item: dict) -> str:
@@ -103,12 +146,18 @@ def send_email(
     body: str,
     reply_to: str | None = None,
     items: list[dict] | None = None,
+    html: str | None = None,
+    headers: dict | None = None,
 ) -> None:
     """items, when given, renders as a thumbnail + name (+ qty/price if present)
     block in the HTML version only — the plain-text `body` already has its own
     text-only item list (e.g. "- Widget x2 — GHS 40.00") built by the caller,
     since a plain-text email can't show an image anyway. Each dict: {"name",
-    "image_url" (optional), "quantity" (optional), "line_total" (optional)}."""
+    "image_url" (optional), "quantity" (optional), "line_total" (optional)}.
+
+    html, when given, replaces the generated HTML wrapper (the newsletter
+    builds its own layout). headers adds extra mail headers, e.g.
+    List-Unsubscribe."""
     if not RESEND_API_KEY:
         logger.info("=== EMAIL (console fallback, RESEND_API_KEY not set) ===")
         logger.info("To: %s", to)
@@ -122,24 +171,76 @@ def send_email(
         "to": [to],
         "subject": subject,
         "text": body,
-        "html": _html_email(body, items),
+        "html": html if html is not None else _html_email(body, items),
     }
     if reply_to:
         payload["reply_to"] = reply_to
+    if headers:
+        payload["headers"] = headers
 
     # Same 10s ceiling the old SMTP path used: fail fast on a network hiccup
     # rather than hanging the request (and whatever button triggered it).
     with httpx.Client(timeout=10) as client:
-        res = client.post(
-            RESEND_API_URL,
-            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
-            json=payload,
-        )
+        res = _resend_post(client, RESEND_API_URL, payload)
     if res.status_code >= 400:
         # Surfaced to the caller's try/except, same as an smtplib exception
         # used to be — every send_email() call site already logs and swallows
         # this rather than letting a failed email break the request it's on.
-        raise RuntimeError(f"Resend API error {res.status_code}: {res.text[:300]}")
+        error_cls = EmailConfigError if res.status_code in (401, 403) else EmailDeliveryError
+        raise error_cls(f"Resend API error {res.status_code}: {res.text[:300]}")
+
+
+def send_email_batch(messages: list[dict]) -> list[bool]:
+    """Send up to BATCH_MAX messages in one Resend call and report which ones
+    went out, in the same order as `messages`. Each message is a dict with
+    to, subject, body and optionally html and headers.
+
+    One API call per 100 recipients keeps a big send well under Resend's
+    rate limit. If Resend rejects a whole batch (say one bad address), each
+    message in it is retried on its own so one bad address can't block the
+    rest. Raises EmailConfigError when the API key or sender domain is
+    refused, and RuntimeError when email isn't configured at all, because no
+    other recipient will fare any better."""
+    if not RESEND_API_KEY:
+        raise EmailDeliveryError("RESEND_API_KEY is not set, so nothing can be sent.")
+    if len(messages) > BATCH_MAX:
+        raise ValueError(f"send_email_batch takes at most {BATCH_MAX} messages at a time.")
+    if not messages:
+        return []
+
+    payload = []
+    for m in messages:
+        item = {
+            "from": FROM_EMAIL,
+            "to": [m["to"]],
+            "subject": m["subject"],
+            "text": m["body"],
+            "html": m.get("html") or _html_email(m["body"]),
+        }
+        if m.get("headers"):
+            item["headers"] = m["headers"]
+        payload.append(item)
+
+    with httpx.Client(timeout=30) as client:
+        res = _resend_post(client, RESEND_BATCH_URL, payload)
+    if res.status_code < 400:
+        return [True] * len(messages)
+    if res.status_code in (401, 403):
+        raise EmailConfigError(f"Resend API error {res.status_code}: {res.text[:300]}")
+
+    logger.warning("Resend batch failed (%s): %s. Retrying one by one.", res.status_code, res.text[:300])
+    results: list[bool] = []
+    for m in messages:
+        try:
+            send_email(m["to"], m["subject"], m["body"], html=m.get("html"), headers=m.get("headers"))
+            results.append(True)
+        except EmailConfigError:
+            raise
+        except Exception:
+            logger.exception("Failed to send to %s", m["to"])
+            results.append(False)
+        time.sleep(0.3)
+    return results
 
 
 def send_role_welcome_email(to: str, full_name: str, role_label: str, next_steps: list[str], dashboard_path: str) -> None:

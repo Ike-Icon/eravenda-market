@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from calendar import monthrange
 from fastapi import APIRouter, Depends, HTTPException  # pyright: ignore[reportMissingImports]
 from fastapi.responses import FileResponse  # pyright: ignore[reportMissingImports]
@@ -996,6 +996,59 @@ def platform_stats(
         "service_reviews": service_reviews_count,
         "service_average_rating": float(service_average),
     }
+
+@router.get("/traffic")
+def traffic_and_purchases(db: Session = Depends(get_db)):
+    """Visits next to purchases, for the dashboard's "Traffic & purchases"
+    card. A visitor is one browser (random ID, see models.SiteVisit). A paid
+    order is one that reached paid, processing, shipped or delivered; orders
+    are dated by when they were placed. Ghana is on UTC all year, so the
+    "today" boundary here is also midnight in Ghana."""
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    paid_statuses = [
+        models.OrderStatus.paid,
+        models.OrderStatus.processing,
+        models.OrderStatus.shipped,
+        models.OrderStatus.delivered,
+    ]
+
+    def period(since: datetime | None) -> dict:
+        visits = db.query(models.SiteVisit)
+        orders = db.query(models.Order).filter(models.Order.status != models.OrderStatus.cancelled)
+        if since is not None:
+            visits = visits.filter(models.SiteVisit.created_at >= since)
+            orders = orders.filter(models.Order.created_at >= since)
+        paid = orders.filter(models.Order.status.in_(paid_statuses))
+        visitors = visits.with_entities(func.count(func.distinct(models.SiteVisit.visitor_id))).scalar() or 0
+        buyers = paid.with_entities(func.count(func.distinct(models.Order.buyer_id))).scalar() or 0
+        return {
+            "visitors": visitors,
+            "page_views": visits.count(),
+            "orders_placed": orders.count(),
+            "paid_orders": paid.count(),
+            "buyers": buyers,
+            "conversion_pct": round(buyers / visitors * 100, 1) if visitors else None,
+        }
+
+    week_start = now - timedelta(days=7)
+    top_pages = (
+        db.query(models.SiteVisit.path, func.count(models.SiteVisit.id).label("views"))
+        .filter(models.SiteVisit.created_at >= week_start)
+        .group_by(models.SiteVisit.path)
+        .order_by(func.count(models.SiteVisit.id).desc())
+        .limit(5)
+        .all()
+    )
+    return {
+        "today": period(today_start),
+        "last_7_days": period(week_start),
+        "last_30_days": period(now - timedelta(days=30)),
+        "all_time": period(None),
+        "top_pages_7_days": [{"path": path, "views": views} for path, views in top_pages],
+        "tracking_since": db.query(func.min(models.SiteVisit.created_at)).scalar(),
+    }
+
 
 @router.get("/stats/top-stores")
 def top_stores_by_revenue(limit: int = 8, db: Session = Depends(get_db)):

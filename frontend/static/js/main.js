@@ -1054,6 +1054,38 @@ function initSocialAuth({ errorBoxId, redirectTo = "/" }) {
 }
 
 // ------------------------------------------------------------------
+// Module: Visit counter
+// Sends one anonymous page-view beacon per page load so the admin dashboard
+// can show visits next to purchases. The visitor ID is random text kept in
+// this browser's localStorage: no name, email or IP address is sent or
+// stored. Admins and the admin pages are never counted.
+// ------------------------------------------------------------------
+function trackVisit() {
+  try {
+    const path = window.location.pathname;
+    if (/^\/(admin|api|static)(\/|$)/.test(path)) return;
+    const user = Auth.getUser();
+    if (user && user.role === "admin") return;
+
+    let visitorId = localStorage.getItem("ev_vid");
+    if (!visitorId) {
+      visitorId = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+      localStorage.setItem("ev_vid", visitorId);
+    }
+    fetch(`${API_BASE}/analytics/visit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visitor_id: visitorId, path }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) {
+    // Counting visits must never break a page.
+  }
+}
+
+// ------------------------------------------------------------------
 // Module: Newsletter signup (footer)
 // Posts to /api/newsletter/subscribe. Falls back to a plain error message
 // if the request fails, rather than pretending the signup worked.
@@ -1075,19 +1107,30 @@ function initNewsletterForm() {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (button.disabled) return;
     button.disabled = true;
     button.textContent = "Subscribing...";
 
     try {
-      await apiFetch("/newsletter/subscribe", {
+      const res = await apiFetch("/newsletter/subscribe", {
         method: "POST",
         body: { email: input.value.trim() },
         auth: false,
       });
       button.textContent = "Subscribed!";
+      // The server words this differently for new, repeat and returning
+      // subscribers, so show what it actually said.
+      showToast((res && res.message) || "Subscribed! Look out for new arrivals every week.");
       form.reset();
     } catch (err) {
       button.textContent = "Try again";
+      const raw = String((err && err.message) || "");
+      const friendly = err instanceof TypeError
+        ? "Couldn't reach Eravenda. Check your connection and try again."
+        : /email/i.test(raw)
+          ? "Please enter a valid email address."
+          : "Couldn't subscribe right now. Please try again in a moment.";
+      showToast(friendly, "error");
     }
 
     resetButton();
@@ -1829,6 +1872,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initLazyImages();
   initProductGallery();
   initNewsletterForm();
+  trackVisit();
   initLocationSelects();
   initIcons();
   initPasswordToggles();

@@ -1,104 +1,82 @@
-# Weekly Newsletter Scheduling
+# Weekly Newsletter
 
-The footer's "Get new-arrival alerts" signup stores emails in the
-`newsletter_subscribers` table. Nothing sends automatically on a schedule,
-someone or something has to call the send endpoint once a week. This
-document covers the two ways to do that.
+The footer's "Get new-arrival alerts" form stores emails in the
+`newsletter_subscribers` table. A GitHub Actions job calls the send endpoint
+every Monday at 08:00 UTC (08:00 in Ghana). You can also send from the admin
+dashboard: **Overview > Weekly newsletter**.
 
-## What actually sends the email
+## What gets sent
 
-Both options below call the same endpoint:
+- Approved products and stores created in the last 7 days. If there are none,
+  nothing is sent and the response says `skipped_reason: no_new_content`.
+- An HTML email with product thumbnails, prices, deals and new sellers, plus a
+  plain-text version, a footer unsubscribe link and a one-click unsubscribe
+  header.
+- Anyone who already got a digest in the last 6 days is skipped. Re-running a
+  failed job is safe, and people who were missed get picked up.
+- Mail goes out 100 per Resend call. Rate limits (HTTP 429) are retried.
 
-```
-POST /api/newsletter/cron/send-weekly
-Header: X-Newsletter-Secret: <value of NEWSLETTER_CRON_SECRET>
-```
+## One-time setup checklist
 
-It checks the last 7 days for approved products and approved stores, skips
-sending if nothing new happened, and emails every active subscriber. The
-response tells you what happened:
+1. **Render service you keep** (Environment tab): set `RESEND_API_KEY`,
+   `FROM_EMAIL` (an address on a domain you verified in Resend, for example
+   `no-reply@eravenda.com`) and `SITE_URL`. Note the generated
+   `NEWSLETTER_CRON_SECRET`.
+   - `FROM_EMAIL=onboarding@resend.dev` only delivers to the email you
+     registered with Resend. The dashboard warns you if you are on it.
+2. **GitHub** (Settings > Secrets and variables > Actions):
+   - Secret `NEWSLETTER_CRON_SECRET` = the value from that Render service.
+   - Variable `NEWSLETTER_API_URL` = that service's URL, no trailing slash,
+     for example `https://eravenda-api.onrender.com`. With two Render
+     services, each has its own secret, so the pair must match.
+3. Open the admin dashboard and press **Send test to me**. Check inbox and spam.
+4. In GitHub, open **Actions > Weekly newsletter > Run workflow**. It should
+   finish green.
+
+## Reading the result
+
+The workflow prints the HTTP status and the server's JSON, and fails (red) on
+anything that is not a successful send:
+
+| Status | Meaning | Fix |
+|---|---|---|
+| 200 | Sent, or nothing new this week | none |
+| 401 | Secret in GitHub differs from Render | copy the secret again |
+| 404 | Wrong `NEWSLETTER_API_URL` | fix the variable |
+| 503 | `RESEND_API_KEY` missing on the server | add it, redeploy |
+| 502 | Resend refused the key or sender domain, or every send failed | verify the domain, check `FROM_EMAIL` |
+
+A successful response looks like:
 
 ```json
-{ "sent": 42, "failed": 0, "subscriber_count": 42 }
+{ "sent": 42, "failed": 0, "subscriber_count": 42, "skipped_recently": 0, "test": false, "error": null }
 ```
 
-or, if there was nothing new that week:
+The workflow retries up to 3 times, 60 seconds apart, because a free Render
+instance can take a minute to wake up.
 
-```json
-{ "sent": 0, "failed": 0, "subscriber_count": 0, "skipped_reason": "no_new_content" }
-```
+## Manual and API sends
 
-`NEWSLETTER_CRON_SECRET` is set automatically in `render.yaml`
-(`generateValue: true`). Find the actual value in the Render dashboard under
-your web service's **Environment** tab after your first deploy, you'll need
-to copy it into whichever option below you choose.
-
-## Option 1: GitHub Actions (free)
-
-This runs on GitHub's infrastructure, not Render's, so it costs nothing and
-doesn't need any extra Render service.
-
-1. In your GitHub repo, go to **Settings > Secrets and variables > Actions**
-   and add a new repository secret named `NEWSLETTER_CRON_SECRET` with the
-   same value Render generated.
-2. Add this file to your repo at `.github/workflows/weekly-newsletter.yml`:
-
-```yaml
-name: Weekly newsletter
-
-on:
-  schedule:
-    # 08:00 UTC every Monday. Adjust the cron expression for a different
-    # day or time; GitHub's schedule runs in UTC, not your local time.
-    - cron: "0 8 * * 1"
-  workflow_dispatch: {}  # lets you trigger it manually from the Actions tab
-
-jobs:
-  send:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger weekly digest
-        run: |
-          curl -sf -X POST "https://eravenda-api.onrender.com/api/newsletter/cron/send-weekly" \
-            -H "X-Newsletter-Secret: ${{ secrets.NEWSLETTER_CRON_SECRET }}"
-```
-
-3. Commit it. You can test it immediately from the repo's **Actions** tab
-   using **Run workflow** (that's what `workflow_dispatch` enables), instead
-   of waiting until next Monday.
-
-One thing worth knowing: your Render web service is on the free plan, which
-spins down after inactivity. If nobody has hit the site in a while, this
-request might take 30 to 60 seconds to wake it up before it responds. That's
-fine for a weekly cron job, curl will just wait, but don't be alarmed if the
-Actions log shows a long request.
-
-## Option 2: Render Cron Job (paid, small)
-
-Render's own Cron Jobs are billed per minute, a weekly job that runs for a
-few seconds costs a small fraction of a dollar a month, but it isn't free
-like GitHub Actions.
-
-1. In the Render dashboard, click **New > Cron Job**.
-2. Point it at the same repo, set the schedule to `0 8 * * 1` (or your
-   preferred time), and set the command to:
+Admin dashboard buttons call these (admin JWT required):
 
 ```
-curl -sf -X POST "https://eravenda-api.onrender.com/api/newsletter/cron/send-weekly" -H "X-Newsletter-Secret: $NEWSLETTER_CRON_SECRET"
+POST /api/newsletter/admin/send-test            one copy to your own address, nobody marked as sent
+POST /api/newsletter/admin/send-weekly          send now, skipping people emailed in the last 6 days
+POST /api/newsletter/admin/send-weekly?force=true   send to everyone, ignoring the 6-day rule
 ```
 
-3. Add `NEWSLETTER_CRON_SECRET` as an environment variable on the Cron Job
-   service itself (copy the same value from your web service).
+## Unsubscribing
 
-## Testing without waiting for a schedule
+The link in each email opens a confirmation page. The click on "Yes,
+unsubscribe me" does the unsubscribing, so mail scanners that open links
+cannot remove anyone by accident. Gmail and Apple Mail's built-in
+Unsubscribe button works too.
 
-As an admin, you can trigger the same send manually any time by logging in
-and calling:
+## Render Cron Job instead of GitHub Actions
+
+Create a Render Cron Job with schedule `0 8 * * 1` and this command, with
+`NEWSLETTER_CRON_SECRET` set on the cron service:
 
 ```
-POST /api/newsletter/admin/send-weekly
-Authorization: Bearer <your admin JWT>
+curl -sS --fail-with-body -X POST "https://eravenda-api.onrender.com/api/newsletter/cron/send-weekly" -H "X-Newsletter-Secret: $NEWSLETTER_CRON_SECRET"
 ```
-
-Use this to confirm the email actually arrives and reads correctly before
-trusting a schedule with it.

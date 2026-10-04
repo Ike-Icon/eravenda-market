@@ -552,48 +552,94 @@
     }
   });
 
-  document.querySelectorAll('.color-choice').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.color-choice').forEach(b => b.setAttribute('aria-pressed','false')); btn.setAttribute('aria-pressed','true'); const stock=parseInt(btn.dataset.colorStock,10)||0; const qty=document.getElementById('qtyInput'); qty.max=stock; if(parseInt(qty.value,10)>stock) qty.value=stock||1; document.getElementById('selectedColor').textContent = `Selected: ${btn.dataset.color} — ${stock} in stock`; if (!document.querySelector('.option-choice') && !document.querySelector('.size-choice')) { const avail=document.getElementById('sidebarAvailability'); if (avail) { avail.textContent = stock > 0 ? `${stock} left` : "Out of stock"; avail.className = `text-right font-semibold ${stock > 0 ? "text-brand-700" : "text-red-600"}`; } } }));
-  const initialQty = document.getElementById('qtyInput');
-  document.querySelectorAll('.color-choice').forEach(btn => btn.addEventListener('click', () => { initialQty.max = btn.dataset.colorStock || 1; }));
+  // ---- Color / size / option selection ----
+  // Clicking a choice selects it and it stays selected (highlighted, and
+  // remembered in this browser for this product) until the buyer clicks it
+  // again to clear it. Everything shown on the page is worked out from the
+  // current selection in refreshVariantUI(), so selecting, switching and
+  // clearing can never leave stale text, price or stock behind.
+  const VARIANT_KEY = "ev:variant:{{ product.id }}";
+  const BASE_STOCK = {{ product.stock_quantity }};
+  const qtyEl = document.getElementById("qtyInput");
+  const snapshot = (id) => { const el = document.getElementById(id); return el ? { el, text: el.textContent, cls: el.className } : null; };
+  const base = {
+    price: snapshot("priceValue"), sidebarPrice: snapshot("sidebarPrice"), avail: snapshot("sidebarAvailability"),
+    save: snapshot("saveLine"), hint: snapshot("optionPriceHint"),
+    color: snapshot("selectedColor"), size: snapshot("selectedSize"), option: snapshot("selectedOption"),
+  };
+  const resetEl = (s) => { if (s) { s.el.textContent = s.text; s.el.className = s.cls; } };
+  const stockText = (n) => `${n} in stock`;
 
-  document.querySelectorAll('.size-choice').forEach(btn => btn.addEventListener('click', () => {
-    document.querySelectorAll('.size-choice').forEach(b => b.setAttribute('aria-pressed','false'));
-    btn.setAttribute('aria-pressed','true');
-    const stock = parseInt(btn.dataset.sizeStock, 10) || 0;
-    const qty = document.getElementById('qtyInput');
-    qty.max = stock;
-    if (parseInt(qty.value, 10) > stock) qty.value = stock || 1;
-    document.getElementById('selectedSize').textContent = `Selected size: ${btn.dataset.size} — ${stock} in stock`;
-    if (!document.querySelector('.option-choice')) {
-      const avail = document.getElementById('sidebarAvailability');
-      if (avail) { avail.textContent = stock > 0 ? `${stock} left` : "Out of stock"; avail.className = `text-right font-semibold ${stock > 0 ? "text-brand-700" : "text-red-600"}`; }
-    }
-  }));
+  function refreshVariantUI() {
+    const v = selectedVariants();
+    const anySelected = Boolean(v.colorBtn || v.sizeBtn || v.optionBtn);
+    const stock = stockForSelection(v);
+    const clearHint = " Tap again to clear.";
 
-  document.querySelectorAll('.option-choice').forEach(btn => btn.addEventListener('click', () => {
-    document.querySelectorAll('.option-choice').forEach(b => b.setAttribute('aria-pressed','false'));
-    btn.setAttribute('aria-pressed','true');
-    const stock = parseInt(btn.dataset.optionStock, 10) || 0;
-    const price = parseFloat(btn.dataset.optionPrice);
-    const listPrice = parseFloat(btn.dataset.optionListPrice || btn.dataset.optionPrice);
-    const qty = document.getElementById('qtyInput');
-    qty.max = stock;
-    if (parseInt(qty.value, 10) > stock) qty.value = stock || 1;
-    document.getElementById('priceValue').textContent = `₵${price.toFixed(2)}`;
-    const hint = document.getElementById('optionPriceHint');
-    if (hint) hint.classList.add('hidden');
-    document.getElementById('selectedOption').textContent = `Selected: ${btn.dataset.option} — ₵${price.toFixed(2)} — ${stock} in stock`;
-    const sidebarPrice = document.getElementById('sidebarPrice');
-    if (sidebarPrice) sidebarPrice.textContent = `₵${price.toFixed(2)}`;
-    const avail = document.getElementById('sidebarAvailability');
-    if (avail) { avail.textContent = stock > 0 ? `${stock} left` : "Out of stock"; avail.className = `text-right font-semibold ${stock > 0 ? "text-brand-700" : "text-red-600"}`; }
-    const saveLine = document.getElementById('saveLine');
-    if (listPrice > price) {
-      if (saveLine) { saveLine.textContent = `You save ₵${(listPrice - price).toFixed(2)} on this order!`; saveLine.classList.remove('hidden'); }
-    } else if (saveLine) {
-      saveLine.classList.add('hidden');
+    resetEl(base.color); resetEl(base.size); resetEl(base.option);
+    if (v.colorBtn) base.color.el.textContent = `Selected: ${v.color}, ${stockText(parseInt(v.colorBtn.dataset.colorStock, 10) || 0)}.${clearHint}`;
+    if (v.sizeBtn) base.size.el.textContent = `Selected size: ${v.size}, ${stockText(parseInt(v.sizeBtn.dataset.sizeStock, 10) || 0)}.${clearHint}`;
+
+    // Price, "you save" line and availability: back to the page's starting
+    // values unless an option is chosen (options carry their own price).
+    resetEl(base.price); resetEl(base.sidebarPrice); resetEl(base.save); resetEl(base.hint); resetEl(base.avail);
+    if (v.optionBtn) {
+      const price = parseFloat(v.optionBtn.dataset.optionPrice);
+      const listPrice = parseFloat(v.optionBtn.dataset.optionListPrice || v.optionBtn.dataset.optionPrice);
+      if (base.price) base.price.el.textContent = `₵${price.toFixed(2)}`;
+      if (base.sidebarPrice) base.sidebarPrice.el.textContent = `₵${price.toFixed(2)}`;
+      if (base.hint) base.hint.el.classList.add("hidden");
+      base.option.el.textContent = `Selected: ${v.option}, ₵${price.toFixed(2)}, ${stockText(stock)}.${clearHint}`;
+      if (base.save) {
+        if (listPrice > price) { base.save.el.textContent = `You save ₵${(listPrice - price).toFixed(2)} on this order!`; base.save.el.classList.remove("hidden"); }
+        else base.save.el.classList.add("hidden");
+      }
     }
-  }));
+    if (anySelected && base.avail) {
+      base.avail.el.textContent = stock > 0 ? `${stock} left` : "Out of stock";
+      base.avail.el.className = `text-right font-semibold ${stock > 0 ? "text-brand-700" : "text-red-600"}`;
+    }
+
+    // Quantity can't exceed the stock of what is selected.
+    const max = anySelected ? stock : BASE_STOCK;
+    qtyEl.max = max;
+    if (parseInt(qtyEl.value, 10) > max) qtyEl.value = max || 1;
+  }
+
+  function saveVariants() {
+    try {
+      const v = selectedVariants();
+      if (!v.color && !v.size && !v.option) localStorage.removeItem(VARIANT_KEY);
+      else localStorage.setItem(VARIANT_KEY, JSON.stringify({ color: v.color, size: v.size, option: v.option }));
+    } catch (e) { /* storage blocked (private mode): selection still works for this visit */ }
+  }
+
+  function restoreVariants() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(VARIANT_KEY) || "null");
+      if (!saved) return;
+      [["color", ".color-choice"], ["size", ".size-choice"], ["option", ".option-choice"]].forEach(([key, selector]) => {
+        if (!saved[key]) return;
+        // Only restore a choice that still exists and is still in stock.
+        const btn = [...document.querySelectorAll(selector)].find(b => b.dataset[key] === saved[key] && !b.disabled);
+        if (btn) btn.setAttribute("aria-pressed", "true");
+      });
+    } catch (e) { /* ignore unreadable saved selection */ }
+  }
+
+  function wireChoices(selector) {
+    document.querySelectorAll(selector).forEach(btn => btn.addEventListener("click", () => {
+      const wasSelected = btn.getAttribute("aria-pressed") === "true";
+      document.querySelectorAll(selector).forEach(b => b.setAttribute("aria-pressed", "false"));
+      if (!wasSelected) btn.setAttribute("aria-pressed", "true");
+      saveVariants();
+      refreshVariantUI();
+    }));
+  }
+  [".color-choice", ".size-choice", ".option-choice"].forEach(wireChoices);
+  restoreVariants();
+  saveVariants();
+  refreshVariantUI();
 
   document.querySelectorAll('.product-tab').forEach(btn => btn.addEventListener('click', () => { const tab=btn.dataset.productTab; document.querySelectorAll('.product-tab').forEach(b=>{b.classList.toggle('text-brand-700',b===btn);b.classList.toggle('border-b-2',b===btn);b.classList.toggle('border-brand-500',b===btn);b.classList.toggle('text-slate-500',b!==btn);});document.querySelectorAll('[data-product-panel]').forEach(p=>p.classList.toggle('hidden',p.dataset.productPanel!==tab)); }));
   (async()=>{const summary=document.getElementById('ratingSummary'), tip=document.getElementById('ratingStats'); if(!summary)return; summary.addEventListener('mouseenter',()=>tip.classList.remove('hidden'));summary.addEventListener('mouseleave',()=>tip.classList.add('hidden')); try{const st=await apiFetch('/reviews/product/{{ product.id }}/stats',{auth:false}); tip.innerHTML=`<div class="font-semibold mb-2">Review statistics</div>${[5,4,3,2,1].map(n=>`<div class="flex items-center gap-2"><span>${n}★</span><div class="h-1.5 bg-slate-200 rounded flex-1"><div class="h-1.5 bg-amber-400 rounded" style="width:${st.total?(st.distribution[n]/st.total*100):0}%"></div></div><span>${st.distribution[n]}</span></div>`).join('')}<div class="mt-2 text-slate-500">${st.comments} written comment${st.comments===1?'':'s'}</div>`; }catch(e){}})();

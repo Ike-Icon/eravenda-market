@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session, selectinload
 from .database import Base, engine, get_db
 from .migrate import run_migrations
 from . import models  # noqa: F401 - registers models on Base before create_all
-from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products, monetization
+from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products, monetization, analytics
 from .platform_settings import get_settings, pinned_product_ids
 from .home_feed import fair_random_products, live_promoted_products
 from .database import SessionLocal
@@ -123,6 +123,7 @@ app.include_router(services.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
 app.include_router(delivery.router, prefix="/api")
 app.include_router(newsletter.router, prefix="/api")
+app.include_router(analytics.router, prefix="/api")
 app.include_router(import_products.template_router, prefix="/api")
 app.include_router(import_products.seller_import_router, prefix="/api")
 app.include_router(import_products.admin_import_router, prefix="/api")
