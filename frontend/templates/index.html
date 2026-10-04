@@ -15,6 +15,7 @@
 {% endblock %}
 
 {% block content %}
+{% from "components/promo-card.html" import promo_card %}
 
 <!-- ============================================================
      1. HERO BANNER (click-through to Handyman Hub)
@@ -361,6 +362,40 @@
       <span class="text-[10px] text-slate-400 mt-0.5">{{ c.children|length if c.children else 'Browse' }} items</span>
     </a>
     {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+
+<!-- ============================================================
+     5B. PROMOTED PRODUCTS — paid placements only, horizontal rail
+     ============================================================ -->
+{% if promoted_products|default([]) %}
+<section id="promotedSection" class="max-w-7xl mx-auto px-4 py-8" aria-labelledby="promoted-heading">
+  <div class="flex items-end justify-between gap-3 mb-4">
+    <div class="min-w-0">
+      <span class="text-xs font-bold tracking-[0.18em] text-amber-600 uppercase">Promoted</span>
+      <h2 id="promoted-heading" class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Promoted Products</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Hand-picked placements from sellers across Ghana</p>
+    </div>
+    <a href="/promoted" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group shrink-0">
+      <span>See All</span>
+      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+    </a>
+  </div>
+
+  <div class="relative" data-scroll-rail>
+    <button type="button" data-scroll-prev aria-label="Scroll left"
+      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </button>
+    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
+      {% for p in promoted_products %}{{ promo_card(p, rail=True) }}{% endfor %}
+    </div>
+    <button type="button" data-scroll-next aria-label="Scroll right"
+      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>
   </div>
 </section>
 {% endif %}

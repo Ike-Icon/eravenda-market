@@ -394,6 +394,16 @@
   </div>
 </section>
 
+{% if sponsored_picks|default([]) %}
+{% from "components/promo-card.html" import promo_card %}
+<section class="max-w-7xl mx-auto px-4 pb-12" aria-label="Promoted in this category">
+  <h2 class="font-head text-xl font-semibold mb-4 flex items-center gap-2"><i class="fas fa-bullhorn text-amber-500 text-base"></i> Promoted in this category</h2>
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+    {% for sp in sponsored_picks %}{{ promo_card(sp) }}{% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% if related_products %}<section class="max-w-7xl mx-auto px-4 pb-12"><h2 class="font-head text-xl font-semibold mb-4">Related products</h2><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">{% for p in related_products %}{% set rp_price=p.discount_price if p.discount_price else p.price %}{% set rp_img=(p.images | selectattr('is_primary') | list | first) or (p.images | first) %}{% set rp_oos = p.stock_quantity <= 0 %}<article data-product-card data-product-url="/product/{{ p.id }}" tabindex="0" role="link" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"><div class="relative aspect-square bg-slate-100">{% if rp_oos %}<div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none"><span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span></div>{% endif %}{% if rp_img %}<img src="{{ rp_img.image_url }}" class="w-full h-full object-cover{% if rp_oos %} blur-[2px] grayscale opacity-70{% endif %}" loading="lazy" alt="{{ p.name }}">{% endif %}</div><div class="p-2"><div class="text-xs line-clamp-2">{{ p.name }}</div><div class="text-xs text-amber-600 mt-1">★ {{ '%.1f'|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>{% set rp_all_badges = ((p.store.badge_keys or []) + (p.badge_keys or [])) | unique | list %}{% if rp_all_badges %}<div class="flex flex-wrap gap-1 mt-1">{% for badge in rp_all_badges[:2] %}<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}<div class="font-semibold text-sm mt-1">₵{{ '%.2f'|format(rp_price) }}</div></div></article>{% endfor %}</div></section>{% endif %}
 
 {% if more_from_store %}

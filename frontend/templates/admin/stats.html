@@ -37,6 +37,7 @@
         ('requests', 'clipboard-list', 'Service requests'),
         ('reviews', 'star', 'Reviews'),
         ('payments', 'credit-card', 'Payments'),
+        ('monetization', 'badge-percent', 'Monetization'),
         ('users', 'users', 'Accounts'),
       ] %}
       {% for id, icon, label in tabs %}
@@ -97,6 +98,34 @@
           </table>
         </div>
       </section>
+
+      <section class="bg-white border border-slate-200 rounded-2xl p-6 mt-8" id="monetizationStats">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-5">
+          <div>
+            <h2 class="font-head text-xl font-bold">Subscriptions &amp; promotions</h2>
+            <p class="text-sm text-slate-500 mt-1">Seller plan and promoted-listing numbers. This is platform revenue on top of commissions.</p>
+          </div>
+          <a href="/admin/dashboard.html#monetization" class="text-sm font-semibold text-brand-600 hover:text-brand-700 shrink-0">Manage monetization &rarr;</a>
+        </div>
+
+        <h3 class="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">Seller subscriptions</h3>
+        <div id="subscriptionKpis" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
+
+        <h3 class="text-xs font-bold uppercase tracking-wide text-slate-400 mt-6 mb-2">Promoted listings</h3>
+        <div id="promotionKpis" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
+
+        <div class="border border-slate-200 rounded-xl p-4 mt-6">
+          <h3 class="font-semibold text-sm mb-3">Monthly subscription &amp; promotion revenue</h3>
+          <div class="relative" style="height:240px"><canvas id="monetizationChart"></canvas></div>
+        </div>
+
+        <div class="overflow-x-auto mt-6">
+          <table class="w-full text-sm text-left">
+            <thead><tr class="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400"><th class="py-3 pr-4">Month</th><th class="py-3 px-4">Subscriptions</th><th class="py-3 px-4">Promotions</th><th class="py-3 px-4">Combined</th></tr></thead>
+            <tbody id="monetizationMonthly"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
   </div>
 </section>
@@ -128,7 +157,7 @@ async function loadStats() {
     [s.active_sellers, 'Active sellers', 'fa-shop'],
     [s.active_products, 'Active products', 'fa-boxes-stacked'],
     [s.total_orders, 'Total orders', 'fa-receipt'],
-    [`GHS ${Number(s.platform_revenue || 0).toFixed(2)}`, 'Platform commissions', 'fa-coins'],
+    [`GHS ${Number(s.platform_revenue || 0).toFixed(2)}`, 'Platform revenue (all streams)', 'fa-coins'],
   ].map(([v, l, i]) => `<div class="bg-white border border-slate-200 rounded-2xl p-4"><div class="flex items-center justify-between"><span class="text-[11px] uppercase tracking-wide text-slate-400 font-semibold">${l}</span><i class="fas ${i} text-brand-600"></i></div><div class="font-head text-2xl font-bold mt-2">${v}</div></div>`).join('');
 
   const overall = s.overall || {};
@@ -147,7 +176,67 @@ async function loadStats() {
   document.getElementById('monthlyKpis').innerHTML = (s.monthly || []).map(month => `<tr class="border-b border-slate-100"><td class="py-3 pr-4 font-semibold">${month.month}</td><td class="py-3 px-4">${money(month.total_income)}</td><td class="py-3 px-4 font-semibold text-brand-700">${money(month.total_commissions)}</td><td class="py-3 px-4">${money(month.product_income)} <span class="text-xs text-slate-400">(${month.orders})</span></td><td class="py-3 px-4">${money(month.service_income)} <span class="text-xs text-slate-400">(${month.bookings})</span></td></tr>`).join('') || '<tr><td colspan="5" class="py-4 text-sm text-slate-500">No payment activity yet.</td></tr>';
 
   renderIncomeCharts(s);
+  renderMonetization(s);
   loadTopStoresChart();
+}
+
+// -------------------- Subscriptions & promotions --------------------
+let monetizationChartInstance;
+function renderMonetization(s) {
+  const m = s.monetization || {};
+  const sub = m.subscriptions || {};
+  const pro = m.promotions || {};
+  const money = value => `GHS ${Number(value || 0).toFixed(2)}`;
+  const card = ([value, label, icon, hint]) => `<div class="border border-slate-200 rounded-xl p-4"><div class="flex items-center justify-between gap-2"><span class="text-xs text-slate-500">${label}</span><i class="fas ${icon} text-brand-600"></i></div><p class="font-head text-xl font-bold mt-2">${value}</p>${hint ? `<p class="text-[11px] text-slate-400 mt-1">${hint}</p>` : ''}</div>`;
+
+  document.getElementById('subscriptionKpis').innerHTML = [
+    [money(sub.revenue_total), 'Subscription revenue', 'fa-crown', `${money(sub.revenue_this_month)} this month`],
+    [sub.active_subscribers || 0, 'Active subscribers', 'fa-users', `${sub.paid_active || 0} paid · ${sub.granted_active || 0} granted free`],
+    [money(sub.monthly_recurring), 'Monthly recurring revenue', 'fa-arrows-rotate', 'From paying subscribers only'],
+    [sub.payments || 0, 'Subscription payments', 'fa-receipt', `${sub.months_sold || 0} month(s) sold · avg ${money(sub.avg_payment)}`],
+    [sub.ended_or_expired || 0, 'Ended or expired', 'fa-hourglass-end', `${sub.total_stores_ever || 0} store(s) have ever subscribed`],
+  ].map(card).join('');
+
+  document.getElementById('promotionKpis').innerHTML = [
+    [money(pro.revenue_total), 'Promotion revenue', 'fa-bullhorn', `${money(pro.revenue_this_month)} this month`],
+    [pro.live_now || 0, 'Live promotions', 'fa-bolt', `${pro.live_product || 0} product · ${pro.live_store_wide || 0} store-wide`],
+    [pro.stores_promoting || 0, 'Stores promoting now', 'fa-store', ''],
+    [pro.paid_total || 0, 'Promotions purchased', 'fa-receipt', `${pro.weeks_sold || 0} week(s) sold · avg ${money(pro.avg_spend)}`],
+    [pro.granted_total || 0, 'Promotions granted free', 'fa-gift', 'Given by admin, no revenue'],
+  ].map(card).join('');
+
+  const monthly = s.monthly || [];
+  document.getElementById('monetizationMonthly').innerHTML = monthly.map(mo => {
+    const subRev = mo.subscription_revenue || 0, proRev = mo.promotion_revenue || 0;
+    return `<tr class="border-b border-slate-100"><td class="py-3 pr-4 font-semibold">${mo.month}</td><td class="py-3 px-4">${money(subRev)} <span class="text-xs text-slate-400">(${mo.subscriptions_sold || 0})</span></td><td class="py-3 px-4">${money(proRev)} <span class="text-xs text-slate-400">(${mo.promotions_sold || 0})</span></td><td class="py-3 px-4 font-semibold text-brand-700">${money(subRev + proRev)}</td></tr>`;
+  }).join('') || '<tr><td colspan="4" class="py-4 text-sm text-slate-500">No subscription or promotion payments yet.</td></tr>';
+
+  const canvas = document.getElementById('monetizationChart');
+  if (!canvas) return;
+  if (typeof Chart === 'undefined') {
+    canvas.parentElement.innerHTML = '<p class="text-xs text-red-600 flex items-center justify-center h-full text-center px-4">Charts couldn\'t load. The numbers above are still accurate, try refreshing the page.</p>';
+    return;
+  }
+  const labels = monthly.map(mo => {
+    const [y, mm] = mo.month.split('-');
+    return new Date(Number(y), Number(mm) - 1, 1).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+  });
+  if (monetizationChartInstance) monetizationChartInstance.destroy();
+  monetizationChartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Subscriptions', data: monthly.map(mo => mo.subscription_revenue || 0), backgroundColor: '#7c3aed', borderRadius: 4 },
+        { label: 'Promotions', data: monthly.map(mo => mo.promotion_revenue || 0), backgroundColor: CHART_COLORS.commission, borderRadius: 4 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { callback: v => `GHS ${v}` } } },
+    },
+  });
 }
 
 // -------------------- Income data visualization --------------------

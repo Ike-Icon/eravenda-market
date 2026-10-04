@@ -22,6 +22,7 @@ from .migrate import run_migrations
 from . import models  # noqa: F401 - registers models on Base before create_all
 from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products, monetization
 from .platform_settings import get_settings, pinned_product_ids
+from .home_feed import fair_random_products, live_promoted_products
 from .database import SessionLocal
 from . import email_utils
 from .email_utils import SITE_URL
@@ -216,23 +217,18 @@ def _canonical_url(request: Request) -> str:
 
 @app.get("/", response_class=HTMLResponse)
 def home_page(request: Request, db: Session = Depends(get_db)):
-    products_list = (
-        db.query(models.Product)
-        .filter(models.Product.status == models.ProductStatus.approved)
-        .order_by(models.Product.created_at.desc())
-        .limit(30)
-        .all()
-    )
-    flash_deals = (
-        db.query(models.Product)
-        .filter(
-            models.Product.status == models.ProductStatus.approved,
-            models.Product.discount_price.isnot(None),
-            models.Product.discount_price < models.Product.price,
-        )
-        .order_by(models.Product.created_at.desc())
-        .limit(8)
-        .all()
+    # Paid promotions get their own section; the rails below are fair-share
+    # random (every seller takes turns, new order on each visit) instead of
+    # newest-first, so no seller owns the home page just by uploading last.
+    promoted_products = live_promoted_products(db, limit=12)
+    promoted_ids = [p.id for p in promoted_products]
+    products_list = fair_random_products(db, 30, exclude_ids=promoted_ids)
+    if not products_list:  # tiny catalogue: everything is already in the promoted rail
+        products_list = fair_random_products(db, 30)
+    flash_deals = fair_random_products(
+        db, 8,
+        models.Product.discount_price.isnot(None),
+        models.Product.discount_price < models.Product.price,
     )
     featured_stores = (
         db.query(models.Store)
@@ -275,16 +271,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
     )
     # Feeds the "Pay on Delivery" rail — sellers opt individual products in or
     # out of COD (Product.cod_eligible), so this only shows ones they've kept eligible.
-    pay_on_delivery = (
-        db.query(models.Product)
-        .filter(
-            models.Product.status == models.ProductStatus.approved,
-            models.Product.cod_eligible.is_(True),
-        )
-        .order_by(models.Product.created_at.desc())
-        .limit(14)
-        .all()
-    )
+    pay_on_delivery = fair_random_products(db, 14, models.Product.cod_eligible.is_(True))
     return templates.TemplateResponse(
         "index.html",
         page_context(
@@ -297,6 +284,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
             top_deals=top_deals,
             top_rated=top_rated,
             pay_on_delivery=pay_on_delivery,
+            promoted_products=promoted_products,
         ),
     )
 
@@ -352,10 +340,18 @@ def products_page(
             pinned_set = {p.id for p in pinned}
             products_list = pinned + [p for p in products_list if p.id not in pinned_set]
 
+    # Paid-promotion strip above the grid (hidden by the template while the
+    # shopper is searching by text, so it never hijacks a specific search).
+    promoted_strip = live_promoted_products(
+        db, limit=8,
+        category_ids=_category_and_child_ids(db, category_id) if category_id else None,
+    )
+
     return templates.TemplateResponse(
         "products.html",
         page_context(
             request, db,
+            promoted_strip=promoted_strip,
             products=products_list,
             search_query=q,
             selected_category_id=category_id,
@@ -365,6 +361,33 @@ def products_page(
             # Non-zero only when more products match than the page can hold, so
             # the template can say so instead of silently dropping the rest.
             products_not_shown=max(0, total_matching - len(products_list)),
+        ),
+    )
+
+
+@app.get("/promoted", response_class=HTMLResponse)
+def promoted_page(request: Request, category_id: str = "", db: Session = Depends(get_db)):
+    """Only products sellers have paid to promote right now."""
+    all_promoted = live_promoted_products(db)
+    # Category chips: only categories that actually have a promoted product,
+    # so every chip leads somewhere.
+    chip_ids = {p.category_id for p in all_promoted}
+    chip_categories = (
+        db.query(models.Category).filter(models.Category.id.in_(chip_ids)).order_by(models.Category.name).all()
+        if chip_ids else []
+    )
+    if category_id:
+        wanted = set(_category_and_child_ids(db, category_id))
+        promoted = [p for p in all_promoted if p.category_id in wanted]
+    else:
+        promoted = all_promoted
+    return templates.TemplateResponse(
+        "promoted.html",
+        page_context(
+            request, db,
+            promoted_products=promoted,
+            chip_categories=chip_categories,
+            selected_category_id=category_id,
         ),
     )
 
@@ -404,7 +427,13 @@ def product_page(product_id: str, request: Request, db: Session = Depends(get_db
 
     return templates.TemplateResponse(
         "product.html",
-        page_context(request, db, product=product, store=store, more_from_store=more_from_store, related_products=related_products, reviews=reviews),
+        page_context(
+            request, db, product=product, store=store, more_from_store=more_from_store,
+            related_products=related_products, reviews=reviews,
+            sponsored_picks=live_promoted_products(
+                db, limit=6, category_ids=[product.category_id], exclude_ids=[product.id],
+            ),
+        ),
     )
 
 
@@ -702,7 +731,7 @@ def sitemap(db: Session = Depends(get_db)):
     # private/transactional pages are marked noindex in their own template
     # (robots_meta block) and left out of here entirely.
     static_urls = [
-        SITE_URL, f"{SITE_URL}/products", f"{SITE_URL}/services",
+        SITE_URL, f"{SITE_URL}/products", f"{SITE_URL}/promoted", f"{SITE_URL}/services",
         f"{SITE_URL}/services/register", f"{SITE_URL}/delivery/register",
         f"{SITE_URL}/about", f"{SITE_URL}/contact", f"{SITE_URL}/faq",
         f"{SITE_URL}/terms", f"{SITE_URL}/privacy", f"{SITE_URL}/delivery/terms",

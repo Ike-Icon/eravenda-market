@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "components/promo-card.html" import promo_card %}
+{% block title %}Promoted products — Eravenda Market{% endblock %}
+{% block meta_description %}Products that independent Ghanaian sellers are promoting on Eravenda Market right now.{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <div class="mb-5">
+    <span class="text-xs font-bold tracking-[0.18em] text-amber-600 uppercase">Promoted</span>
+    <h1 class="font-head text-2xl sm:text-3xl font-bold text-slate-900">Promoted products</h1>
+    <p class="text-sm text-slate-500 mt-1">Only products sellers are promoting right now. The order changes on every visit so every promoter gets seen.</p>
+  </div>
+
+  {% if chip_categories %}
+  <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 mb-4 -mx-4 px-4 text-xs font-semibold">
+    <a href="/promoted" class="shrink-0 px-3 py-1.5 rounded-full border whitespace-nowrap {% if not selected_category_id %}bg-brand-600 border-brand-600 text-white{% else %}bg-white border-slate-200 text-slate-700 hover:border-brand-500{% endif %}">All</a>
+    {% for c in chip_categories %}
+    <a href="/promoted?category_id={{ c.id }}" class="shrink-0 px-3 py-1.5 rounded-full border whitespace-nowrap {% if selected_category_id == c.id %}bg-brand-600 border-brand-600 text-white{% else %}bg-white border-slate-200 text-slate-700 hover:border-brand-500{% endif %}">{{ c.name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if promoted_products %}
+  <p class="text-sm text-slate-500 mb-4">{{ promoted_products|length }} promoted product{{ '' if promoted_products|length == 1 else 's' }}</p>
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+    {% for p in promoted_products %}{{ promo_card(p) }}{% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-16 text-slate-500 bg-white rounded-xl border border-slate-200">
+    <p class="font-semibold text-slate-700">No promoted products right now</p>
+    <p class="text-sm mt-1">Check back soon, or <a href="/products" class="text-brand-600 font-semibold hover:underline">browse the full catalogue</a>.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

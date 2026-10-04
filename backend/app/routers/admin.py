@@ -850,6 +850,9 @@ def platform_stats(
         ).scalar() or 0)
     subscription_revenue = _charge_total("subscription")
     promotion_revenue = _charge_total("promotion")
+    paid_charge_rows = (db.query(models.StoreCharge)
+                        .filter(models.StoreCharge.status == models.PaymentStatus.success)
+                        .all())
 
     try:
         anchor_month = (datetime.strptime(end_month, "%Y-%m") if end_month
@@ -859,7 +862,8 @@ def platform_stats(
 
     if show_all:
         all_paid_dates = [p.paid_at for p, _o in paid_product_rows if p.paid_at] + \
-                          [b.paid_at for b in paid_service_rows if b.paid_at]
+                          [b.paid_at for b in paid_service_rows if b.paid_at] + \
+                          [c.paid_at for c in paid_charge_rows if c.paid_at]
         earliest = min(all_paid_dates) if all_paid_dates else anchor_month
         months_span = (anchor_month.year - earliest.year) * 12 + (anchor_month.month - earliest.month)
     else:
@@ -889,8 +893,15 @@ def platform_stats(
         month_product_commission = sum(float(order.commission_amount or 0) for _payment, order in month_products)
         month_service_income = sum(float(booking.escrow_amount or 0) for booking in month_services)
         month_service_commission = sum(float(booking.commission_amount or 0) for booking in month_services)
+        month_charges = [c for c in paid_charge_rows if c.paid_at and month_start <= c.paid_at <= month_end]
+        month_subs = [c for c in month_charges if c.kind == "subscription"]
+        month_promos = [c for c in month_charges if c.kind == "promotion"]
         monthly.append({
             "month": month_start.strftime("%Y-%m"),
+            "subscription_revenue": sum(float(c.amount or 0) for c in month_subs),
+            "promotion_revenue": sum(float(c.amount or 0) for c in month_promos),
+            "subscriptions_sold": len(month_subs),
+            "promotions_sold": len(month_promos),
             "product_income": month_product_income,
             "product_commissions": month_product_commission,
             "service_income": month_service_income,
@@ -920,8 +931,45 @@ def platform_stats(
     service_reviews_count = db.query(func.count(models.ServiceReview.id)).scalar() or 0
     service_average = db.query(func.avg(models.ServiceReview.rating)).scalar() or 0
 
+    now = datetime.utcnow()
+    this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    sub_charges = [c for c in paid_charge_rows if c.kind == "subscription"]
+    promo_charges = [c for c in paid_charge_rows if c.kind == "promotion"]
+    all_subs = db.query(models.SellerSubscription).all()
+    live_subs = [x for x in all_subs if x.status == "active" and x.current_period_end > now]
+    all_promos = db.query(models.PromotedListing).filter(models.PromotedListing.status != "pending").all()
+    live_promos = [x for x in all_promos if x.status == "active" and x.starts_at and x.ends_at and x.starts_at <= now < x.ends_at]
+    monetization = {
+        "subscriptions": {
+            "revenue_total": subscription_revenue,
+            "revenue_this_month": sum(float(c.amount or 0) for c in sub_charges if c.paid_at and c.paid_at >= this_month_start),
+            "active_subscribers": len(live_subs),
+            "paid_active": len([x for x in live_subs if not x.granted_by_admin]),
+            "granted_active": len([x for x in live_subs if x.granted_by_admin]),
+            "ended_or_expired": len(all_subs) - len(live_subs),
+            "total_stores_ever": len(all_subs),
+            "payments": len(sub_charges),
+            "months_sold": sum(max(0, c.quantity or 0) for c in sub_charges),
+            "monthly_recurring": round(sum(float(x.monthly_fee or 0) for x in live_subs if not x.granted_by_admin), 2),
+            "avg_payment": round(subscription_revenue / len(sub_charges), 2) if sub_charges else 0.0,
+        },
+        "promotions": {
+            "revenue_total": promotion_revenue,
+            "revenue_this_month": sum(float(c.amount or 0) for c in promo_charges if c.paid_at and c.paid_at >= this_month_start),
+            "live_now": len(live_promos),
+            "live_product": len([x for x in live_promos if x.product_id]),
+            "live_store_wide": len([x for x in live_promos if not x.product_id]),
+            "paid_total": len(promo_charges),
+            "granted_total": len([x for x in all_promos if x.granted_by_admin]),
+            "weeks_sold": sum(max(0, c.quantity or 0) for c in promo_charges),
+            "avg_spend": round(promotion_revenue / len(promo_charges), 2) if promo_charges else 0.0,
+            "stores_promoting": len({x.store_id for x in live_promos}),
+        },
+    }
+
     return {
         "total_orders": total_orders,
+        "monetization": monetization,
         "platform_revenue": float(total_commissions) + subscription_revenue + promotion_revenue,
         "overall": {
             "product_income": product_income,

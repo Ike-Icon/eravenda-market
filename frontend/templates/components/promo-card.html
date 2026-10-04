@@ -1,0 +1,44 @@
+{# Card for a paid-promoted product. Used by the home page rail, the /promoted
+   page, the catalogue strip and the product page. It is a plain link (no
+   data-product-card), so the catalogue's client-side filters and pagination,
+   which act on [data-product-card], never touch it.
+   rail=True gives the fixed-width card used inside horizontal scroll rails. #}
+{% macro promo_card(p, rail=False) %}
+{% set price = p.discount_price if p.discount_price else p.price %}
+{% set has_discount = p.discount_price and p.discount_price < p.price %}
+{% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
+{% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+{% set out_of_stock = p.stock_quantity <= 0 %}
+<a href="/product/{{ p.id }}" data-promo-card
+  class="group block bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/30 rounded-lg overflow-hidden hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-brand-500{% if rail %} shrink-0 snap-start w-[136px] sm:w-[160px]{% endif %}">
+  <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+    <span class="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shadow-sm">Promoted</span>
+    {% if has_discount and not out_of_stock %}
+    <span class="absolute top-1.5 right-1.5 z-10 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">-{{ discount_pct }}%</span>
+    {% endif %}
+    {% if out_of_stock %}
+    <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
+      <span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span>
+    </div>
+    {% endif %}
+    {% if primary_image %}
+    <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
+    {% else %}
+    <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>
+    {% endif %}
+  </div>
+  <div class="p-2">
+    <p class="text-[10px] text-brand-600 dark:text-brand-400 font-medium truncate">{{ p.store.store_name if p.store else 'Ghana Seller' }}</p>
+    <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug mt-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{{ p.name }}</h3>
+    <div class="flex items-center gap-1 text-[10px] text-amber-500 mt-1">
+      <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
+      <span class="text-slate-400">({{ p.review_count }})</span>
+    </div>
+    <div class="mt-1 flex items-baseline gap-1">
+      <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
+      {% if has_discount %}<span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}
+    </div>
+  </div>
+</a>
+{% endmacro %}
