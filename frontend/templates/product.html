@@ -589,13 +589,19 @@
   (async()=>{const summary=document.getElementById('ratingSummary'), tip=document.getElementById('ratingStats'); if(!summary)return; summary.addEventListener('mouseenter',()=>tip.classList.remove('hidden'));summary.addEventListener('mouseleave',()=>tip.classList.add('hidden')); try{const st=await apiFetch('/reviews/product/{{ product.id }}/stats',{auth:false}); tip.innerHTML=`<div class="font-semibold mb-2">Review statistics</div>${[5,4,3,2,1].map(n=>`<div class="flex items-center gap-2"><span>${n}★</span><div class="h-1.5 bg-slate-200 rounded flex-1"><div class="h-1.5 bg-amber-400 rounded" style="width:${st.total?(st.distribution[n]/st.total*100):0}%"></div></div><span>${st.distribution[n]}</span></div>`).join('')}<div class="mt-2 text-slate-500">${st.comments} written comment${st.comments===1?'':'s'}</div>`; }catch(e){}})();
   (async()=>{if(!Auth.isLoggedIn())return; try{const e=await apiFetch('/reviews/product/{{ product.id }}/eligibility'); if(e.eligible){document.getElementById('reviewFormWrap').classList.remove('hidden'); let rating=0;document.querySelectorAll('#starPicker button').forEach(b=>b.onclick=()=>{rating=+b.dataset.rating;document.querySelectorAll('#starPicker button').forEach(x=>x.classList.toggle('text-amber-500',+x.dataset.rating<=rating));});document.getElementById('submitReview').onclick=async()=>{if(!rating)return;try{await apiFetch('/reviews',{method:'POST',body:{product_id:'{{ product.id }}',order_item_id:e.order_item_id,rating,comment:document.getElementById('reviewComment').value||null}});location.reload();}catch(err){document.getElementById('reviewMessage').textContent=err.message;}};}}catch(e){}})();
 
-  document.getElementById("shareProductBtn").addEventListener("click", (e) => {
-    shareLink(e.currentTarget, {
-      url: "{{ canonical_url }}",
-      title: {{ (product.name + " — Eravenda Market") | tojson }},
-      text: {{ ("Check out " + product.name + " on Eravenda Market") | tojson }},
+  // Guarded: a null element here would otherwise throw on .addEventListener
+  // and silently stop every script after this one on the page — including
+  // Wishlist, Add to Cart, and Buy Now — from ever being wired up.
+  const shareProductBtnEl = document.getElementById("shareProductBtn");
+  if (shareProductBtnEl) {
+    shareProductBtnEl.addEventListener("click", (e) => {
+      shareLink(e.currentTarget, {
+        url: "{{ canonical_url }}",
+        title: {{ (product.name + " — Eravenda Market") | tojson }},
+        text: {{ ("Check out " + product.name + " on Eravenda Market") | tojson }},
+      });
     });
-  });
+  }
 
   document.getElementById("wishlistBtn").addEventListener("click", async (e) => {
     const btn = e.currentTarget;

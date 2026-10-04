@@ -138,13 +138,19 @@
 })();
 
 // ---- Share this store ----
-document.getElementById("shareStoreBtn").addEventListener("click", (e) => {
-  shareLink(e.currentTarget, {
-    url: "{{ canonical_url }}",
-    title: {{ (store.store_name + " on Eravenda Market") | tojson }},
-    text: {{ ("Check out " + store.store_name + " on Eravenda Market") | tojson }},
+// Guarded like the Follow IIFE below it: a null element here would otherwise
+// throw on .addEventListener and silently stop every script after this one
+// on the page (including Follow) from ever running.
+const shareStoreBtnEl = document.getElementById("shareStoreBtn");
+if (shareStoreBtnEl) {
+  shareStoreBtnEl.addEventListener("click", (e) => {
+    shareLink(e.currentTarget, {
+      url: "{{ canonical_url }}",
+      title: {{ (store.store_name + " on Eravenda Market") | tojson }},
+      text: {{ ("Check out " + store.store_name + " on Eravenda Market") | tojson }},
+    });
   });
-});
+}
 
 // ---- Follow / unfollow this store ----
 (function () {

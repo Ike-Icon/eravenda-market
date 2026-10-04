@@ -1914,15 +1914,21 @@ function openShareMenu(anchor, url, text) {
 }
 async function shareLink(trigger, { url, title, text } = {}) {
   const shareUrl = url || window.location.href;
+  const anchor = trigger.closest("[data-share-wrap]");
   if (navigator.share) {
     try {
       await navigator.share({ title, text, url: shareUrl });
+      return; // sheet opened and the user picked something (or it's still open) — done either way
     } catch (err) {
-      if (err.name !== "AbortError") console.error(err); // AbortError = user cancelled the sheet, not a failure
+      if (err.name === "AbortError") return; // user backed out of the sheet themselves — not a failure, nothing more to do
+      // Any other rejection (a permissions policy blocking it, a transient OS
+      // error, etc.) means the sheet never actually opened — fall through to
+      // the menu below instead of leaving the click looking like it did
+      // nothing, which is indistinguishable from the feature being broken.
+      console.error("navigator.share failed, falling back to share menu:", err);
     }
-    return;
   }
-  const anchor = trigger.closest("[data-share-wrap]");
   if (anchor) openShareMenu(anchor, shareUrl, text || title || "");
+  else copyShareLink(shareUrl); // no [data-share-wrap] ancestor to anchor a menu to — copy is still a safe default
 }
 window.shareLink = shareLink;
