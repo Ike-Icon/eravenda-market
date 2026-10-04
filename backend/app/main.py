@@ -53,8 +53,17 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-    if request.url.path.startswith("/api"):
+    path = request.url.path
+    if path.startswith("/api"):
         response.headers.setdefault("Cache-Control", "no-store")
+    elif path in ("/", "/promoted", "/products"):
+        # These pages rotate their content on every visit (fair-share random
+        # home rails, promoted placements). Without an explicit header a
+        # browser, proxy or CDN may keep serving one stale copy, which looks
+        # like "the order never changes" and "the new section never appears".
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["CDN-Cache-Control"] = "no-store"
+        response.headers["Pragma"] = "no-cache"
     return response
 
 

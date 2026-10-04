@@ -431,6 +431,64 @@ def admin_grant_promotion(payload: PromotionGrant, db: Session = Depends(get_db)
     return _promo_out(activate_promotion(db, promo))
 
 
+@admin_router.get("/promotions/diagnostics")
+def admin_promotion_diagnostics(db: Session = Depends(get_db)):
+    """For every non-cancelled promotion: is it showing on the storefront, and
+    if not, which condition is blocking it. Mirrors the exact rules used by
+    live_promoted_products() so the answer matches what shoppers see."""
+    from ..home_feed import live_promoted_products
+
+    now = datetime.utcnow()
+    rows = db.query(models.PromotedListing).filter(
+        models.PromotedListing.status != "cancelled"
+    ).order_by(models.PromotedListing.created_at.desc()).limit(100).all()
+    shown_ids = {p.id for p in live_promoted_products(db)}
+
+    out = []
+    for promo in rows:
+        blockers = []
+        if promo.status != "active":
+            blockers.append(f"status is '{promo.status}' (payment not completed or not activated)")
+        if not promo.starts_at or not promo.ends_at:
+            blockers.append("no start/end dates set")
+        else:
+            if promo.starts_at > now:
+                blockers.append(f"starts in the future ({promo.starts_at:%Y-%m-%d %H:%M} UTC)")
+            if promo.ends_at <= now:
+                blockers.append(f"expired on {promo.ends_at:%Y-%m-%d %H:%M} UTC")
+        if not promo.store or promo.store.status != models.StoreStatus.approved:
+            blockers.append("store is not approved")
+        if promo.product_id:
+            product = promo.product
+            if not product:
+                blockers.append("product no longer exists")
+            elif product.status != models.ProductStatus.approved:
+                blockers.append(f"product is '{product.status.value if hasattr(product.status, 'value') else product.status}', not approved")
+        else:
+            count = db.query(func.count(models.Product.id)).filter(
+                models.Product.store_id == promo.store_id,
+                models.Product.status == models.ProductStatus.approved,
+            ).scalar() or 0
+            if not count:
+                blockers.append("store has no approved products to show")
+        out.append({
+            "id": promo.id,
+            "store": promo.store.store_name if promo.store else None,
+            "scope": "product" if promo.product_id else "store-wide",
+            "product": promo.product.name if promo.product else None,
+            "status": promo.status,
+            "starts_at": promo.starts_at.isoformat() if promo.starts_at else None,
+            "ends_at": promo.ends_at.isoformat() if promo.ends_at else None,
+            "showing_on_storefront": bool(not blockers),
+            "blockers": blockers,
+        })
+    return {
+        "server_time_utc": now.isoformat(),
+        "live_products_on_storefront": len(shown_ids),
+        "promotions": out,
+    }
+
+
 @admin_router.put("/promotions/{promotion_id}/cancel")
 def admin_cancel_promotion(promotion_id: str, db: Session = Depends(get_db)):
     promo = db.query(models.PromotedListing).filter(models.PromotedListing.id == promotion_id).first()

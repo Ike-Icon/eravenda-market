@@ -119,6 +119,20 @@
           <div class="relative" style="height:240px"><canvas id="monetizationChart"></canvas></div>
         </div>
 
+        <div class="border border-slate-200 rounded-xl p-4 mt-6">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <h3 class="font-semibold text-sm">Storefront visibility check</h3>
+            <span id="promoVisibilitySummary" class="text-xs text-slate-500"></span>
+          </div>
+          <p class="text-xs text-slate-500 mb-3">Shows whether each promotion is on the home page and /promoted right now, and what is blocking it if not.</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead><tr class="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400"><th class="py-2 pr-3">Store</th><th class="py-2 px-3">Scope</th><th class="py-2 px-3">Status</th><th class="py-2 px-3">Showing?</th><th class="py-2 pl-3">Why not</th></tr></thead>
+              <tbody id="promoVisibilityRows"><tr><td colspan="5" class="py-3 text-xs text-slate-400">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="overflow-x-auto mt-6">
           <table class="w-full text-sm text-left">
             <thead><tr class="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400"><th class="py-3 pr-4">Month</th><th class="py-3 px-4">Subscriptions</th><th class="py-3 px-4">Promotions</th><th class="py-3 px-4">Combined</th></tr></thead>
@@ -177,7 +191,29 @@ async function loadStats() {
 
   renderIncomeCharts(s);
   renderMonetization(s);
+  loadPromotionVisibility();
   loadTopStoresChart();
+}
+
+async function loadPromotionVisibility() {
+  const rows = document.getElementById('promoVisibilityRows');
+  const summary = document.getElementById('promoVisibilitySummary');
+  if (!rows) return;
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  try {
+    const d = await apiFetch('/admin/monetization/promotions/diagnostics');
+    const list = d.promotions || [];
+    summary.textContent = `${d.live_products_on_storefront || 0} promoted product(s) on the storefront now`;
+    rows.innerHTML = list.map(p => `<tr class="border-b border-slate-100 align-top">
+      <td class="py-2 pr-3 font-medium">${esc(p.store || '—')}${p.product ? `<div class="text-xs text-slate-400">${esc(p.product)}</div>` : ''}</td>
+      <td class="py-2 px-3">${esc(p.scope)}</td>
+      <td class="py-2 px-3">${esc(p.status)}</td>
+      <td class="py-2 px-3">${p.showing_on_storefront ? '<span class="text-emerald-600 font-semibold">Yes</span>' : '<span class="text-red-600 font-semibold">No</span>'}</td>
+      <td class="py-2 pl-3 text-xs text-slate-600">${p.blockers.length ? p.blockers.map(esc).join('<br>') : '—'}</td></tr>`).join('')
+      || '<tr><td colspan="5" class="py-3 text-xs text-slate-500">No promotions exist yet. Buy or grant one from Monetization and it will appear here.</td></tr>';
+  } catch (err) {
+    rows.innerHTML = `<tr><td colspan="5" class="py-3 text-xs text-red-600">Couldn't load the visibility check: ${esc(err.message || err)}</td></tr>`;
+  }
 }
 
 // -------------------- Subscriptions & promotions --------------------
