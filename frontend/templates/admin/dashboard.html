@@ -34,6 +34,7 @@
         ('requests', 'clipboard-list', 'Service requests'),
         ('reviews', 'star', 'Reviews'),
         ('payments', 'credit-card', 'Payments'),
+        ('monetization', 'badge-percent', 'Monetization'),
         ('users', 'users', 'Accounts'),
       ] %}
       {% for id, icon, label in tabs %}
@@ -184,6 +185,116 @@
         </section>
       </section>
 
+      <!-- Monetization: commission, seller subscription, promoted listings -->
+      <section data-panel="monetization" class="admin-panel hidden space-y-6">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 class="font-head text-xl font-bold">Revenue from plans and promotions</h2>
+          <div id="monRevenue" class="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+        </section>
+
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 class="font-head text-xl font-bold">Pricing controls</h2>
+          <p class="text-sm text-slate-500 mt-1">Every change applies to new activity straight away. Orders already placed, plans already bought and promotions already running keep the terms they were bought under. Handyman commission is separate and unchanged.</p>
+
+          <div class="mt-5 grid lg:grid-cols-3 gap-5">
+            <div class="border border-slate-200 rounded-xl p-4 space-y-3">
+              <h3 class="font-semibold">Standard product commission</h3>
+              <label class="block text-xs font-semibold text-slate-600">Rate on every product, all sellers (%)
+                <input id="monRate" type="number" step="0.01" min="0" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+              </label>
+              <p id="monRateCap" class="text-xs text-slate-500"></p>
+            </div>
+
+            <div class="border border-slate-200 rounded-xl p-4 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="font-semibold">Seller subscription</h3>
+                <label class="text-xs font-semibold text-slate-600 flex items-center gap-2"><input id="monSubEnabled" type="checkbox" class="rounded"> On</label>
+              </div>
+              <label class="block text-xs font-semibold text-slate-600">Monthly flat fee (GHS)
+                <input id="monSubFee" type="number" step="0.01" min="1" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+              </label>
+              <label class="block text-xs font-semibold text-slate-600">Reduced commission for subscribers (%)
+                <input id="monSubRate" type="number" step="0.01" min="0" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+              </label>
+              <p id="monBreakEven" class="text-xs text-slate-500"></p>
+            </div>
+
+            <div class="border border-slate-200 rounded-xl p-4 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="font-semibold">Promoted listings</h3>
+                <label class="text-xs font-semibold text-slate-600 flex items-center gap-2"><input id="monPromoEnabled" type="checkbox" class="rounded"> On</label>
+              </div>
+              <label class="block text-xs font-semibold text-slate-600">Sellers can buy from (date)
+                <input id="monPromoOpenFrom" type="date" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+              </label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="block text-xs font-semibold text-slate-600">One product, GHS/week
+                  <input id="monPromoProductPrice" type="number" step="0.01" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                </label>
+                <label class="block text-xs font-semibold text-slate-600">Whole store, GHS/week
+                  <input id="monPromoStorePrice" type="number" step="0.01" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                </label>
+                <label class="block text-xs font-semibold text-slate-600">Max weeks per purchase
+                  <input id="monPromoMaxWeeks" type="number" min="1" max="12" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                </label>
+                <label class="block text-xs font-semibold text-slate-600">Pinned spots per category
+                  <input id="monPromoSlots" type="number" min="1" max="20" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                </label>
+              </div>
+              <p id="monPromoNote" class="text-xs text-slate-500"></p>
+            </div>
+          </div>
+
+          <div class="mt-5 flex items-center gap-3">
+            <button id="monSave" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold">Save changes</button>
+            <span id="monSaveMsg" class="text-sm text-slate-500"></span>
+          </div>
+        </section>
+
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 class="font-head text-xl font-bold">Subscribers</h2>
+          <div class="mt-4 flex flex-wrap items-end gap-3 border border-slate-200 rounded-xl p-4">
+            <label class="text-xs font-semibold text-slate-600">Store
+              <select id="monSubStore" class="mt-1 block border border-slate-300 rounded-lg px-3 py-2 text-sm min-w-[200px]"></select>
+            </label>
+            <label class="text-xs font-semibold text-slate-600">Months
+              <input id="monSubMonths" type="number" min="1" max="12" value="1" class="mt-1 block w-20 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+            </label>
+            <label class="text-xs font-semibold text-slate-600">Rate % (blank = plan rate)
+              <input id="monSubGrantRate" type="number" step="0.01" min="0" class="mt-1 block w-28 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+            </label>
+            <button id="monSubGrant" class="border border-slate-300 px-4 py-2 rounded-lg text-sm font-semibold">Grant free subscription</button>
+          </div>
+          <div id="monSubs" class="mt-4 space-y-2"></div>
+        </section>
+
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h2 class="font-head text-xl font-bold">Promoted listings</h2>
+          <div class="mt-4 flex flex-wrap items-end gap-3 border border-slate-200 rounded-xl p-4">
+            <label class="text-xs font-semibold text-slate-600">Store
+              <select id="monPromoStore" class="mt-1 block border border-slate-300 rounded-lg px-3 py-2 text-sm min-w-[180px]"></select>
+            </label>
+            <label class="text-xs font-semibold text-slate-600">Pin
+              <select id="monPromoScope" class="mt-1 block border border-slate-300 rounded-lg px-3 py-2 text-sm">
+                <option value="product">One product</option>
+                <option value="store">Whole store in a category</option>
+              </select>
+            </label>
+            <label id="monPromoProductWrap" class="text-xs font-semibold text-slate-600">Product
+              <select id="monPromoProduct" class="mt-1 block border border-slate-300 rounded-lg px-3 py-2 text-sm min-w-[180px]"></select>
+            </label>
+            <label id="monPromoCategoryWrap" class="text-xs font-semibold text-slate-600 hidden">Category
+              <select id="monPromoCategory" class="mt-1 block border border-slate-300 rounded-lg px-3 py-2 text-sm min-w-[160px]"></select>
+            </label>
+            <label class="text-xs font-semibold text-slate-600">Weeks
+              <input id="monPromoWeeks" type="number" min="1" max="12" value="1" class="mt-1 block w-20 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+            </label>
+            <button id="monPromoGrant" class="border border-slate-300 px-4 py-2 rounded-lg text-sm font-semibold">Grant free promotion</button>
+          </div>
+          <div id="monPromos" class="mt-4 space-y-2"></div>
+        </section>
+      </section>
+
       <!-- Users -->
       <section data-panel="users" class="admin-panel hidden">
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
@@ -232,6 +343,161 @@ const statusPillClass = s => ({
   out_of_stock: 'bg-slate-100 text-slate-600',
 }[s] || 'bg-slate-100 text-slate-600');
 
+
+// -------------------- Monetization --------------------
+const monMoney = n => 'GHS ' + Number(n || 0).toFixed(2);
+const monDate = iso => iso ? new Date(iso + 'Z').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+let monProducts = [];
+let monSettings = null;
+
+function monUpdateNotes(s) {
+  monSettings = s;
+  document.getElementById('monRateCap').textContent = `Allowed range 0 to ${s.commission_rate_cap}%. The ${s.commission_rate_cap}% ceiling is enforced in code.`;
+  const saving = Number(document.getElementById('monRate').value) - Number(document.getElementById('monSubRate').value);
+  const fee = Number(document.getElementById('monSubFee').value);
+  document.getElementById('monBreakEven').textContent = saving > 0
+    ? `Subscribing pays off for a seller above about ${monMoney(fee * 100 / saving)} in monthly product sales.`
+    : 'The subscriber rate must be lower than the standard rate.';
+  document.getElementById('monPromoNote').textContent =
+    `Prices must stay between GHS ${s.promo_price_floor} and GHS ${s.promo_price_ceiling} per week. A whole-store pin shows up to ${s.store_pin_product_limit} of the store's products. Pins appear only when buyers browse a category. ${s.promotions_open_now ? 'Open for purchase now.' : 'Not open for purchase yet.'}`;
+}
+
+function monFillSettings(s) {
+  document.getElementById('monRate').value = s.product_commission_rate;
+  document.getElementById('monSubEnabled').checked = s.subscription_enabled;
+  document.getElementById('monSubFee').value = s.subscription_monthly_fee;
+  document.getElementById('monSubRate').value = s.subscription_commission_rate;
+  document.getElementById('monPromoEnabled').checked = s.promotions_enabled;
+  document.getElementById('monPromoOpenFrom').value = s.promotions_open_from || '';
+  document.getElementById('monPromoProductPrice').value = s.promo_product_weekly_price;
+  document.getElementById('monPromoStorePrice').value = s.promo_store_weekly_price;
+  document.getElementById('monPromoMaxWeeks').value = s.promo_max_weeks;
+  document.getElementById('monPromoSlots').value = s.promo_slots_per_category;
+  monUpdateNotes(s);
+}
+
+function monStateClass(state) {
+  return ({ active: 'bg-brand-50 text-brand-700', live: 'bg-brand-50 text-brand-700', expired: 'bg-slate-100 text-slate-600', ended: 'bg-slate-100 text-slate-600', cancelled: 'bg-red-50 text-red-700', scheduled: 'bg-amber-50 text-amber-700' }[state]) || 'bg-slate-100 text-slate-600';
+}
+
+async function loadMonetization() {
+  try {
+    const [settings, revenue, subs, promos, stores, cats] = await Promise.all([
+      apiFetch('/admin/monetization/settings'), apiFetch('/admin/monetization/revenue'),
+      apiFetch('/admin/monetization/subscriptions'), apiFetch('/admin/monetization/promotions'),
+      allStoresCache.length ? allStoresCache : apiFetch('/admin/stores'), apiFetch('/categories'),
+    ]);
+    monProducts = allProductsCache.length ? allProductsCache : await apiFetch('/admin/products/tracking');
+    monFillSettings(settings);
+
+    const card = (label, value, sub) => `<div class="rounded-lg bg-slate-50 p-3"><p class="text-xs text-slate-500">${label}</p><p class="font-semibold mt-1">${value}</p>${sub ? `<p class="text-xs text-slate-400 mt-0.5">${sub}</p>` : ''}</div>`;
+    document.getElementById('monRevenue').innerHTML =
+      card('Subscriptions, all time', monMoney(revenue.subscription_total), `${monMoney(revenue.subscription_this_month)} this month`) +
+      card('Promotions, all time', monMoney(revenue.promotion_total), `${monMoney(revenue.promotion_this_month)} this month`) +
+      card('Active subscribers', revenue.active_subscribers, `${monMoney(revenue.monthly_recurring)} recurring a month`) +
+      card('Live promotions', revenue.live_promotions, '');
+
+    const storeOptions = stores.filter(s => s.status === 'approved').map(s => `<option value="${esc(s.id)}">${esc(s.store_name)}</option>`).join('');
+    document.getElementById('monSubStore').innerHTML = storeOptions;
+    document.getElementById('monPromoStore').innerHTML = storeOptions;
+    document.getElementById('monPromoCategory').innerHTML = cats.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+    monFillProductSelect();
+
+    document.getElementById('monSubs').innerHTML = subs.length ? subs.map(x => `
+      <div class="border border-slate-100 rounded-lg p-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0"><strong>${esc(x.store_name)}</strong>
+          <span class="text-xs ml-2 px-2 py-1 rounded-full capitalize ${monStateClass(x.state)}">${esc(x.state)}</span>
+          ${x.granted_by_admin ? '<span class="text-xs ml-1 text-slate-500">granted</span>' : ''}
+          <p class="text-xs text-slate-500 mt-1">${x.commission_rate}% commission · ${monMoney(x.monthly_fee)}/month · ${x.state === 'active' ? `renews by ${monDate(x.current_period_end)} (${x.days_left} days left)` : `ended ${monDate(x.current_period_end)}`}</p>
+        </div>
+        ${x.state === 'active' ? `<button data-mon-end-sub="${esc(x.id)}" class="border border-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold">End now</button>` : ''}
+      </div>`).join('') : '<p class="text-sm text-slate-500">No subscribers yet.</p>';
+    document.querySelectorAll('[data-mon-end-sub]').forEach(b => b.onclick = async () => {
+      if (!confirm('End this subscription now? The seller goes back to the standard rate immediately.')) return;
+      await apiFetch(`/admin/monetization/subscriptions/${b.dataset.monEndSub}/end`, { method: 'PUT' }); loadMonetization();
+    });
+
+    document.getElementById('monPromos').innerHTML = promos.length ? promos.map(x => `
+      <div class="border border-slate-100 rounded-lg p-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0"><strong>${esc(x.scope === 'product' ? x.product_name : x.store_name + ' (whole store)')}</strong>
+          <span class="text-xs ml-2 px-2 py-1 rounded-full capitalize ${monStateClass(x.state)}">${esc(x.state)}</span>
+          ${x.granted_by_admin ? '<span class="text-xs ml-1 text-slate-500">granted</span>' : ''}
+          <p class="text-xs text-slate-500 mt-1">${esc(x.store_name)} · ${esc(x.category_name)} · ${x.weeks} week(s) · ${monMoney(x.total_amount)}${x.ends_at ? ` · ${x.state === 'live' ? 'ends' : 'ended'} ${monDate(x.ends_at)}` : ''}</p>
+        </div>
+        ${(x.state === 'live' || x.state === 'scheduled') ? `<button data-mon-cancel-promo="${esc(x.id)}" class="border border-red-200 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold">Stop</button>` : ''}
+      </div>`).join('') : '<p class="text-sm text-slate-500">No promotions yet.</p>';
+    document.querySelectorAll('[data-mon-cancel-promo]').forEach(b => b.onclick = async () => {
+      if (!confirm('Stop this promotion now? No refund is issued automatically.')) return;
+      await apiFetch(`/admin/monetization/promotions/${b.dataset.monCancelPromo}/cancel`, { method: 'PUT' }); loadMonetization();
+    });
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
+function monFillProductSelect() {
+  const storeId = document.getElementById('monPromoStore').value;
+  document.getElementById('monPromoProduct').innerHTML = monProducts
+    .filter(p => p.store_id === storeId && p.status === 'approved')
+    .map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('') || '<option value="">No approved products</option>';
+}
+
+document.getElementById('monPromoStore').onchange = monFillProductSelect;
+document.getElementById('monPromoScope').onchange = e => {
+  document.getElementById('monPromoProductWrap').classList.toggle('hidden', e.target.value !== 'product');
+  document.getElementById('monPromoCategoryWrap').classList.toggle('hidden', e.target.value !== 'store');
+};
+['monRate', 'monSubFee', 'monSubRate'].forEach(id => document.getElementById(id).addEventListener('input', () => { if (monSettings) monUpdateNotes(monSettings); }));
+
+document.getElementById('monSave').onclick = async () => {
+  const num = id => Number(document.getElementById(id).value);
+  const msg = document.getElementById('monSaveMsg');
+  msg.textContent = 'Saving…';
+  try {
+    const saved = await apiFetch('/admin/monetization/settings', { method: 'PUT', body: {
+      product_commission_rate: num('monRate'),
+      subscription_enabled: document.getElementById('monSubEnabled').checked,
+      subscription_monthly_fee: num('monSubFee'),
+      subscription_commission_rate: num('monSubRate'),
+      promotions_enabled: document.getElementById('monPromoEnabled').checked,
+      promotions_open_from: document.getElementById('monPromoOpenFrom').value,
+      promo_product_weekly_price: num('monPromoProductPrice'),
+      promo_store_weekly_price: num('monPromoStorePrice'),
+      promo_max_weeks: num('monPromoMaxWeeks'),
+      promo_slots_per_category: num('monPromoSlots'),
+    } });
+    monFillSettings(saved);
+    msg.textContent = '';
+    showToast('Pricing settings saved.');
+  } catch (err) {
+    msg.textContent = '';
+    showToast(err.message, 'error');
+  }
+};
+
+document.getElementById('monSubGrant').onclick = async () => {
+  const rate = document.getElementById('monSubGrantRate').value;
+  try {
+    await apiFetch('/admin/monetization/subscriptions/grant', { method: 'POST', body: {
+      store_id: document.getElementById('monSubStore').value,
+      months: Number(document.getElementById('monSubMonths').value) || 1,
+      commission_rate: rate === '' ? null : Number(rate),
+    } });
+    showToast('Subscription granted.'); loadMonetization();
+  } catch (err) { showToast(err.message, 'error'); }
+};
+
+document.getElementById('monPromoGrant').onclick = async () => {
+  const scope = document.getElementById('monPromoScope').value;
+  try {
+    await apiFetch('/admin/monetization/promotions/grant', { method: 'POST', body: {
+      store_id: document.getElementById('monPromoStore').value,
+      product_id: scope === 'product' ? document.getElementById('monPromoProduct').value : null,
+      category_id: scope === 'store' ? document.getElementById('monPromoCategory').value : null,
+      weeks: Number(document.getElementById('monPromoWeeks').value) || 1,
+    } });
+    showToast('Promotion granted.'); loadMonetization();
+  } catch (err) { showToast(err.message, 'error'); }
+};
+
 // -------------------- Tab navigation --------------------
 function initTabs() {
   const buttons = document.querySelectorAll('.admin-tab-btn');
@@ -246,8 +512,10 @@ function initTabs() {
     panels.forEach(p => p.classList.toggle('hidden', p.dataset.panel !== tab));
     location.hash = tab;
   }
-  buttons.forEach(b => b.addEventListener('click', () => { activate(b.dataset.tab); if(b.dataset.tab==='badges') loadBadgeManager(); }));
-  activate(location.hash.replace('#', '') || 'overview');
+  buttons.forEach(b => b.addEventListener('click', () => { activate(b.dataset.tab); if(b.dataset.tab==='badges') loadBadgeManager(); if(b.dataset.tab==='monetization') loadMonetization(); }));
+  const startTab = location.hash.replace('#', '') || 'overview';
+  activate(startTab);
+  if (startTab === 'monetization') loadMonetization();
 }
 
 function setBadge(id, count) {

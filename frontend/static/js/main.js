@@ -104,7 +104,13 @@ async function apiFetch(path, { method = "GET", body, auth = true } = {}) {
   }
   if (!res.ok) {
     const data = await res.json().catch(() => null);
-    throw new Error((data && data.detail) || `Request failed (${res.status})`);
+    // FastAPI sends 422 validation errors as a list of {loc, msg} objects;
+    // turn that into readable text instead of "[object Object]".
+    const detail = data && data.detail;
+    const message = Array.isArray(detail)
+      ? detail.map(d => `${d.loc ? d.loc[d.loc.length - 1] + ": " : ""}${d.msg || d}`).join("; ")
+      : detail;
+    throw new Error(message || `Request failed (${res.status})`);
   }
   return res.status === 204 ? null : res.json();
 }

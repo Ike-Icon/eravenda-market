@@ -655,7 +655,8 @@ def product_tracking(db: Session = Depends(get_db)):
                 .order_by(models.Product.updated_at.desc())
                 .limit(300).all())
     return [{
-        "id": p.id, "name": p.name, "sku": p.sku, "store_name": p.store.store_name if p.store else "",
+        "id": p.id, "name": p.name, "sku": p.sku, "store_id": p.store_id, "category_id": p.category_id,
+        "store_name": p.store.store_name if p.store else "",
         "seller_name": p.store.owner.full_name if p.store and p.store.owner else "",
         "seller_email": p.store.owner.email if p.store and p.store.owner else "",
         "seller_phone": p.store.owner.phone if p.store and p.store.owner else "",
@@ -841,6 +842,14 @@ def platform_stats(
     service_income = sum(float(booking.escrow_amount or 0) for booking in paid_service_rows)
     service_commissions = sum(float(booking.commission_amount or 0) for booking in paid_service_rows)
     total_commissions = product_commissions + service_commissions
+    # Seller subscriptions and promoted listings are platform revenue too, but
+    # they are not commissions, so they get their own lines.
+    def _charge_total(kind: str) -> float:
+        return float(db.query(func.coalesce(func.sum(models.StoreCharge.amount), 0)).filter(
+            models.StoreCharge.kind == kind, models.StoreCharge.status == models.PaymentStatus.success,
+        ).scalar() or 0)
+    subscription_revenue = _charge_total("subscription")
+    promotion_revenue = _charge_total("promotion")
 
     try:
         anchor_month = (datetime.strptime(end_month, "%Y-%m") if end_month
@@ -913,7 +922,7 @@ def platform_stats(
 
     return {
         "total_orders": total_orders,
-        "platform_revenue": float(total_commissions),
+        "platform_revenue": float(total_commissions) + subscription_revenue + promotion_revenue,
         "overall": {
             "product_income": product_income,
             "product_commissions": product_commissions,
@@ -921,6 +930,8 @@ def platform_stats(
             "service_commissions": service_commissions,
             "total_income": product_income + service_income,
             "total_commissions": total_commissions,
+            "subscription_revenue": subscription_revenue,
+            "promotion_revenue": promotion_revenue,
             "paid_orders": len(paid_product_rows),
             "paid_bookings": len(paid_service_rows),
         },

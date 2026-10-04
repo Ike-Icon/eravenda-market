@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Plan &amp; promotion — Eravenda Market{% endblock %}
+{% block robots_meta %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8 grid md:grid-cols-[200px_1fr] gap-8">
+  {% set active = "growth" %}
+  {% include "components/seller-nav.html" with context %}
+
+  <div id="growthContent" class="min-w-0">
+    <p class="text-slate-500">Loading…</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  if (!Auth.isLoggedIn()) {
+    window.location.href = "/login?next=/seller/growth.html";
+  }
+
+  const money = n => `₵${Number(n || 0).toFixed(2)}`;
+  const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
+  const fmtDate = iso => iso ? new Date(iso + "Z").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
+  const STATE_STYLES = {
+    live: "bg-brand-50 text-brand-700", scheduled: "bg-amber-50 text-amber-700",
+    expired: "bg-slate-100 text-slate-600", cancelled: "bg-red-50 text-red-700",
+  };
+  let data = null;
+
+  async function startPayment(path, body, button) {
+    const original = button.textContent;
+    button.disabled = true; button.textContent = "Opening Paystack…";
+    try {
+      const init = await apiFetch(path, { method: "POST", body });
+      window.location.href = init.authorization_url;
+    } catch (err) {
+      button.disabled = false; button.textContent = original;
+      showToast(err.message, "error");
+    }
+  }
+
+  function render() {
+    const d = data, p = d.plan, s = d.settings, sub = d.subscription;
+    const subscribed = Boolean(sub);
+
+    const rateCard = `
+      <section class="border border-slate-200 rounded-xl p-5">
+        <p class="text-sm text-slate-500">Your product commission</p>
+        <p class="font-head text-3xl font-bold mt-1">${d.your_rate}%</p>
+        <p class="text-sm text-slate-500 mt-1">${subscribed
+          ? `Subscriber rate. Everyone else pays ${p.standard_rate}%.`
+          : `The standard rate for every seller. Handyman jobs are priced separately.`}</p>
+      </section>`;
+
+    let planBody;
+    if (subscribed) {
+      planBody = `
+        <p class="text-sm"><span class="font-semibold">Active</span> until ${fmtDate(sub.current_period_end)} (${sub.days_left} days left). You pay ${sub.commission_rate}% instead of ${p.standard_rate}%.</p>
+        ${sub.granted_by_admin ? '<p class="text-xs text-slate-500 mt-1">This plan was granted by EraVenda.</p>' : ''}`;
+    } else {
+      planBody = p.available
+        ? `<p class="text-sm text-slate-600">Pay a flat ${money(p.monthly_fee)} a month and your commission drops from ${p.standard_rate}% to ${p.commission_rate}% on every product sale.</p>`
+        : `<p class="text-sm text-slate-500">The subscription plan isn't open right now.</p>`;
+    }
+    const comparison = p.available && p.break_even_monthly_sales ? `
+      <div class="mt-4 grid sm:grid-cols-3 gap-3 text-sm">
+        <div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-500">Break-even</p><p class="font-semibold mt-1">${money(p.break_even_monthly_sales)} sales a month</p><p class="text-xs text-slate-400 mt-0.5">Above this, the plan costs you less.</p></div>
+        <div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-500">Your last 30 days: standard</p><p class="font-semibold mt-1">${money(p.commission_30d_standard)}</p><p class="text-xs text-slate-400 mt-0.5">on ${money(p.your_sales_30d)} in sales</p></div>
+        <div class="bg-slate-50 rounded-lg p-3"><p class="text-xs text-slate-500">Your last 30 days: with plan</p><p class="font-semibold mt-1">${money(p.commission_30d_with_plan)}</p><p class="text-xs text-slate-400 mt-0.5">commission plus the fee</p></div>
+      </div>` : '';
+    const subAction = p.available && d.store_status === "approved" ? `
+      <div class="mt-4 flex flex-wrap items-end gap-3">
+        <label class="text-xs font-semibold text-slate-600">Months to pay for
+          <select id="subMonths" class="mt-1 block border border-slate-300 rounded-md px-3 py-2 text-sm">
+            ${[1, 2, 3, 6, 12].map(m => `<option value="${m}">${m} month${m > 1 ? "s" : ""} · ${money(p.monthly_fee * m)}</option>`).join("")}
+          </select>
+        </label>
+        <button id="subPay" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md">${subscribed ? "Renew" : "Subscribe"} with Paystack</button>
+      </div>
+      <p class="text-xs text-slate-500 mt-2">Plans don't renew by themselves. Renewing early adds the new months onto the days you have left, so nothing is wasted.</p>` : '';
+
+    const planCard = `
+      <section class="border border-slate-200 rounded-xl p-5">
+        <h2 class="font-head text-lg font-semibold">Seller subscription</h2>
+        <div class="mt-2">${planBody}</div>${comparison}${subAction}
+      </section>`;
+
+    let promoBody;
+    if (!d.promotions_open) {
+      promoBody = `<p class="text-sm text-slate-500">${s.promotions_enabled && s.promotions_open_from
+        ? `Promoted listings open on ${fmtDate(s.promotions_open_from + "T00:00:00")}.`
+        : "Promoted listings aren't open yet."}</p>`;
+    } else if (!d.products.length) {
+      promoBody = `<p class="text-sm text-slate-500">You need at least one approved product before you can promote anything.</p>`;
+    } else {
+      promoBody = `
+        <p class="text-sm text-slate-600">Pin a product, or your store, to the top of a category's results. Pinned items carry a small "Sponsored" tag. Only ${s.promo_slots_per_category} spots exist in each category.</p>
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <label class="text-xs font-semibold text-slate-600">What to promote
+            <select id="promoScope" class="mt-1 block w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+              <option value="product">One product · ${money(s.promo_product_weekly_price)} a week</option>
+              <option value="store">My store in a category (up to ${s.store_pin_product_limit} products) · ${money(s.promo_store_weekly_price)} a week</option>
+            </select>
+          </label>
+          <label id="promoProductWrap" class="text-xs font-semibold text-slate-600">Product
+            <select id="promoProduct" class="mt-1 block w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+              ${d.products.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}
+            </select>
+          </label>
+          <label id="promoCategoryWrap" class="text-xs font-semibold text-slate-600 hidden">Category
+            <select id="promoCategory" class="mt-1 block w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+              ${d.categories.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="text-xs font-semibold text-slate-600">Weeks
+            <select id="promoWeeks" class="mt-1 block w-full border border-slate-300 rounded-md px-3 py-2 text-sm">
+              ${Array.from({ length: s.promo_max_weeks }, (_, i) => `<option value="${i + 1}">${i + 1} week${i ? "s" : ""}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        <div class="mt-4 flex flex-wrap items-center gap-4">
+          <button id="promoPay" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md">Pay <span id="promoTotal"></span> with Paystack</button>
+          <p class="text-xs text-slate-500">Your promotion starts as soon as the payment is confirmed.</p>
+        </div>`;
+    }
+
+    const history = d.promotions.length ? `
+      <div class="mt-5 border-t border-slate-100 pt-4 space-y-2">
+        <h3 class="text-sm font-semibold">Your promotions</h3>
+        ${d.promotions.map(x => `
+          <div class="flex flex-wrap items-center justify-between gap-2 text-sm border border-slate-100 rounded-lg p-3">
+            <div class="min-w-0"><strong>${esc(x.scope === "product" ? x.product_name : "Whole store")}</strong>
+              <span class="text-slate-500"> in ${esc(x.category_name)}</span>
+              <span class="ml-2 text-xs px-2 py-0.5 rounded-full capitalize ${STATE_STYLES[x.state] || "bg-slate-100 text-slate-600"}">${esc(x.state)}</span>
+            </div>
+            <div class="text-xs text-slate-500">${x.weeks} week${x.weeks > 1 ? "s" : ""} · ${money(x.total_amount)}${x.ends_at ? ` · ${x.state === "live" ? "ends" : "ended"} ${fmtDate(x.ends_at)}` : ""}</div>
+          </div>`).join("")}
+      </div>` : "";
+
+    document.getElementById("growthContent").innerHTML = `
+      <h1 class="font-head text-2xl font-bold mb-1">Plan &amp; promotion</h1>
+      <p class="text-slate-500 mb-5">Lower your commission with a monthly plan, or pay to put your products at the top of a category.</p>
+      <div class="space-y-5">
+        ${rateCard}${planCard}
+        <section class="border border-slate-200 rounded-xl p-5">
+          <h2 class="font-head text-lg font-semibold">Promoted listings</h2>
+          <div class="mt-2">${promoBody}</div>${history}
+        </section>
+      </div>`;
+    wire();
+  }
+
+  function wire() {
+    const s = data.settings;
+    const subPay = document.getElementById("subPay");
+    if (subPay) subPay.onclick = () => startPayment("/monetization/subscription/initialize", { months: Number(document.getElementById("subMonths").value) }, subPay);
+
+    const scope = document.getElementById("promoScope");
+    if (!scope) return;
+    const updateTotal = () => {
+      const weekly = scope.value === "product" ? s.promo_product_weekly_price : s.promo_store_weekly_price;
+      document.getElementById("promoTotal").textContent = money(weekly * Number(document.getElementById("promoWeeks").value));
+      document.getElementById("promoProductWrap").classList.toggle("hidden", scope.value !== "product");
+      document.getElementById("promoCategoryWrap").classList.toggle("hidden", scope.value !== "store");
+    };
+    scope.onchange = updateTotal;
+    document.getElementById("promoWeeks").onchange = updateTotal;
+    updateTotal();
+    const pay = document.getElementById("promoPay");
+    pay.onclick = () => startPayment("/monetization/promotions/initialize", {
+      product_id: scope.value === "product" ? document.getElementById("promoProduct").value : null,
+      category_id: scope.value === "store" ? document.getElementById("promoCategory").value : null,
+      weeks: Number(document.getElementById("promoWeeks").value),
+    }, pay);
+  }
+
+  (async () => {
+    try {
+      data = await apiFetch("/monetization/overview");
+      render();
+    } catch (err) {
+      document.getElementById("growthContent").innerHTML = `<p class="text-red-600">${esc(err.message)}</p>`;
+    }
+  })();
+</script>
+{% endblock %}

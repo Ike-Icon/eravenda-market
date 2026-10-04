@@ -39,8 +39,8 @@ def _sync_stock_from_variants(product: models.Product) -> None:
 
 
 @router.get("/commission-policy", response_model=schemas.ProductCommissionPolicyOut)
-def commission_policy():
-    return launch_policy_summary()
+def commission_policy(db: Session = Depends(get_db)):
+    return launch_policy_summary(db)
 
 
 @router.get("", response_model=schemas.ProductListOut)

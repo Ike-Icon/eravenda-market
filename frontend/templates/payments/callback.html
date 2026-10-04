@@ -30,8 +30,32 @@
     // payments.py's initialize_service_payment) so this page can route them
     // to the booking tracker instead of the product-order history.
     const isServicePayment = reference.startsWith("ERVSVC-");
+    // Seller plan / promotion payments (ERVSUB- / ERVPRO-) are confirmed by
+    // routers/monetization.py and send the seller back to their growth page.
+    const isSellerCharge = reference.startsWith("ERVSUB-") || reference.startsWith("ERVPRO-");
 
     try {
+      if (isSellerCharge) {
+        const result = await apiFetch(`/monetization/verify/${encodeURIComponent(reference)}`);
+        const isPlan = result.kind === "subscription";
+        if (result.status === "success") {
+          box.innerHTML = `
+            <div class="text-3xl mb-3">✅</div>
+            <h1 class="font-head text-xl font-semibold mb-2">Payment successful</h1>
+            <p class="text-slate-500 mb-4">${isPlan ? "Your seller plan is active. The lower commission applies to new orders from now." : "Your promotion is live. It runs for the number of weeks you paid for."}</p>
+            <a href="/seller/growth.html" class="inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Back to plan &amp; promotion</a>
+          `;
+        } else {
+          box.innerHTML = `
+            <div class="text-3xl mb-3">⚠️</div>
+            <h1 class="font-head text-xl font-semibold mb-2">Payment not confirmed</h1>
+            <p class="text-slate-500 mb-4">Paystack didn't confirm this payment as successful. No charge should have gone through. You can try again from your plan page.</p>
+            <a href="/seller/growth.html" class="inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2 rounded-md transition-colors">Back to plan &amp; promotion</a>
+          `;
+        }
+        return;
+      }
+
       if (isServicePayment) {
         const result = await apiFetch(`/payments/service/verify/${encodeURIComponent(reference)}`);
         if (result.status === "success") {
@@ -69,7 +93,7 @@
         `;
       }
     } catch (err) {
-      const backHref = isServicePayment ? "/services/bookings" : "/orders.html";
+      const backHref = isSellerCharge ? "/seller/growth.html" : (isServicePayment ? "/services/bookings" : "/orders.html");
       box.innerHTML = `<p class="text-red-600">${err.message}</p><a href="${backHref}" class="text-brand-600 font-semibold hover:underline mt-3 inline-block">Go back</a>`;
     }
   }

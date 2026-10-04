@@ -70,26 +70,21 @@ Full request/response shapes are in the auto-generated docs at `/docs`.
 ## Commission policy
 
 EraVenda charges sellers a product commission on each completed sale, deducted from
-the seller's proceeds before payout. The rate depends on the product's category, and
-**no category rate may ever exceed 10%** — this is enforced in code by
-`standard_product_rate()` in `app/product_pricing.py`, not just documented here.
+the seller's proceeds before payout.
 
-| Category                                  | Standard rate |
-| ----------------------------------------- | ------------: |
-| Groceries and perishables                 |          4.5% |
-| Electronics and phones                    |          6.5% |
-| Home, kitchen and household goods         |          9.5% |
-| Fashion, beauty, clothing and accessories |           10% |
-| Other / unclassified                      |  8% (default) |
-
-Handyman/professional bookings use a separate flat **4%** service commission
-(`app/service_pricing.py`), well inside the 10% product-category ceiling above.
-
-**Launch discount:** early vendors pay half the standard category rate for the first
-90 days starting **14 October 2026** (ending 12 January 2027), or for the first 20
-vendors, whichever comes first. Configured via `COMMISSION_LAUNCH_START_DATE`,
-`COMMISSION_LAUNCH_DURATION_DAYS`, and `COMMISSION_LAUNCH_VENDOR_CAP` in `.env` /
-`render.yaml`.
+- **Standard rate: a flat 7% on every product, for every seller** (it was 5% until
+  4 Oct 2026). The live value is stored in the single-row `platform_settings` table
+  and edited by an admin under **Admin dashboard > Monetization**; there is no
+  per-category pricing and no launch discount today.
+- **No rate may ever exceed 10%.** Enforced in code by `PRODUCT_COMMISSION_RATE_CAP`
+  in `app/product_pricing.py` and by the admin settings validation.
+- **Seller subscription (optional, off by default):** a seller pays a flat monthly
+  fee and is charged a lower commission while the plan is live. The seller rate is
+  `min(standard, subscription rate)`.
+- **Promoted listings (optional, off by default):** sellers pay GHS 20 to GHS 50 a
+  week to pin a product, or their store, to the top of a category's results.
+- Handyman/professional bookings use a separate flat **4%** service commission
+  (`app/service_pricing.py`), unaffected by any of the above.
 
 See [`docs/commission-rates.md`](../docs/commission-rates.md) for the full policy,
 calculation examples, and the checklist to follow before changing any rate.

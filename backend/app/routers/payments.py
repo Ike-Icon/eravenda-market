@@ -457,6 +457,16 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
                 _finalize_service_payment(db, service_payment, booking)
         return {"received": True}
 
+    # Seller subscription / promoted-listing payments (ERVSUB-... / ERVPRO-...),
+    # see routers/monetization.py.
+    store_charge = db.query(models.StoreCharge).filter(models.StoreCharge.provider_reference == reference).first()
+    if store_charge:
+        expected_pesewas = int(round(float(store_charge.amount) * 100))
+        if data.get("status") == "success" and paid_amount == expected_pesewas:
+            from ..store_billing import finalize_store_charge  # local import: avoids a payments <-> billing cycle
+            finalize_store_charge(db, store_charge)
+        return {"received": True}
+
     # Unknown reference — nothing on our side to reconcile against, but
     # this still isn't an error on Paystack's end, so acknowledge normally.
     logger.warning("Paystack webhook: no payment found for reference %s", reference)

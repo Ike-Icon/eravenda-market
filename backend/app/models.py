@@ -5,7 +5,7 @@ from datetime import datetime
 
 from sqlalchemy import (  # type: ignore[reportMissingImports]
     Column, String, Text, Boolean, Integer, Numeric, ForeignKey,
-    DateTime, Enum, SmallInteger, UniqueConstraint, JSON
+    DateTime, Date, Enum, SmallInteger, UniqueConstraint, JSON
 )
 from sqlalchemy.dialects.postgresql import UUID  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import relationship, backref  # type: ignore[reportMissingImports]
@@ -610,3 +610,98 @@ class NewsletterSubscriber(Base):
     unsubscribe_token = Column(String(64), nullable=False, unique=True, default=lambda: secrets.token_urlsafe(32))
     subscribed_at = Column(DateTime, default=datetime.utcnow)
     last_sent_at = Column(DateTime, nullable=True)
+
+
+class PlatformSettings(Base):
+    """Single-row table (id is always 1) holding every admin-controlled money
+    setting: the standard product commission, the seller subscription plan and
+    paid promotions. Read through platform_settings.get_settings(); edited from
+    the admin dashboard's Monetization tab. Product commission only: handyman
+    commission stays in service_pricing.py."""
+    __tablename__ = "platform_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+    product_commission_rate = Column(Numeric(5, 2), nullable=False, default=7.00)
+
+    subscription_enabled = Column(Boolean, nullable=False, default=False)
+    subscription_monthly_fee = Column(Numeric(12, 2), nullable=False, default=150.00)
+    subscription_commission_rate = Column(Numeric(5, 2), nullable=False, default=4.00)
+
+    promotions_enabled = Column(Boolean, nullable=False, default=False)
+    # Promotions can't be bought before this date even when enabled (Month 4
+    # of a 14 Oct 2026 launch = 14 Jan 2027). Null means "no date gate".
+    promotions_open_from = Column(Date, nullable=True)
+    promo_product_weekly_price = Column(Numeric(12, 2), nullable=False, default=20.00)
+    promo_store_weekly_price = Column(Numeric(12, 2), nullable=False, default=50.00)
+    promo_max_weeks = Column(Integer, nullable=False, default=4)
+    promo_slots_per_category = Column(Integer, nullable=False, default=3)
+
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SellerSubscription(Base):
+    """One row per store. A subscription is live while status == 'active' and
+    current_period_end is in the future; there is no cron, expiry is just the
+    date passing. commission_rate and monthly_fee are snapshots from the
+    moment it was bought or renewed, so an admin editing the plan later never
+    changes what a seller already paid for."""
+    __tablename__ = "seller_subscriptions"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    store_id = Column(UUID(as_uuid=False), ForeignKey("stores.id", ondelete="CASCADE"), nullable=False, unique=True)
+    status = Column(String(20), nullable=False, default="active")  # active | ended
+    monthly_fee = Column(Numeric(12, 2), nullable=False, default=0)
+    commission_rate = Column(Numeric(5, 2), nullable=False, default=0)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    current_period_end = Column(DateTime, nullable=False)
+    granted_by_admin = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    store = relationship("Store")
+
+
+class PromotedListing(Base):
+    """A paid pin to the top of a category's results. product_id set = pins that
+    one product; product_id null = pins the store's products in that category.
+    Live while status == 'active' and now is between starts_at and ends_at."""
+    __tablename__ = "promoted_listings"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    store_id = Column(UUID(as_uuid=False), ForeignKey("stores.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(UUID(as_uuid=False), ForeignKey("products.id", ondelete="CASCADE"), nullable=True)
+    category_id = Column(UUID(as_uuid=False), ForeignKey("categories.id", ondelete="CASCADE"), nullable=False)
+    weeks = Column(Integer, nullable=False, default=1)
+    weekly_price = Column(Numeric(12, 2), nullable=False, default=0)
+    total_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    status = Column(String(20), nullable=False, default="pending")  # pending | active | cancelled
+    starts_at = Column(DateTime, nullable=True)
+    ends_at = Column(DateTime, nullable=True)
+    granted_by_admin = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    store = relationship("Store")
+    product = relationship("Product")
+    category = relationship("Category")
+
+
+class StoreCharge(Base):
+    """A Paystack payment from a seller to EraVenda for a subscription or a
+    promotion (not an order, so it can't live in payments, which requires an
+    order_id). quantity = months for a subscription, weeks for a promotion."""
+    __tablename__ = "store_charges"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    store_id = Column(UUID(as_uuid=False), ForeignKey("stores.id", ondelete="CASCADE"), nullable=False)
+    kind = Column(String(20), nullable=False)  # subscription | promotion
+    target_id = Column(UUID(as_uuid=False), nullable=True)  # promoted_listings.id for promotions
+    quantity = Column(Integer, nullable=False, default=1)
+    provider = Column(String(30), nullable=False, default="paystack")
+    provider_reference = Column(String(150), unique=True, nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False)
+    currency = Column(String(10), nullable=False, default="GHS")
+    status = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.pending)
+    paid_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    store = relationship("Store")

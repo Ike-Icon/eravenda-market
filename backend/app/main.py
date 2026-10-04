@@ -20,7 +20,9 @@ from sqlalchemy.orm import Session, selectinload
 from .database import Base, engine, get_db
 from .migrate import run_migrations
 from . import models  # noqa: F401 - registers models on Base before create_all
-from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products
+from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products, monetization
+from .platform_settings import get_settings, pinned_product_ids
+from .database import SessionLocal
 from . import email_utils
 from .email_utils import SITE_URL
 
@@ -68,6 +70,12 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
     run_migrations()
 
+    # Seed the single platform_settings row (standard product commission 7%,
+    # subscriptions and promotions off) so the admin Monetization tab has
+    # something to edit on a fresh database.
+    with SessionLocal() as seed_db:
+        get_settings(seed_db)
+
     # RESEND_API_KEY is declared with `sync: false` in render.yaml, which
     # means Render does NOT fill it in for you — it starts blank until
     # someone enters a real value in the dashboard's Environment tab. With
@@ -108,6 +116,8 @@ app.include_router(newsletter.router, prefix="/api")
 app.include_router(import_products.template_router, prefix="/api")
 app.include_router(import_products.seller_import_router, prefix="/api")
 app.include_router(import_products.admin_import_router, prefix="/api")
+app.include_router(monetization.router, prefix="/api")
+app.include_router(monetization.admin_router, prefix="/api")
 
 
 @app.get("/api/health")
@@ -327,6 +337,20 @@ def products_page(
     # server-side pagination.
     total_matching = query.count()
     products_list = query.limit(PRODUCTS_PAGE_MAX).all()
+
+    # Promoted listings: when browsing a category, live paid pins go first
+    # (oldest promotion first) and are marked so the card can say "Sponsored".
+    # Only products already in this result set move, so search text, the
+    # Pay-on-Delivery filter and approval status still apply to them.
+    if category_id:
+        pinned_ids = pinned_product_ids(db, _category_and_child_ids(db, category_id))
+        if pinned_ids:
+            by_id = {p.id: p for p in products_list}
+            pinned = [by_id[pid] for pid in pinned_ids if pid in by_id]
+            for p in pinned:
+                p.is_sponsored = True
+            pinned_set = {p.id for p in pinned}
+            products_list = pinned + [p for p in products_list if p.id not in pinned_set]
 
     return templates.TemplateResponse(
         "products.html",
@@ -582,6 +606,13 @@ def seller_edit_product_page(request: Request, db: Session = Depends(get_db)):
     # template's script block) — same reasoning as add-product: this page
     # needs the seller's own JWT to fetch and authorize the edit.
     return templates.TemplateResponse("seller/edit-product.html", page_context(request, db))
+
+
+@app.get("/seller/growth.html", response_class=HTMLResponse)
+def seller_growth_page(request: Request, db: Session = Depends(get_db)):
+    # Subscription plan + promoted listings; data is fetched client-side with
+    # the seller's JWT, same as the other seller pages.
+    return templates.TemplateResponse("seller/growth.html", page_context(request, db))
 
 
 @app.get("/seller/orders.html", response_class=HTMLResponse)

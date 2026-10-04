@@ -534,6 +534,8 @@ class ProductCommissionPolicyOut(BaseModel):
     standard_rate: float
     category_rates: dict[str, float]
     category_rate_cap: float
+    subscription: Optional[dict] = None
+    promotions: Optional[dict] = None
 
 
 class DeliveryRegistration(BaseModel):
