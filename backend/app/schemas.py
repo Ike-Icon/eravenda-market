@@ -336,6 +336,7 @@ class ProductCreate(BaseModel):
     options: Optional[List[Any]] = None
     sizes: Optional[List[Any]] = None
     cod_eligible: bool = True
+    weight_kg: Optional[float] = Field(default=None, gt=0, le=1000)
 
     @field_validator("description")
     @classmethod
@@ -373,6 +374,7 @@ class ProductUpdate(BaseModel):
     options: Optional[List[Any]] = None
     sizes: Optional[List[Any]] = None
     cod_eligible: Optional[bool] = None
+    weight_kg: Optional[float] = Field(default=None, gt=0, le=1000)
 
     @field_validator("description")
     @classmethod
@@ -419,6 +421,7 @@ class ProductOut(BaseModel):
     sizes: Optional[List[Any]] = None
     badge_keys: Optional[List[str]] = None
     cod_eligible: bool = True
+    weight_kg: Optional[float] = None
     images: List[ProductImageOut] = []
     created_at: datetime
 

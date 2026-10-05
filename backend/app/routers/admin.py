@@ -2,12 +2,13 @@ from datetime import datetime, timedelta
 from calendar import monthrange
 from fastapi import APIRouter, Depends, HTTPException  # pyright: ignore[reportMissingImports]
 from fastapi.responses import FileResponse  # pyright: ignore[reportMissingImports]
+from pydantic import BaseModel, Field  # pyright: ignore[reportMissingImports]
 from pathlib import Path
 from sqlalchemy.orm import Session, selectinload  # pyright: ignore[reportMissingImports]
 from sqlalchemy import func  # pyright: ignore[reportMissingImports]
 from sqlalchemy.exc import IntegrityError  # pyright: ignore[reportMissingImports]
 
-from .. import models, schemas, auth
+from .. import models, schemas, auth, delivery_fees
 from ..database import get_db
 from ..service_pricing import service_charge_for, service_commission_for
 from ..email_utils import send_email, SITE_URL, SUPPORT_EMAIL
@@ -1048,6 +1049,75 @@ def traffic_and_purchases(db: Session = Depends(get_db)):
         "top_pages_7_days": [{"path": path, "views": views} for path, views in top_pages],
         "tracking_since": db.query(func.min(models.SiteVisit.created_at)).scalar(),
     }
+
+
+class WeightBandIn(BaseModel):
+    up_to_kg: float | None = None
+    surcharge: float
+
+
+class DeliveryFeesIn(BaseModel):
+    base_city: str = Field(min_length=1, max_length=100)
+    fee_same_neighbourhood: float = Field(ge=0, le=delivery_fees.MAX_FEE)
+    fee_base_city_other_area: float = Field(ge=0, le=delivery_fees.MAX_FEE)
+    fee_same_city: float = Field(ge=0, le=delivery_fees.MAX_FEE)
+    fee_same_region: float = Field(ge=0, le=delivery_fees.MAX_FEE)
+    fee_other_region: float = Field(ge=0, le=delivery_fees.MAX_FEE)
+    # Optional so a dashboard page opened before this update can still save.
+    free_delivery_enabled: bool | None = None
+    free_delivery_min_order: float | None = Field(default=None, gt=0, le=100000)
+    weight_pricing_enabled: bool
+    default_item_weight_kg: float = Field(gt=0, le=delivery_fees.MAX_WEIGHT_KG)
+    weight_bands: list[WeightBandIn]
+
+
+def _delivery_fees_out(row: models.DeliveryFeeSettings) -> dict:
+    return {
+        "base_city": row.base_city,
+        **{key: float(getattr(row, key)) for key in delivery_fees.DISTANCE_BAND_LABELS},
+        "distance_labels": delivery_fees.DISTANCE_BAND_LABELS,
+        "free_delivery_enabled": bool(row.free_delivery_enabled),
+        "free_delivery_min_order": float(row.free_delivery_min_order),
+        "weight_pricing_enabled": bool(row.weight_pricing_enabled),
+        "default_item_weight_kg": float(row.default_item_weight_kg),
+        "weight_bands": delivery_fees.bands_of(row),
+        "updated_at": row.updated_at,
+        "updated_by": row.updated_by,
+    }
+
+
+@router.get("/delivery-fees")
+def get_delivery_fees(db: Session = Depends(get_db)):
+    return _delivery_fees_out(delivery_fees.get_settings(db))
+
+
+@router.put("/delivery-fees")
+def update_delivery_fees(
+    payload: DeliveryFeesIn,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(auth.get_current_user),
+):
+    """Save new delivery fee rules. They apply to every quote and order from
+    this moment; orders already placed keep the fee they were charged."""
+    bands = [{"up_to_kg": b.up_to_kg, "surcharge": b.surcharge} for b in payload.weight_bands]
+    problems = delivery_fees.validate_bands(bands)
+    if problems:
+        raise HTTPException(status_code=422, detail=" ".join(problems))
+    row = delivery_fees.get_settings(db)
+    row.base_city = payload.base_city.strip()
+    for key in delivery_fees.DISTANCE_BAND_LABELS:
+        setattr(row, key, getattr(payload, key))
+    if payload.free_delivery_enabled is not None:
+        row.free_delivery_enabled = payload.free_delivery_enabled
+    if payload.free_delivery_min_order is not None:
+        row.free_delivery_min_order = payload.free_delivery_min_order
+    row.weight_pricing_enabled = payload.weight_pricing_enabled
+    row.default_item_weight_kg = payload.default_item_weight_kg
+    row.weight_bands = bands
+    row.updated_by = current_admin.full_name or current_admin.email
+    db.commit()
+    db.refresh(row)
+    return _delivery_fees_out(row)
 
 
 @router.get("/stats/top-stores")

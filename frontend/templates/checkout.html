@@ -124,7 +124,7 @@
       try {
         const quote = await apiFetch("/orders/delivery-quote", { method: "POST", body: { address_id: selectedAddressId } });
         delivery = Number(quote.delivery_fee);
-        deliveryNote = quote.breakdown.map(row => `${row.store_name}: ${money(row.delivery_fee)}`).join(" · ");
+        deliveryNote = quote.breakdown.map(row => row.free_delivery ? `${row.store_name}: Free delivery` : `${row.store_name}: ${money(row.delivery_fee)}${Number(row.weight_surcharge) > 0 ? ` (includes ${money(row.weight_surcharge)} for weight)` : ""}`).join(" · ");
       } catch (err) {
         deliveryNote = "Delivery will be confirmed at checkout.";
       }

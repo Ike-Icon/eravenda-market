@@ -220,6 +220,10 @@ class Product(Base):
     sizes = Column(JSON, nullable=True)  # e.g. [{"label":"42","stock":6,"available":true}] — no own price; shares product.price
     badge_keys = Column(JSON, nullable=True)
     cod_eligible = Column(Boolean, nullable=False, default=True)
+    # Item weight in kg, set by the seller. Used by the admin-controlled weight
+    # surcharge on delivery (delivery_fees.py). Null means "not set", and the
+    # default item weight from the admin's delivery settings is assumed.
+    weight_kg = Column(Numeric(8, 2), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -651,6 +655,35 @@ class PlatformSettings(Base):
     promo_slots_per_category = Column(Integer, nullable=False, default=3)
 
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DeliveryFeeSettings(Base):
+    """Single-row table (id is always 1) holding the delivery fee rules the
+    admin edits in the dashboard's "Delivery fees" tab. Read through
+    delivery_fees.get_settings(). Fees are saved on each order when it is
+    placed, so changing a rule never alters an existing order."""
+    __tablename__ = "delivery_fee_settings"
+
+    id = Column(Integer, primary_key=True, default=1)
+    # Distance: there are no GPS coordinates, so distance is the relationship
+    # between the buyer's address and the seller's store, in five bands.
+    base_city = Column(String(100), nullable=False, default="Sunyani")
+    fee_same_neighbourhood = Column(Numeric(12, 2), nullable=False, default=8.00)
+    fee_base_city_other_area = Column(Numeric(12, 2), nullable=False, default=10.00)
+    fee_same_city = Column(Numeric(12, 2), nullable=False, default=18.00)
+    fee_same_region = Column(Numeric(12, 2), nullable=False, default=30.00)
+    fee_other_region = Column(Numeric(12, 2), nullable=False, default=45.00)
+    # Free delivery: a delivery inside the base city (buyer and store both
+    # there) is free when that store's order subtotal is above this amount.
+    free_delivery_enabled = Column(Boolean, nullable=False, default=True)
+    free_delivery_min_order = Column(Numeric(12, 2), nullable=False, default=200.00)
+    # Weight: an extra charge per store order, by total weight band. Off until
+    # the admin switches it on, so deploying changes no price.
+    weight_pricing_enabled = Column(Boolean, nullable=False, default=False)
+    default_item_weight_kg = Column(Numeric(8, 2), nullable=False, default=1.00)
+    weight_bands = Column(JSON, nullable=True)  # [{"up_to_kg": 5, "surcharge": 0}, ..., {"up_to_kg": null, ...}]
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by = Column(String(150), nullable=True)
 
 
 class SellerSubscription(Base):

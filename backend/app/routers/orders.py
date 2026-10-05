@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
-from .. import models, schemas, auth
+from .. import models, schemas, auth, delivery_fees
 from ..database import get_db
 from ..utils import generate_order_number
 from ..product_pricing import product_commission_rate
@@ -12,33 +12,22 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 
 # Commission is assessed per item, so an order can accurately preserve the
 # rate in effect for a mixed-price basket even if the policy changes later.
-def _location(value: str | None) -> str:
-    return (value or "").strip().casefold()
-
-
-def delivery_fee_for(address: models.Address, store: models.Store) -> float:
-    """Location-tier delivery price; Sunyani deliveries remain the local base."""
-    buyer_city, seller_city = _location(address.city), _location(store.city)
-    buyer_region, seller_region = _location(address.region), _location(store.region)
-    if buyer_city == "sunyani" and seller_city == "sunyani":
-        # Same neighbourhood has the shortest local run; another Sunyani
-        # sub-town remains a local delivery, but is priced as a longer trip.
-        if _location(address.sub_town) and _location(address.sub_town) == _location(store.sub_town):
-            return 8.00
-        return 10.00
-    if buyer_city == seller_city and buyer_city:
-        return 18.00
-    # A city or sub-town beyond the Sunyani delivery base incurs the extended fee.
-    if buyer_region and buyer_region == seller_region:
-        return 30.00
-    return 45.00
-
-
 def cart_delivery_quotes(cart: models.Cart, address: models.Address, db: Session) -> list[dict]:
-    store_ids = {item.product.store_id for item in cart.items}
-    stores = db.query(models.Store).filter(models.Store.id.in_(store_ids)).all()
+    """One quote per store in the cart. The fee rules (distance bands and the
+    optional weight surcharge) are the admin's, see delivery_fees.py."""
+    items_by_store: dict[str, list] = defaultdict(list)
+    for item in cart.items:
+        items_by_store[item.product.store_id].append(item)
+    stores = db.query(models.Store).filter(models.Store.id.in_(list(items_by_store))).all()
     return [
-        {"store_id": store.id, "store_name": store.store_name, "delivery_fee": delivery_fee_for(address, store)}
+        {
+            "store_id": store.id,
+            "store_name": store.store_name,
+            **delivery_fees.delivery_fee_for(
+                address, store, items_by_store[store.id], db,
+                subtotal=sum(_unit_price_for(i) * i.quantity for i in items_by_store[store.id]),
+            ),
+        }
         for store in stores
     ]
 
@@ -211,7 +200,7 @@ def checkout(
         subtotal = sum(_unit_price_for(item) * item.quantity for item in items)
         # Pickup skips the delivery fee entirely — the buyer collects from the
         # seller directly, so there's nothing to price a delivery run for.
-        delivery_fee = 0 if payload.is_pickup else delivery_fee_for(address, store)
+        delivery_fee = 0 if payload.is_pickup else delivery_fees.delivery_fee_for(address, store, items, db, subtotal=subtotal)["delivery_fee"]
         commission_amount = round(sum(
             _unit_price_for(item) * item.quantity
             * product_commission_rate(item.product, store, db) / 100

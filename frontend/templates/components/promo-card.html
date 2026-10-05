@@ -12,7 +12,7 @@
 <a href="/product/{{ p.id }}" data-promo-card
   class="group block bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-500/30 rounded-lg overflow-hidden hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-brand-500{% if rail %} shrink-0 snap-start w-[136px] sm:w-[160px]{% endif %}">
   <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
-    <span class="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shadow-sm">Promoted</span>
+    <span class="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-white text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded shadow-sm">Featured</span>
     {% if has_discount and not out_of_stock %}
     <span class="absolute top-1.5 right-1.5 z-10 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">-{{ discount_pct }}%</span>
     {% endif %}

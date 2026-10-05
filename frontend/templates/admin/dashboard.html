@@ -35,6 +35,7 @@
         ('reviews', 'star', 'Reviews'),
         ('payments', 'credit-card', 'Payments'),
         ('monetization', 'badge-percent', 'Monetization'),
+        ('deliveryfees', 'receipt', 'Delivery fees'),
         ('users', 'users', 'Accounts'),
       ] %}
       {% for id, icon, label in tabs %}
@@ -341,6 +342,80 @@
       </section>
 
       <!-- Users -->
+      <section data-panel="deliveryfees" class="admin-panel hidden space-y-6">
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div class="min-w-0">
+              <h2 class="font-head text-xl font-bold">Delivery fees</h2>
+              <p class="text-sm text-slate-500 mt-1">Each store in a buyer's cart gets its own delivery fee: a <strong>distance fee</strong> plus, if you switch it on, a <strong>weight charge</strong>. Changes apply to every new quote and order straight away. Orders already placed keep the fee they were charged. Pickup is always free.</p>
+            </div>
+            <p id="dfUpdated" class="text-xs text-slate-400 shrink-0 sm:text-right"></p>
+          </div>
+        </section>
+
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="font-semibold">Free delivery</h3>
+            <label class="text-xs font-semibold text-slate-600 flex items-center gap-2"><input id="dfFreeEnabled" type="checkbox" class="rounded"> On</label>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">A delivery inside the base city (the buyer and the store both there) is free when that store's order is <strong>above</strong> the amount below. An order of exactly that amount still pays. It replaces the whole fee, including any weight charge. Orders to or from other cities are not affected.</p>
+          <label class="block text-xs font-semibold text-slate-600 mt-4 sm:max-w-xs">Free delivery for orders above (GHS)
+            <input id="dfFreeMin" type="number" step="1" min="1" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          </label>
+        </section>
+
+        <div class="grid lg:grid-cols-2 gap-6">
+          <section class="bg-white border border-slate-200 rounded-2xl p-6">
+            <h3 class="font-semibold">Distance fees (GHS)</h3>
+            <p class="text-xs text-slate-500 mt-1">Distance is worked out from the buyer's address and the seller's store location, not from GPS. Pick the base city, then set the fee for each band.</p>
+            <label class="block text-xs font-semibold text-slate-600 mt-4">Base city
+              <input id="dfBaseCity" type="text" maxlength="100" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+            </label>
+            <div id="dfDistanceRows" class="mt-4 space-y-3"></div>
+          </section>
+
+          <section class="bg-white border border-slate-200 rounded-2xl p-6">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="font-semibold">Weight charge</h3>
+              <label class="text-xs font-semibold text-slate-600 flex items-center gap-2"><input id="dfWeightEnabled" type="checkbox" class="rounded"> On</label>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">An extra charge on each store's order, based on the total weight of its items. Sellers enter each product's weight when they add or edit it. While this is off, weight is ignored.</p>
+            <div id="dfWeightBody" class="mt-4 space-y-4">
+              <label class="block text-xs font-semibold text-slate-600">Weight to assume for products with no weight set (kg)
+                <input id="dfDefaultWeight" type="number" step="0.1" min="0.1" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+              </label>
+              <div>
+                <p class="text-xs font-semibold text-slate-600 mb-2">Charge by total order weight</p>
+                <div id="dfBandRows" class="space-y-2"></div>
+                <button id="dfAddBand" type="button" class="mt-3 border border-slate-300 bg-white px-3 py-1.5 rounded-lg text-xs font-semibold">Add a band</button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="bg-white border border-slate-200 rounded-2xl p-6">
+          <h3 class="font-semibold">Try a delivery</h3>
+          <p class="text-xs text-slate-500 mt-1">Uses the numbers currently in the form above, saved or not.</p>
+          <div class="mt-3 grid sm:grid-cols-3 gap-3 items-end">
+            <label class="block text-xs font-semibold text-slate-600">Distance
+              <select id="dfCalcBand" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"></select>
+            </label>
+            <label class="block text-xs font-semibold text-slate-600">Total weight (kg)
+              <input id="dfCalcWeight" type="number" step="0.1" min="0" value="3" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+            </label>
+            <label class="block text-xs font-semibold text-slate-600">Order total (GHS)
+              <input id="dfCalcTotal" type="number" step="1" min="0" value="100" class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+            </label>
+            <p id="dfCalcResult" class="text-sm font-semibold text-slate-800 sm:col-span-3" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="dfSave" type="button" class="bg-brand-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50">Save delivery fees</button>
+          <span id="dfSaveMsg" class="text-sm text-slate-600" aria-live="polite"></span>
+        </div>
+      </section>
+
       <section data-panel="users" class="admin-panel hidden">
         <section class="bg-white border border-slate-200 rounded-2xl p-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
@@ -557,10 +632,11 @@ function initTabs() {
     panels.forEach(p => p.classList.toggle('hidden', p.dataset.panel !== tab));
     location.hash = tab;
   }
-  buttons.forEach(b => b.addEventListener('click', () => { activate(b.dataset.tab); if(b.dataset.tab==='badges') loadBadgeManager(); if(b.dataset.tab==='monetization') loadMonetization(); }));
+  buttons.forEach(b => b.addEventListener('click', () => { activate(b.dataset.tab); if(b.dataset.tab==='badges') loadBadgeManager(); if(b.dataset.tab==='monetization') loadMonetization(); if(b.dataset.tab==='deliveryfees') loadDeliveryFees(); }));
   const startTab = location.hash.replace('#', '') || 'overview';
   activate(startTab);
   if (startTab === 'monetization') loadMonetization();
+  if (startTab === 'deliveryfees') loadDeliveryFees();
 }
 
 function setBadge(id, count) {
@@ -839,6 +915,139 @@ async function runNewsletterSend(kind) {
 }
 document.getElementById('newsletterTestBtn').onclick = () => runNewsletterSend('test');
 document.getElementById('newsletterSendBtn').onclick = () => runNewsletterSend('live');
+
+// -------------------- Delivery fees --------------------
+let dfBands = [];
+let dfLabels = {};
+const DF_KEYS = ['fee_same_neighbourhood', 'fee_base_city_other_area', 'fee_same_city', 'fee_same_region', 'fee_other_region'];
+const dfMoney = n => `GHS ${Number(n || 0).toFixed(2)}`;
+
+function dfRenderBands() {
+  const box = document.getElementById('dfBandRows');
+  box.innerHTML = dfBands.map((b, i) => {
+    const last = i === dfBands.length - 1;
+    const from = i === 0 ? 0 : dfBands[i - 1].up_to_kg;
+    const range = last
+      ? `<span class="text-sm text-slate-600 w-40 shrink-0">Over ${Number(from || 0)} kg</span>`
+      : `<span class="text-sm text-slate-600 shrink-0">Up to</span><input data-df-limit="${i}" type="number" step="0.5" min="0.5" value="${b.up_to_kg ?? ''}" class="w-24 border border-slate-300 rounded-lg px-2 py-1.5 text-sm" aria-label="Band ${i + 1} weight limit in kg"><span class="text-sm text-slate-600 shrink-0">kg</span>`;
+    const remove = !last && dfBands.length > 1
+      ? `<button type="button" data-df-remove="${i}" class="text-xs text-red-600 font-semibold px-2" aria-label="Remove band ${i + 1}">Remove</button>` : '';
+    return `<div class="flex items-center gap-2 flex-wrap">${range}<span class="text-sm text-slate-600 shrink-0">charge GHS</span><input data-df-charge="${i}" type="number" step="0.5" min="0" value="${b.surcharge ?? 0}" class="w-24 border border-slate-300 rounded-lg px-2 py-1.5 text-sm" aria-label="Band ${i + 1} charge">${remove}</div>`;
+  }).join('');
+  box.querySelectorAll('[data-df-limit]').forEach(el => el.addEventListener('input', () => {
+    dfBands[+el.dataset.dfLimit].up_to_kg = el.value === '' ? null : Number(el.value);
+    dfCalc();
+  }));
+  box.querySelectorAll('[data-df-limit]').forEach(el => el.addEventListener('change', dfRenderBands));
+  box.querySelectorAll('[data-df-charge]').forEach(el => el.addEventListener('input', () => {
+    dfBands[+el.dataset.dfCharge].surcharge = el.value === '' ? 0 : Number(el.value);
+    dfCalc();
+  }));
+  box.querySelectorAll('[data-df-remove]').forEach(el => el.addEventListener('click', () => {
+    dfBands.splice(+el.dataset.dfRemove, 1); dfRenderBands(); dfCalc();
+  }));
+  dfCalc();
+}
+
+function dfToggleWeight() {
+  const on = document.getElementById('dfWeightEnabled').checked;
+  document.getElementById('dfWeightBody').classList.toggle('opacity-50', !on);
+  dfCalc();
+}
+
+function dfCalc() {
+  const out = document.getElementById('dfCalcResult');
+  if (!out) return;
+  const band = document.getElementById('dfCalcBand').value;
+  if (!band) { out.textContent = ''; return; }
+  const distance = Number(document.getElementById(`df_${band}`).value) || 0;
+  const kg = Number(document.getElementById('dfCalcWeight').value) || 0;
+  let extra = 0;
+  if (document.getElementById('dfWeightEnabled').checked) {
+    const hit = dfBands.find(b => b.up_to_kg === null || kg <= Number(b.up_to_kg));
+    extra = hit ? Number(hit.surcharge) || 0 : 0;
+  }
+  const total = Number(document.getElementById('dfCalcTotal').value) || 0;
+  const freeMin = Number(document.getElementById('dfFreeMin').value) || 0;
+  const free = document.getElementById('dfFreeEnabled').checked
+    && ['fee_same_neighbourhood', 'fee_base_city_other_area'].includes(band) && total > freeMin;
+  out.textContent = free
+    ? `Delivery fee: ${dfMoney(0)} (free: order is above ${dfMoney(freeMin)})`
+    : `Delivery fee: ${dfMoney(distance + extra)} (distance ${dfMoney(distance)} + weight ${dfMoney(extra)})`;
+}
+
+function dfFill(d) {
+  dfLabels = d.distance_labels || {};
+  document.getElementById('dfBaseCity').value = d.base_city || '';
+  document.getElementById('dfDistanceRows').innerHTML = DF_KEYS.map(k => `
+    <label class="flex items-center justify-between gap-3 text-sm text-slate-700">
+      <span class="min-w-0">${esc(dfLabels[k] || k)}</span>
+      <input id="df_${k}" type="number" step="0.5" min="0" value="${Number(d[k])}" class="w-28 shrink-0 border border-slate-300 rounded-lg px-3 py-2 text-sm text-right">
+    </label>`).join('');
+  DF_KEYS.forEach(k => document.getElementById(`df_${k}`).addEventListener('input', dfCalc));
+  document.getElementById('dfCalcBand').innerHTML = DF_KEYS.map(k => `<option value="${k}">${esc(dfLabels[k] || k)}</option>`).join('');
+  document.getElementById('dfFreeEnabled').checked = !!d.free_delivery_enabled;
+  document.getElementById('dfFreeMin').value = d.free_delivery_min_order;
+  document.getElementById('dfWeightEnabled').checked = !!d.weight_pricing_enabled;
+  document.getElementById('dfDefaultWeight').value = d.default_item_weight_kg;
+  dfBands = (d.weight_bands || []).map(b => ({ up_to_kg: b.up_to_kg, surcharge: Number(b.surcharge) }));
+  dfRenderBands();
+  dfToggleWeight();
+  document.getElementById('dfUpdated').textContent = d.updated_by
+    ? `Last changed by ${d.updated_by}, ${utcDate(d.updated_at).toLocaleString()}`
+    : 'Using the standard fees. Not changed yet.';
+}
+
+async function loadDeliveryFees() {
+  const msg = document.getElementById('dfSaveMsg');
+  try {
+    dfFill(await apiFetch('/admin/delivery-fees'));
+    msg.textContent = '';
+  } catch (err) {
+    msg.textContent = `Couldn't load delivery fees: ${err.message || err}`;
+  }
+}
+
+async function saveDeliveryFees() {
+  const msg = document.getElementById('dfSaveMsg');
+  const btn = document.getElementById('dfSave');
+  const body = {
+    base_city: document.getElementById('dfBaseCity').value.trim(),
+    free_delivery_enabled: document.getElementById('dfFreeEnabled').checked,
+    free_delivery_min_order: Number(document.getElementById('dfFreeMin').value),
+    weight_pricing_enabled: document.getElementById('dfWeightEnabled').checked,
+    default_item_weight_kg: Number(document.getElementById('dfDefaultWeight').value),
+    weight_bands: dfBands.map(b => ({ up_to_kg: b.up_to_kg, surcharge: Number(b.surcharge) || 0 })),
+  };
+  DF_KEYS.forEach(k => { body[k] = Number(document.getElementById(`df_${k}`).value); });
+  if (!body.base_city) { msg.textContent = 'Enter the base city.'; return; }
+  if (DF_KEYS.some(k => !Number.isFinite(body[k]) || body[k] < 0)) { msg.textContent = 'Every distance fee must be 0 or more.'; return; }
+  if (!(body.free_delivery_min_order > 0)) { msg.textContent = 'The free delivery amount must be above 0.'; return; }
+  if (!(body.default_item_weight_kg > 0)) { msg.textContent = 'The default weight must be above 0 kg.'; return; }
+  btn.disabled = true;
+  msg.textContent = 'Saving...';
+  try {
+    dfFill(await apiFetch('/admin/delivery-fees', { method: 'PUT', body }));
+    msg.textContent = '';
+    showToast('Delivery fees saved. New orders use them now.');
+  } catch (err) {
+    msg.textContent = `Not saved: ${err.message || err}`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+document.getElementById('dfSave').onclick = saveDeliveryFees;
+document.getElementById('dfWeightEnabled').addEventListener('change', dfToggleWeight);
+document.getElementById('dfCalcBand').addEventListener('change', dfCalc);
+document.getElementById('dfCalcWeight').addEventListener('input', dfCalc);
+['dfCalcTotal', 'dfFreeMin'].forEach(id => document.getElementById(id).addEventListener('input', dfCalc));
+document.getElementById('dfFreeEnabled').addEventListener('change', dfCalc);
+document.getElementById('dfAddBand').onclick = () => {
+  if (dfBands.length >= 6) { document.getElementById('dfSaveMsg').textContent = 'Six bands is the most.'; return; }
+  const prev = dfBands.length > 1 ? Number(dfBands[dfBands.length - 2].up_to_kg) : 0;
+  dfBands.splice(dfBands.length - 1, 0, { up_to_kg: prev + 10, surcharge: 0 });
+  dfRenderBands();
+};
 
 // -------------------- Stores --------------------
 let allStoresCache = [];
