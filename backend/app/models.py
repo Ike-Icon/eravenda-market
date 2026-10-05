@@ -630,6 +630,44 @@ class SiteVisit(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
 
 
+class EmailTemplate(Base):
+    """A saved admin message (Email center) that can be reloaded and edited."""
+    __tablename__ = "email_templates"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    name = Column(String(120), nullable=False)
+    audience = Column(String(20), nullable=False, default="users")
+    subject = Column(String(200), nullable=False)
+    body = Column(Text, nullable=False)
+    button_label = Column(String(60), nullable=True)
+    button_url = Column(String(500), nullable=True)
+    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class EmailCampaign(Base):
+    """One admin broadcast: who it went to, what it said, and how it ended.
+    status: sending | completed | failed | interrupted."""
+    __tablename__ = "email_campaigns"
+
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    audience = Column(String(20), nullable=False)
+    include_pending = Column(Boolean, nullable=False, default=False)
+    subject = Column(String(200), nullable=False)
+    body = Column(Text, nullable=False)
+    button_label = Column(String(60), nullable=True)
+    button_url = Column(String(500), nullable=True)
+    status = Column(String(20), nullable=False, default="sending")
+    recipient_count = Column(Integer, nullable=False, default=0)
+    sent_count = Column(Integer, nullable=False, default=0)
+    failed_count = Column(Integer, nullable=False, default=0)
+    error = Column(String(500), nullable=True)
+    sent_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    finished_at = Column(DateTime, nullable=True)
+
+
 class PlatformSettings(Base):
     """Single-row table (id is always 1) holding every admin-controlled money
     setting: the standard product commission, the seller subscription plan and

@@ -877,6 +877,40 @@ class NewsletterSubscribeCreate(BaseModel):
     email: EmailStr
 
 
+# ---------- ADMIN EMAIL CENTER ----------
+
+class BroadcastMessage(BaseModel):
+    """The message body shared by preview, test, send and saved templates."""
+    audience: Literal["users", "sellers", "professionals", "subscribers"]
+    subject: str = Field(min_length=1, max_length=200)
+    body: str = Field(min_length=1, max_length=20000)
+    button_label: Optional[str] = Field(default=None, max_length=60)
+    button_url: Optional[str] = Field(default=None, max_length=500)
+    include_pending: bool = False
+
+    @field_validator("subject", "body")
+    @classmethod
+    def _not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("This can't be empty")
+        return v.strip()
+
+    @field_validator("button_label", "button_url")
+    @classmethod
+    def _blank_to_none(cls, v):
+        v = (v or "").strip()
+        return v or None
+
+
+class EmailTemplateSave(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    audience: Literal["users", "sellers", "professionals", "subscribers"]
+    subject: str = Field(min_length=1, max_length=200)
+    body: str = Field(min_length=1, max_length=20000)
+    button_label: Optional[str] = Field(default=None, max_length=60)
+    button_url: Optional[str] = Field(default=None, max_length=500)
+
+
 class ContactMessageCreate(BaseModel):
     name: str
     email: EmailStr
