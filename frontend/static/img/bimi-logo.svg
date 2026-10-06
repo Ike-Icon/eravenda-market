@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.2" baseProfile="tiny-ps" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>EraVenda Market</title>
+  <rect width="64" height="64" fill="#0F766E"/>
+  <path d="M24 21 C24 14, 40 14, 40 21" stroke="#F59E0B" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <path d="M21 29 H43 M21 37 H36 M21 45 H43" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+</svg>

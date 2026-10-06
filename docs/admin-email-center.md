@@ -17,6 +17,7 @@ at a time. Groups are never mixed in a single send.
 * Per-person placeholders: `{{first_name}}`, `{{full_name}}`, `{{store_name}}` (sellers), `{{job_title}}` (professionals). A placeholder that doesn't fit the group is rejected before sending.
 * Optional call-to-action button (text and https link, both or neither).
 * The preview is rendered by the server with the same code that sends the email.
+* Every email starts with the EraVenda logo header (see `resend-email-setup.md`, section 5), the same one used by system emails and the weekly newsletter.
 * **Templates:** start from a starter, or save your own and update or delete it later. **Reuse** in Recent sends loads an earlier message back into the editor.
 
 ## Sending

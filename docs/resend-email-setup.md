@@ -96,6 +96,157 @@ as whichever inbox should receive replies and payment notifications.
 5. Once a domain is verified, repeat the test with a real buyer's email
    address to confirm production sending works too.
 
+## 5. Logo and sender name in your emails
+
+Every email EraVenda sends (system emails, the weekly newsletter and
+messages from the admin Email center) now starts with a small header: your
+logo mark and "EraVenda Market", above the banner image.
+
+- The logo is `frontend/static/img/email-logo.png`, served from
+  `SITE_URL/static/img/email-logo.png`. It is a PNG on purpose: Gmail and most
+  other email apps do not show SVG images.
+- To use a different logo, upload a square PNG (at least 128 x 128, transparent
+  or solid background) somewhere public over https and set `EMAIL_LOGO_URL`
+  to its address. Set `EMAIL_LOGO_URL=none` to remove the header entirely.
+- The header is built in one place, `email_logo_header_html()` in
+  `backend/app/email_utils.py`, and used by all three layouts.
+- When an email app blocks images (many do until the reader taps "show
+  images"), the words "EraVenda Market" still show and the logo area stays
+  quietly empty.
+
+**Sender name.** To show "EraVenda Market" in the inbox instead of
+`no-reply@eravenda.com`, set `FROM_EMAIL` to the name plus the address:
+
+```
+FROM_EMAIL=EraVenda Market <no-reply@eravenda.com>
+```
+
+Also set `SUPPORT_EMAIL` to a plain address (for example
+`support@eravenda.com`). In the code `SUPPORT_EMAIL` defaults to `FROM_EMAIL`,
+so without it the reply-to and the "write to us" lines in emails would show the
+name and angle brackets too.
+
+## 6. Logo next to the sender in the inbox (BIMI)
+
+The round picture beside the sender in the inbox list is chosen by the
+receiving app, not by the email. For a custom domain the standard way to get
+your logo there is **BIMI**. It shows your logo only when your domain proves it
+sent the email and the logo is certified, so it takes four things: DMARC,
+a BIMI-format SVG, a certificate (for Gmail and Apple Mail), and one DNS record.
+
+| App | What shows |
+|---|---|
+| Gmail (web, Android, iOS) | Logo with a VMC or a CMC certificate. The blue verified checkmark needs a VMC. |
+| Apple Mail / iCloud | Logo with a VMC. A CMC is not accepted yet. |
+| Yahoo, AOL, Fastmail | Logo; some accept only the SVG plus DMARC enforcement. |
+| Outlook | Not supported. |
+
+(Based on BIMI Group and provider documentation as of mid-2026. Gmail's own
+BIMI help page is the final word if anything here has changed.)
+
+### 6.1 Make sure sending is authenticated
+
+In Resend, **Domains** must show `eravenda.com` as **Verified** (step 2). That
+sets up the SPF and DKIM records that DMARC relies on.
+
+### 6.2 Add a DMARC record, then tighten it slowly
+
+BIMI needs DMARC at `p=quarantine` or `p=reject`, applied to 100% of mail.
+`p=none` is not enough, and Gmail will not show the logo until DMARC is
+enforced. Do it in stages, because enforcing too early can push
+legitimate mail to spam.
+
+In Cloudflare (**DNS > Records**) add a `TXT` record:
+
+| Field | Value |
+|---|---|
+| Name | `_dmarc` |
+| Content | `v=DMARC1; p=none; rua=mailto:support@eravenda.com; pct=100` |
+
+1. **Watch (2 to 4 weeks).** `p=none` changes nothing for delivery; it only
+   makes mailbox providers send you daily summary reports (XML attachments) to
+   the `rua` address. A free DMARC report reader makes them easy to read.
+   Look for every service that sends mail as `@eravenda.com` and check each one
+   passes. Resend will. Anything else you use to send "from" an eravenda.com
+   address (for example Gmail's "send mail as" for the support address) must
+   also pass SPF or DKIM, or it will start failing once you enforce.
+2. **Enforce.** Change the record to
+   `v=DMARC1; p=quarantine; rua=mailto:support@eravenda.com; pct=100`.
+   Keep `pct=100`, since a partial rollout does not qualify for BIMI in Gmail.
+   `p=reject` also qualifies, if you want the strictest setting later.
+3. Replies and forwarding to `support@eravenda.com` are unaffected: DMARC only
+   judges mail that claims to be from your domain.
+
+### 6.3 The SVG logo
+
+BIMI does not accept a normal logo file. It needs SVG Tiny Portable/Secure.
+A ready one is included: `frontend/static/img/bimi-logo.svg`, served at
+`https://eravenda.com/static/img/bimi-logo.svg`.
+
+It follows the rules: version 1.2 with `baseProfile="tiny-ps"`, a title, a
+square shape, a solid background filling the whole square (Gmail crops it to a
+circle, so rounded corners would leave white corners), no scripts, gradients,
+raster images, animation or external links, and a tiny file size.
+
+If you change it, keep those rules, keep the mark near the centre, and check
+the file with a BIMI validator (the BIMI Group has a free inspector) before
+you pay for a certificate. The validator also checks your DMARC and DNS record
+once they are in place.
+
+### 6.4 The certificate (Gmail and Apple Mail need one)
+
+Gmail requires a VMC or a CMC. Without one the logo will not show in Gmail.
+
+| | VMC | CMC |
+|---|---|---|
+| Needs | Your logo registered as a trademark at an office the issuer accepts | Proof you have used the logo for about 12 months |
+| Gmail | Logo and blue checkmark | Logo, no checkmark |
+| Apple Mail | Yes | Not yet |
+
+Both are paid, issued by approved authorities (DigiCert and Entrust for VMC;
+SSL.com and others for CMC), and last about a year, so put the renewal date in
+your calendar. Ask the issuer whether your trademark registry is accepted
+before buying a VMC; a CMC is the realistic route if it is not or if you have
+no trademark. You will receive a `.pem` file.
+
+### 6.5 Publish the BIMI DNS record
+
+Save the certificate file where it can be fetched over https, for example
+`frontend/static/bimi/eravenda.pem` (served at
+`https://eravenda.com/static/bimi/eravenda.pem`), then add a `TXT` record in
+Cloudflare:
+
+| Field | Value |
+|---|---|
+| Name | `default._bimi` |
+| Content | `v=BIMI1; l=https://eravenda.com/static/img/bimi-logo.svg; a=https://eravenda.com/static/bimi/eravenda.pem;` |
+
+Before you have a certificate you can publish the same record without the
+`a=` part. Providers that do not require a certificate may show the logo,
+but Gmail and Apple Mail will not.
+
+### 6.6 Check it worked
+
+1. Run your domain through a BIMI inspector. It should report valid DMARC, a
+   valid SVG and a valid certificate.
+2. Send a real email to a Gmail address (for example the weekly newsletter test
+   from the admin Email center). The logo shows beside the sender name in the
+   inbox list.
+3. Gmail caches BIMI results, so allow time after any change. If you change the
+   logo later, publish it at a new file name and get a new certificate for it.
+
+If no logo appears, work through this list: DMARC is still `p=none` or below
+100%; the SVG failed validation; no certificate (Gmail and Apple Mail); the
+certificate is expired or was issued for a different logo; the `From` address is
+not on `eravenda.com`; the DNS record name or the `a=`/`l=` links are wrong.
+
+### Without BIMI
+
+You can create a Google account that uses `no-reply@eravenda.com` as its email
+address and give it your logo as the profile photo. Some Gmail users will then
+see it. This is unofficial and inconsistent, so treat it as a stopgap, not a
+replacement for BIMI.
+
 ## What happens on the backend
 
 `send_email()` posts to `https://api.resend.com/emails` with your API key
