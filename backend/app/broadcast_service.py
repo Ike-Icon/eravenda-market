@@ -51,7 +51,6 @@ from .email_utils import (
     SITE_URL,
     EmailConfigError,
     EmailDeliveryError,
-    email_logo_header_html,
     send_email_batch,
 )
 
@@ -303,7 +302,6 @@ def render_message(message: dict, person: dict) -> dict:
   <body style="margin:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif;color:#24352e;">
     <div style="padding:20px 12px;">
       <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #d8e5de;border-radius:10px;overflow:hidden;">
-        {email_logo_header_html()}
         <img src="{escape(EMAIL_FLYER_URL)}" alt="Eravenda Market" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
         <div style="padding:20px 24px 24px;line-height:1.6;font-size:15px;">
           {_body_to_html(body)}

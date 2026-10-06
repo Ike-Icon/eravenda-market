@@ -30,9 +30,23 @@ RESEND_API_URL = "https://api.resend.com/emails"
 # onboarding@resend.dev, and even then it will only deliver TO the email
 # address you signed up to Resend with — fine for testing, not for real
 # customers. See docs/resend-email-setup.md for the full walkthrough.
-FROM_EMAIL = os.getenv("FROM_EMAIL", "no-reply@eravenda.com")
+FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@eravenda.com")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", FROM_EMAIL)
 ADMIN_NOTIFICATION_EMAIL = os.getenv("ADMIN_NOTIFICATION_EMAIL", "support@eravenda.com")
+
+
+def _default_reply_to() -> str | None:
+    """Where a reader's "Reply" should go when the caller didn't pick an address.
+
+    Emails are sent From a no-reply style address (FROM_EMAIL), but they tell
+    people to "just reply to this email". Without a Reply-To those replies would
+    land in the no-reply mailbox that nobody reads, so they go to SUPPORT_EMAIL
+    instead. Returns None when SUPPORT_EMAIL is unset or is the same address as
+    FROM_EMAIL (nothing to redirect, and behaviour stays exactly as before)."""
+    support = (SUPPORT_EMAIL or "").strip()
+    if not support or support.lower() in FROM_EMAIL.lower():
+        return None
+    return support
 DEFAULT_EMAIL_FLYER_URL = "https://res.cloudinary.com/ni2pcrua/image/upload/v1789391753/EraVenda_Banner.jpg"
 EMAIL_FLYER_URL = os.getenv("EMAIL_FLYER_URL", DEFAULT_EMAIL_FLYER_URL).strip() or DEFAULT_EMAIL_FLYER_URL
 
@@ -46,14 +60,6 @@ EMAIL_FLYER_URL = os.getenv("EMAIL_FLYER_URL", DEFAULT_EMAIL_FLYER_URL).strip() 
 # only worked on someone's laptop. Now deployed on Render, so the one
 # correct fallback is the live API URL.
 SITE_URL = os.getenv("SITE_URL", "https://eravenda.com").rstrip("/")
-
-# Logo shown at the top of every email. Email apps (Gmail especially) don't
-# render SVG images, so this is a PNG, served from the site's own static
-# folder. Override with EMAIL_LOGO_URL (an absolute https URL) to use a
-# different file, or set it to "none" to leave the logo header out.
-DEFAULT_EMAIL_LOGO_URL = f"{SITE_URL}/static/img/email-logo.png"
-_logo_setting = os.getenv("EMAIL_LOGO_URL", "").strip()
-EMAIL_LOGO_URL = "" if _logo_setting.lower() == "none" else (_logo_setting or DEFAULT_EMAIL_LOGO_URL)
 
 RESEND_BATCH_URL = "https://api.resend.com/emails/batch"
 # Resend accepts at most 100 messages per batch call.
@@ -126,26 +132,6 @@ def _item_thumbnail_html(item: dict) -> str:
     </tr>"""
 
 
-def email_logo_header_html() -> str:
-    """Small centred logo + brand name that sits above the banner in every
-    email layout. Width/height attributes are set because Outlook ignores CSS
-    sizing. The brand name beside it is real text, so the logo itself has an
-    empty alt: with images blocked (the default in many apps) alt text would
-    be squeezed into the 44px box and break into stacked letters. Returns ""
-    when the logo is switched off with EMAIL_LOGO_URL=none."""
-    if not EMAIL_LOGO_URL:
-        return ""
-    return (
-        f'<div style="text-align:center;padding:18px 20px 14px;background:#ffffff;border-bottom:1px solid #eef3f0;">'
-        f'<a href="{escape(SITE_URL)}" style="text-decoration:none;color:#0b2d20;">'
-        f'<img src="{escape(EMAIL_LOGO_URL)}" alt="" width="44" height="44" '
-        f'style="display:inline-block;vertical-align:middle;width:44px;height:44px;border:0;border-radius:10px;">'
-        f'<span style="display:inline-block;vertical-align:middle;margin-left:10px;font-family:Arial,Helvetica,sans-serif;'
-        f'font-size:20px;font-weight:700;letter-spacing:.2px;color:#0b2d20;">EraVenda Market</span>'
-        f'</a></div>'
-    )
-
-
 def _html_email(body: str, items: list[dict] | None = None) -> str:
         paragraphs = "<br>".join(escape(body).splitlines())
         banner = f'<img src="{escape(EMAIL_FLYER_URL)}" alt="EraVenda Market" style="display:block;width:100%;max-width:600px;height:auto;margin:0 auto 24px;border:0;">'
@@ -158,7 +144,6 @@ def _html_email(body: str, items: list[dict] | None = None) -> str:
     <body style="margin:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif;color:#24352e;">
         <div style="padding:20px 12px;">
             <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #d8e5de;border-radius:10px;overflow:hidden;">
-                {email_logo_header_html()}
                 <div style="padding:20px;line-height:1.6;font-size:15px;text-align:center;">
                     {banner}
                     <div style="text-align:left;">{paragraphs}{items_html}</div>
@@ -202,6 +187,7 @@ def send_email(
         "text": body,
         "html": html if html is not None else _html_email(body, items),
     }
+    reply_to = reply_to or _default_reply_to()
     if reply_to:
         payload["reply_to"] = reply_to
     if headers:
@@ -222,7 +208,8 @@ def send_email(
 def send_email_batch(messages: list[dict]) -> list[bool]:
     """Send up to BATCH_MAX messages in one Resend call and report which ones
     went out, in the same order as `messages`. Each message is a dict with
-    to, subject, body and optionally html and headers.
+    to, subject, body and optionally html, headers and reply_to (defaults to
+    SUPPORT_EMAIL, see _default_reply_to).
 
     One API call per 100 recipients keeps a big send well under Resend's
     rate limit. If Resend rejects a whole batch (say one bad address), each
@@ -248,6 +235,9 @@ def send_email_batch(messages: list[dict]) -> list[bool]:
         }
         if m.get("headers"):
             item["headers"] = m["headers"]
+        batch_reply_to = m.get("reply_to") or _default_reply_to()
+        if batch_reply_to:
+            item["reply_to"] = batch_reply_to
         payload.append(item)
 
     with httpx.Client(timeout=30) as client:
@@ -261,7 +251,7 @@ def send_email_batch(messages: list[dict]) -> list[bool]:
     results: list[bool] = []
     for m in messages:
         try:
-            send_email(m["to"], m["subject"], m["body"], html=m.get("html"), headers=m.get("headers"))
+            send_email(m["to"], m["subject"], m["body"], reply_to=m.get("reply_to"), html=m.get("html"), headers=m.get("headers"))
             results.append(True)
         except EmailConfigError:
             raise

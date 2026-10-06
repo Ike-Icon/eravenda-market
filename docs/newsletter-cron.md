@@ -20,7 +20,8 @@ dashboard: **Overview > Weekly newsletter**.
 
 1. **Render service you keep** (Environment tab): set `RESEND_API_KEY`,
    `FROM_EMAIL` (an address on a domain you verified in Resend, for example
-   `no-reply@eravenda.com`) and `SITE_URL`. Note the generated
+   `noreply@eravenda.com`), `SUPPORT_EMAIL` (`support@eravenda.com`, where
+   replies go) and `SITE_URL`. Note the generated
    `NEWSLETTER_CRON_SECRET`.
    - `FROM_EMAIL=onboarding@resend.dev` only delivers to the email you
      registered with Resend. The dashboard warns you if you are on it.

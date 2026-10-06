@@ -40,45 +40,44 @@ You already own the domain, so do this now:
 3. Verification is usually done within a few minutes, sometimes up to a
    few hours. The Domains page shows **Verified** once it's picked up.
 
-**Important — don't break support@eravenda.com's forwarding.** You
-already have `support@eravenda.com` set up as a rerouting address, which
-almost certainly means there's already an `MX` record (and possibly an
-`SPF` `TXT` record) on `eravenda.com` for that forwarding to work. A
-domain can only have **one** SPF record — if Resend's setup asks you to
-add a new `SPF` `TXT` record and one already exists (it'll look like
-`v=spf1 ...`), don't add a second one; instead edit the existing record
-so it includes Resend's mechanism in the same line, e.g.
-`v=spf1 include:_spf.resend.com include:<your-current-provider> ~all`.
-Two separate SPF records is invalid and can cause your existing
-`support@eravenda.com` forwarding to start failing spam checks. If
-you're not sure what's already there, check Cloudflare's DNS records
-for `eravenda.com` before adding anything, or paste what Resend gives
-you here and I'll tell you exactly how to merge it.
+**One SPF record only.** A domain can only have **one** SPF `TXT` record
+(it starts with `v=spf1`). Resend normally puts its own on the `send`
+subdomain, so there is nothing to merge. If Resend does ask for an SPF
+record on the root domain and one already exists (Google Workspace needs one,
+see section 7), don't add a second; edit the existing one so every sender is in
+the same line. Two SPF records is invalid and makes mail fail spam checks.
 
-Once verified, set `FROM_EMAIL` to `no-reply@eravenda.com` (or any
-address on the domain) — you don't need a real inbox behind it, Resend
-just needs to confirm you own the domain. `SUPPORT_EMAIL` and
-`ADMIN_NOTIFICATION_EMAIL` are unaffected by any of this; those are just
-destination addresses, only the `from` address needs a verified domain.
-Until verification finishes, `FROM_EMAIL` can stay
-`onboarding@resend.dev` (Resend's shared sandbox address) — that works
-immediately but only delivers to the inbox you signed up to Resend with,
-so it's fine for testing the flow but not for real buyers or sellers.
+Once verified, set `FROM_EMAIL` to `noreply@eravenda.com` (or any address on
+the domain). The address doesn't need a real inbox behind it for sending, as
+Resend only needs to confirm you own the domain. Until verification finishes,
+`FROM_EMAIL` can stay `onboarding@resend.dev` (Resend's shared sandbox
+address). That works immediately but only delivers to the inbox you signed up
+to Resend with, so it's fine for testing the flow but not for real buyers or
+sellers.
+
+Your Google Workspace mailboxes (`support@` and `noreply@`) and how they fit
+with Resend are explained in section 7.
 
 ## 3. Put the values in place
 
-Two places, same two variables:
+Two places, same variables:
 
-- **Local `.env`** (`backend/.env`): set `RESEND_API_KEY` to the key from
-  step 1, and `FROM_EMAIL` per step 2. `SUPPORT_EMAIL` and
-  `ADMIN_NOTIFICATION_EMAIL` already default to `support@eravenda.com`.
-- **Render dashboard**, your web service's **Environment** tab: same two
-  keys, same values. `render.yaml` already declares both with
-  `sync: false`, which means Render leaves them blank until you fill
-  them in here — it won't pick up your local `.env` automatically.
+- **Local `.env`** (`backend/.env`)
+- **Render dashboard**, your web service's **Environment** tab. `render.yaml`
+  declares these keys with `sync: false`, which means Render leaves them blank
+  until you fill them in here. It won't pick up your local `.env`.
 
-`SUPPORT_EMAIL` and `ADMIN_NOTIFICATION_EMAIL` don't change — leave them
-as whichever inbox should receive replies and payment notifications.
+| Variable | Value | What it does |
+|---|---|---|
+| `RESEND_API_KEY` | the key from step 1 | Lets the app send. Without it nothing is delivered. |
+| `FROM_EMAIL` | `EraVenda Market <noreply@eravenda.com>` | The "From" on every email the app sends. |
+| `SUPPORT_EMAIL` | `support@eravenda.com` | Where replies go, where contact-form messages arrive, and the address shown in email footers. |
+| `ADMIN_NOTIFICATION_EMAIL` | `support@eravenda.com` | Where admin alerts (payments, applications) arrive. |
+
+Set `SUPPORT_EMAIL` explicitly. If you leave it blank it falls back to
+`FROM_EMAIL`, and the footers would tell people to write to the no-reply
+address. In `.env`, put quotes around a value that contains a name and angle
+brackets: `FROM_EMAIL="EraVenda Market <noreply@eravenda.com>"`.
 
 ## 4. Testing after it's set
 
@@ -96,29 +95,13 @@ as whichever inbox should receive replies and payment notifications.
 5. Once a domain is verified, repeat the test with a real buyer's email
    address to confirm production sending works too.
 
-## 5. Logo and sender name in your emails
+## 5. Sender name in your emails
 
-Every email EraVenda sends (system emails, the weekly newsletter and
-messages from the admin Email center) now starts with a small header: your
-logo mark and "EraVenda Market", above the banner image.
-
-- The logo is `frontend/static/img/email-logo.png`, served from
-  `SITE_URL/static/img/email-logo.png`. It is a PNG on purpose: Gmail and most
-  other email apps do not show SVG images.
-- To use a different logo, upload a square PNG (at least 128 x 128, transparent
-  or solid background) somewhere public over https and set `EMAIL_LOGO_URL`
-  to its address. Set `EMAIL_LOGO_URL=none` to remove the header entirely.
-- The header is built in one place, `email_logo_header_html()` in
-  `backend/app/email_utils.py`, and used by all three layouts.
-- When an email app blocks images (many do until the reader taps "show
-  images"), the words "EraVenda Market" still show and the logo area stays
-  quietly empty.
-
-**Sender name.** To show "EraVenda Market" in the inbox instead of
-`no-reply@eravenda.com`, set `FROM_EMAIL` to the name plus the address:
+To show "EraVenda Market" in the inbox instead of
+`noreply@eravenda.com`, set `FROM_EMAIL` to the name plus the address:
 
 ```
-FROM_EMAIL=EraVenda Market <no-reply@eravenda.com>
+FROM_EMAIL=EraVenda Market <noreply@eravenda.com>
 ```
 
 Also set `SUPPORT_EMAIL` to a plain address (for example
@@ -167,15 +150,16 @@ In Cloudflare (**DNS > Records**) add a `TXT` record:
    makes mailbox providers send you daily summary reports (XML attachments) to
    the `rua` address. A free DMARC report reader makes them easy to read.
    Look for every service that sends mail as `@eravenda.com` and check each one
-   passes. Resend will. Anything else you use to send "from" an eravenda.com
+   passes. Resend and Google Workspace both will once their DKIM records are in
+   (section 7). Anything else you use to send "from" an eravenda.com
    address (for example Gmail's "send mail as" for the support address) must
    also pass SPF or DKIM, or it will start failing once you enforce.
 2. **Enforce.** Change the record to
    `v=DMARC1; p=quarantine; rua=mailto:support@eravenda.com; pct=100`.
    Keep `pct=100`, since a partial rollout does not qualify for BIMI in Gmail.
    `p=reject` also qualifies, if you want the strictest setting later.
-3. Replies and forwarding to `support@eravenda.com` are unaffected: DMARC only
-   judges mail that claims to be from your domain.
+3. Mail people send *to* `support@eravenda.com` is unaffected: DMARC only
+   judges mail that claims to be *from* your domain.
 
 ### 6.3 The SVG logo
 
@@ -242,10 +226,80 @@ not on `eravenda.com`; the DNS record name or the `a=`/`l=` links are wrong.
 
 ### Without BIMI
 
-You can create a Google account that uses `no-reply@eravenda.com` as its email
+You can create a Google account that uses `noreply@eravenda.com` as its email
 address and give it your logo as the profile photo. Some Gmail users will then
 see it. This is unofficial and inconsistent, so treat it as a stopgap, not a
 replacement for BIMI.
+
+## 7. Your Google Workspace mailboxes (support@ and noreply@)
+
+**Resend sends, Google Workspace receives.** The app does not send through
+Gmail or Google Workspace. It sends through Resend's API, and your Workspace
+mailboxes are where people write back to.
+
+| Address | Role | Set in |
+|---|---|---|
+| `noreply@eravenda.com` | The "From" of every email the app sends: system emails, the weekly newsletter and everything from the admin Email center. | `FROM_EMAIL` |
+| `support@eravenda.com` | The inbox you read. Replies to app emails land here, as do contact-form messages and admin alerts. | `SUPPORT_EMAIL`, `ADMIN_NOTIFICATION_EMAIL` |
+
+Every app email carries a Reply-To of `SUPPORT_EMAIL`, so when someone taps
+Reply on a newsletter or an order email, the reply goes to `support@` and not
+to the no-reply address. (Emails where the app sets a specific reply address,
+such as the contact form and service bookings, keep it.)
+
+### Why not send through Google Workspace?
+
+- **Render blocks it.** On Render's free web service plan, outbound SMTP
+  (ports 25, 465, 587) is blocked, so Gmail SMTP can't deliver from the app.
+  That is why the app uses Resend's HTTPS API.
+- **It isn't built for bulk mail.** Workspace has daily sending limits and is
+  meant for person-to-person mail. A newsletter sent from it risks being
+  throttled or flagged. Use Resend for the newsletter and Email center.
+
+### DNS: Resend and Google Workspace side by side
+
+They don't conflict, as long as the root domain is set up like this. Check
+Cloudflare (**DNS > Records**; set every mail record to **DNS only**, grey cloud):
+
+| Record | What it should be |
+|---|---|
+| `MX` on `eravenda.com` | Only Google's: priority `1`, `smtp.google.com`. Delete any other MX records on the root, including leftover `*.mx.cloudflare.net` ones from Cloudflare Email Routing. Mixed MX records make incoming mail land in the wrong place. |
+| `TXT` (SPF) on `eravenda.com` | One record only: `v=spf1 include:_spf.google.com ~all`. Remove `include:_spf.mx.cloudflare.net` if it's still there. Resend's own SPF lives on the `send` subdomain, so nothing to merge unless Resend asked for a root record. |
+| Resend DKIM (`resend._domainkey`) and the `send` MX/TXT | Leave exactly as Resend gave them (section 2). |
+| Google DKIM (`google._domainkey`) | Add it. In the Google Admin console go to **Apps > Google Workspace > Gmail > Authenticate email**, pick `eravenda.com`, generate the record, add the `TXT` record in Cloudflare, then click **Start authentication**. |
+| `_dmarc` | One record (section 6.2). Now that `support@` is a real mailbox, its `rua` reports will arrive. |
+
+Google's free MX checker (search for "Google Admin Toolbox CheckMX") flags a
+wrong or stray MX record. DNS changes can take a few hours to be picked up.
+
+### The noreply@ user (optional saving)
+
+Because Resend sends the email, `noreply@eravenda.com` doesn't need to be a
+mailbox. If it was created as its own Workspace user, that user uses up a paid
+seat. To avoid paying for it, add `noreply@eravenda.com` as an alternate email
+address (an alias) on the support user, or on a group, and delete the separate
+user. Nothing in the app changes, since sending doesn't depend on it.
+
+### Sending limits (Resend)
+
+As of 2026 Resend's free plan allows 3,000 emails a month and 100 a day. An
+Email center send or newsletter to more than 100 people in a day won't
+complete on the free plan. The Pro plan (about $20 a month for 50,000 emails)
+has no daily limit. Check resend.com/pricing before a large send.
+
+### Test the whole setup
+
+1. **Sending:** in the admin **Email center**, write a short message and
+   choose **Send test to me**. It arrives from `EraVenda Market`. In Gmail,
+   open the three-dot menu > **Show original** and check SPF, DKIM and DMARC
+   all say **PASS**.
+2. **Replying:** tap Reply on that test. The "To" should be
+   `support@eravenda.com`.
+3. **Receiving:** from a personal email address, write to
+   `support@eravenda.com`. It should arrive in the Workspace inbox within a
+   minute. If it doesn't, the MX records are the first thing to check.
+4. **Contact form:** submit the site's contact form. The message arrives at
+   `support@eravenda.com`, and replying goes to the visitor.
 
 ## What happens on the backend
 
