@@ -224,12 +224,35 @@ If no logo appears, work through this list: DMARC is still `p=none` or below
 certificate is expired or was issued for a different logo; the `From` address is
 not on `eravenda.com`; the DNS record name or the `a=`/`l=` links are wrong.
 
-### Without BIMI
+### Without a certificate: the Gmail profile photo
 
-You can create a Google account that uses `noreply@eravenda.com` as its email
-address and give it your logo as the profile photo. Some Gmail users will then
-see it. This is unofficial and inconsistent, so treat it as a stopgap, not a
-replacement for BIMI.
+You can get your logo beside the sender name **in Gmail only** without BIMI or
+any certificate. Gmail looks up the From address (`noreply@eravenda.com`) and,
+when it belongs to a Google Workspace user or alias, shows that account's
+profile photo. It works even though the email is sent by Resend, because Gmail
+matches on the address.
+
+1. Use a square PNG or JPG (a static image, not an animated GIF). A ready
+   512 x 512 version of the logo is `eravenda-profile-picture.png`. Google
+   crops photos to a circle, and this one keeps the mark well inside it.
+2. Sign in to Google as `noreply@eravenda.com` (a private/incognito window
+   avoids mixing it up with your own account; if you don't know its password,
+   reset it in the Admin console under **Directory > Users**).
+3. Open `myaccount.google.com`, then **Personal info**, click the profile
+   picture, upload the logo and save it.
+4. When asked who can see the picture, choose **Anyone**. A photo uploaded by
+   an admin on the user's behalf is visible only inside your organisation and
+   to people the account has contacted, so set it from the account itself.
+   If the camera icon is locked ("managed by your organization"), allow
+   profile photo editing in the Admin console under
+   **Directory > Directory settings > Profile editing**.
+5. Wait. Gmail caches sender photos, and it can take 24 to 72 hours to appear.
+   Test with an email sent to a Gmail address.
+
+Limits: this shows only for Gmail recipients. Outlook, Apple Mail and Yahoo
+ignore it, which is where BIMI above helps. If `noreply@` is an alias of
+another user instead of its own user, the photo shown is the photo of that
+user.
 
 ## 7. Your Google Workspace mailboxes (support@ and noreply@)
 
@@ -278,7 +301,10 @@ Because Resend sends the email, `noreply@eravenda.com` doesn't need to be a
 mailbox. If it was created as its own Workspace user, that user uses up a paid
 seat. To avoid paying for it, add `noreply@eravenda.com` as an alternate email
 address (an alias) on the support user, or on a group, and delete the separate
-user. Nothing in the app changes, since sending doesn't depend on it.
+user. Nothing in the app changes, since sending doesn't depend on it. One
+trade-off: an alias shows its user's profile photo, so if you want the logo
+as the sender picture (see the Gmail profile photo steps in section 6), put
+the logo on that user's photo.
 
 ### Sending limits (Resend)
 
