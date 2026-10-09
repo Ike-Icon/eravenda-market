@@ -691,6 +691,8 @@ class EmailCampaign(Base):
     sent_count = Column(Integer, nullable=False, default=0)
     failed_count = Column(Integer, nullable=False, default=0)
     error = Column(String(500), nullable=True)
+    # Only set for the "user" (single recipient) audience.
+    target_email = Column(String(255), nullable=True)
     sent_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
     finished_at = Column(DateTime, nullable=True)

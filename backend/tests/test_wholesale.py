@@ -67,12 +67,12 @@ def world(client):
     cat = client.post("/categories", headers=admin_h, json={"name": f"Cat {uuid.uuid4().hex[:4]}"})
     assert cat.status_code == 201, cat.text
 
-    buyer_h, buyer_id, _ = _register(client, "Buyer")
+    buyer_h, buyer_id, buyer_email = _register(client, "Buyer")
     addr = client.post("/auth/addresses", headers=buyer_h, json={
         "recipient_name": "Buyer", "phone": "0240000000", "region": "Bono", "city": "Sunyani"})
     assert addr.status_code in (200, 201), addr.text
     return {"admin": admin_h, "sellers": sellers, "cat": cat.json()["id"], "buyer": buyer_h,
-            "buyer_id": buyer_id, "addr": addr.json()["id"]}
+            "buyer_id": buyer_id, "buyer_email": buyer_email, "addr": addr.json()["id"]}
 
 
 def _make(client, world, seller, **fields):
@@ -336,3 +336,148 @@ def test_store_and_other_pages_render(client, pages, world):
     add = pages.get("/seller/add-product.html").text
     assert "Minimum Wholesale Quantity" in add and 'value="wholesale"' in add
     assert "Wholesale management" in pages.get("/admin/dashboard.html").text
+
+
+# ---------- Email center: "One user" audience ----------
+
+@pytest.fixture()
+def fake_mail(monkeypatch):
+    """Pretend email is configured and capture what would be sent."""
+    from app import broadcast_service, email_utils
+    sent = []
+    monkeypatch.setattr(email_utils, "email_configured", lambda: True)
+    monkeypatch.setattr(broadcast_service.email_utils, "email_configured", lambda: True)
+
+    def fake_batch(messages):
+        sent.extend(messages)
+        return [True] * len(messages)
+
+    monkeypatch.setattr(broadcast_service, "send_email_batch", fake_batch)
+    return sent
+
+
+def _wait_done(client, admin_h, cid, tries=60):
+    import time
+    for _ in range(tries):
+        c = client.get(f"/admin/broadcasts/campaigns/{cid}", headers=admin_h).json()
+        if c["status"] != "sending":
+            return c
+        time.sleep(0.1)
+    raise AssertionError("campaign never finished")
+
+
+def _msg(user_id, **kw):
+    body = {"audience": "user", "user_id": user_id, "subject": f"Hello {uuid.uuid4().hex[:6]}",
+            "body": "Hi {{first_name}}, this is personal."}
+    body.update(kw)
+    return body
+
+
+def test_user_search(client, world):
+    adm = world["admin"]
+    uid = world["buyer_id"]
+    assert client.get("/admin/broadcasts/users", params={"q": "B"}, headers=adm).json() == []  # too short
+    email = world["buyer_email"]
+    found = client.get("/admin/broadcasts/users", params={"q": email}, headers=adm).json()
+    assert [(u["id"], u["role"]) for u in found] == [(uid, "buyer")]
+    assert [u["id"] for u in client.get("/admin/broadcasts/users", params={"q": email.upper()}, headers=adm).json()] == [uid]  # case-insensitive
+    by_name = client.get("/admin/broadcasts/users", params={"q": "Buyer"}, headers=adm).json()
+    assert by_name and len(by_name) <= 10  # name search works and is capped
+    sid = world["sellers"]["A"]["user_id"]
+    seller_email = _sql("SELECT email FROM users WHERE id = :i", i=sid).scalar()
+    seller = client.get("/admin/broadcasts/users", params={"q": seller_email}, headers=adm).json()
+    assert len(seller) == 1 and seller[0]["id"] == sid and seller[0]["store_name"] and seller[0]["role"] == "seller"
+    # LIKE wildcards are literal, not "match everything"
+    assert client.get("/admin/broadcasts/users", params={"q": "%%"}, headers=adm).json() == []
+    assert client.get("/admin/broadcasts/users", params={"q": "__"}, headers=adm).json() == []
+    # deactivated accounts don't show up
+    _sql("UPDATE users SET is_active = false WHERE id = :i", i=uid)
+    try:
+        assert client.get("/admin/broadcasts/users", params={"q": email}, headers=adm).json() == []
+    finally:
+        _sql("UPDATE users SET is_active = true WHERE id = :i", i=uid)
+    # admin only
+    assert client.get("/admin/broadcasts/users", params={"q": email}, headers=world["buyer"]).status_code == 403
+    assert client.get("/admin/broadcasts/users", params={"q": email}, headers=world["sellers"]["A"]["h"]).status_code == 403
+
+
+def test_audience_list_includes_one_user(client, world):
+    a = client.get("/admin/broadcasts/audiences", headers=world["admin"]).json()["audiences"]
+    assert [x["key"] for x in a if x["key"] == "user"] == ["user"]
+    assert {"users", "sellers", "professionals", "subscribers"} <= {x["key"] for x in a}  # existing groups intact
+
+
+def test_preview_single_user_and_without_pick(client, world):
+    adm = world["admin"]
+    r = client.post("/admin/broadcasts/preview", headers=adm, json=_msg(world["buyer_id"]))
+    assert r.status_code == 200, r.text
+    assert r.json()["recipient_count"] == 1 and r.json()["preview_for"] == "Buyer"
+    assert "Hi Buyer," in r.json()["html"]
+    # nobody chosen yet: still previews, with a sample person
+    nopick = client.post("/admin/broadcasts/preview", headers=adm, json=_msg(None))
+    assert nopick.status_code == 200 and nopick.json()["preview_for"] == "a sample person"
+    # only the placeholders that make sense for one account
+    bad = client.post("/admin/broadcasts/preview", headers=adm, json=_msg(world["buyer_id"], body="Hi {{store_name}}"))
+    assert bad.status_code == 400
+
+
+def test_send_to_one_user_only(client, world, fake_mail):
+    adm = world["admin"]
+    buyer_email = world["buyer_email"]
+    r = client.post("/admin/broadcasts/send", headers=adm, json=_msg(world["buyer_id"]))
+    assert r.status_code == 202, r.text
+    c = _wait_done(client, adm, r.json()["id"])
+    assert c["status"] == "completed" and c["recipient_count"] == 1 and c["sent_count"] == 1
+    assert c["audience"] == "user" and c["target_email"].lower() == buyer_email.lower()
+    assert c["audience_label"].startswith("One user: ")
+    assert len(fake_mail) == 1 and fake_mail[0]["to"].lower() == buyer_email.lower()
+    assert "Hi Buyer, this is personal." in fake_mail[0]["body"]
+    assert "[TEST]" not in fake_mail[0]["subject"]
+
+
+def test_duplicate_guard_is_per_person(client, world, fake_mail):
+    adm = world["admin"]
+    other_id = world["sellers"]["A"]["user_id"]
+    base = _msg(world["buyer_id"], subject=f"Dup {uuid.uuid4().hex[:6]}")
+    first = client.post("/admin/broadcasts/send", headers=adm, json=base)
+    assert first.status_code == 202
+    _wait_done(client, adm, first.json()["id"])
+    again = client.post("/admin/broadcasts/send", headers=adm, json=base)
+    assert again.status_code == 409 and "this person" in again.json()["detail"]
+    to_other = client.post("/admin/broadcasts/send", headers=adm, json={**base, "user_id": other_id})
+    assert to_other.status_code == 202, to_other.text  # same text, different person: allowed
+    _wait_done(client, adm, to_other.json()["id"])
+    assert len({m["to"].lower() for m in fake_mail}) == 2
+
+
+def test_send_validation(client, world, fake_mail):
+    adm = world["admin"]
+    assert client.post("/admin/broadcasts/send", headers=adm, json=_msg(None)).status_code == 400
+    assert "Choose which user" in client.post("/admin/broadcasts/send", headers=adm, json=_msg(None)).json()["detail"]
+    assert client.post("/admin/broadcasts/send", headers=adm, json=_msg("not-a-uuid")).status_code == 400
+    assert client.post("/admin/broadcasts/send", headers=adm, json=_msg(str(uuid.uuid4()))).status_code == 404
+    uid = world["buyer_id"]
+    _sql("UPDATE users SET is_active = false WHERE id = :i", i=uid)
+    try:
+        r = client.post("/admin/broadcasts/send", headers=adm, json=_msg(uid))
+        assert r.status_code == 400 and "deactivated" in r.json()["detail"]
+    finally:
+        _sql("UPDATE users SET is_active = true WHERE id = :i", i=uid)
+    assert fake_mail == []  # nothing went out for any of the rejected sends
+    # non-admins can never send
+    assert client.post("/admin/broadcasts/send", headers=world["buyer"], json=_msg(uid)).status_code == 403
+
+
+def test_test_send_still_goes_only_to_admin(client, world, fake_mail):
+    adm = world["admin"]
+    me = client.get("/auth/me", headers=adm).json()["email"]
+    r = client.post("/admin/broadcasts/send-test", headers=adm, json=_msg(world["buyer_id"]))
+    assert r.status_code == 200 and r.json()["sent_to"] == me
+    assert len(fake_mail) == 1 and fake_mail[0]["to"] == me and fake_mail[0]["subject"].startswith("[TEST]")
+
+
+def test_existing_group_audiences_unchanged(client, world, fake_mail):
+    adm = world["admin"]
+    for aud in ("users", "sellers", "professionals", "subscribers"):
+        r = client.post("/admin/broadcasts/preview", headers=adm, json={"audience": aud, "subject": "S", "body": "Hi {{first_name}}"})
+        assert r.status_code == 200, (aud, r.text)

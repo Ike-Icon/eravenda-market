@@ -477,7 +477,7 @@
       <section data-panel="emails" class="admin-panel hidden space-y-6">
         <section class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6">
           <h2 class="font-head text-xl font-bold">Email center</h2>
-          <p class="text-sm text-slate-500 mt-1">Write an email or newsletter and send it to one group at a time: users, sellers, professionals, or newsletter subscribers.</p>
+          <p class="text-sm text-slate-500 mt-1">Write an email or newsletter and send it to one group at a time (users, sellers, professionals, or newsletter subscribers), or pick one person and email just them.</p>
           <p id="bcWarning" class="hidden mt-3 text-sm bg-red-50 text-red-700 border border-red-200 rounded-lg p-3"></p>
 
           <h3 class="mt-5 text-sm font-bold text-slate-700">1. Who is it for?</h3>
@@ -486,6 +486,22 @@
             <input type="checkbox" id="bcPending" class="mt-0.5 shrink-0">
             <span id="bcPendingLabel" class="min-w-0"></span>
           </label>
+
+          <div id="bcUserPicker" class="hidden mt-3 border border-slate-200 rounded-xl p-3 sm:p-4">
+            <label for="bcUserSearch" class="block text-sm font-semibold text-slate-700">Which user?</label>
+            <div id="bcUserSelected" class="hidden mt-2 flex items-center justify-between gap-3 bg-brand-50 border border-brand-200 rounded-lg px-3 py-2">
+              <div class="min-w-0">
+                <p id="bcUserSelectedName" class="text-sm font-semibold truncate"></p>
+                <p id="bcUserSelectedMeta" class="text-xs text-slate-500 break-all"></p>
+              </div>
+              <button type="button" id="bcUserChange" class="shrink-0 text-xs font-semibold text-brand-700 border border-brand-200 bg-white rounded-md px-2.5 py-1.5">Change</button>
+            </div>
+            <div id="bcUserFinder">
+              <input id="bcUserSearch" type="search" autocomplete="off" placeholder="Type a name or email (at least 2 letters)" class="mt-2 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
+              <ul id="bcUserResults" class="hidden mt-2 divide-y divide-slate-100 border border-slate-200 rounded-lg bg-white max-h-64 overflow-y-auto"></ul>
+            </div>
+            <p id="bcUserHint" class="mt-2 text-xs text-slate-500" aria-live="polite">Any active account can be picked: buyer, seller, professional or admin.</p>
+          </div>
         </section>
 
         <section class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6">
@@ -1079,10 +1095,10 @@ const BC_STARTERS = [
   { name: 'Starter: newsletter', audience: 'subscribers', subject: 'This month on Eravenda Market',
     body: "Hello,\n\nHere is what is happening on Eravenda Market.\n\n(Write your newsletter here.)", button_label: 'See what is new', button_url: 'https://eravenda.com/products' },
 ];
-const bc = { audiences: [], audience: 'users', pending: false, templates: [], templateId: null, loaded: false, previewTimer: null, previewSeq: 0, pollTimer: null };
+const bc = { audiences: [], audience: 'users', pending: false, templates: [], templateId: null, loaded: false, previewTimer: null, previewSeq: 0, pollTimer: null, user: null, userTimer: null, userSeq: 0 };
 const bcEl = id => document.getElementById(id);
 const bcAudience = () => bc.audiences.find(a => a.key === bc.audience);
-const bcCount = () => { const a = bcAudience(); if (!a) return 0; return (bc.pending && a.count_with_pending != null) ? a.count_with_pending : a.count; };
+const bcCount = () => { if (bc.audience === 'user') return bc.user ? 1 : 0; const a = bcAudience(); if (!a) return 0; return (bc.pending && a.count_with_pending != null) ? a.count_with_pending : a.count; };
 const bcMessage = () => ({
   audience: bc.audience,
   subject: bcEl('bcSubject').value.trim(),
@@ -1090,6 +1106,7 @@ const bcMessage = () => ({
   button_label: bcEl('bcButtonLabel').value.trim() || null,
   button_url: bcEl('bcButtonUrl').value.trim() || null,
   include_pending: bc.pending && !!(bcAudience() && bcAudience().pending_label),
+  user_id: bc.audience === 'user' && bc.user ? bc.user.id : null,
 });
 function bcSay(text, kind) {
   const el = bcEl('bcResult');
@@ -1103,7 +1120,7 @@ function bcRenderAudiences() {
     const on = a.key === bc.audience;
     const n = (on && bc.pending && a.count_with_pending != null) ? a.count_with_pending : a.count;
     return `<button type="button" role="radio" aria-checked="${on}" data-audience="${esc(a.key)}" class="text-left border rounded-xl p-3 min-w-0 ${on ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'border-slate-200 hover:border-slate-300'}">
-      <span class="flex items-center justify-between gap-2"><span class="font-semibold text-sm">${esc(a.label)}</span><span class="text-xs font-bold ${on ? 'text-brand-700' : 'text-slate-500'}">${fmtInt(n)}</span></span>
+      <span class="flex items-center justify-between gap-2"><span class="font-semibold text-sm">${esc(a.label)}</span><span class="text-xs font-bold ${on ? 'text-brand-700' : 'text-slate-500'}">${a.key === 'user' ? (on && bc.user ? '1' : 'Pick one') : fmtInt(n)}</span></span>
       <span class="block text-xs text-slate-500 mt-1">${esc(a.description)}</span></button>`;
   }).join('');
   wrap.querySelectorAll('[data-audience]').forEach(b => b.onclick = () => bcPickAudience(b.dataset.audience));
@@ -1114,8 +1131,64 @@ function bcRenderAudiences() {
   bcEl('bcPending').checked = hasPending && bc.pending;
   bcEl('bcChips').innerHTML = (a ? a.placeholders : []).map(p => `<button type="button" data-chip="${esc(p)}" class="border border-slate-300 bg-white px-2 py-0.5 rounded-full text-xs">{{${esc(p)}}}</button>`).join('');
   bcEl('bcChips').querySelectorAll('[data-chip]').forEach(b => b.onclick = () => bcInsert('{{' + b.dataset.chip + '}}'));
-  bcEl('bcSendBtn').textContent = `Send to ${fmtInt(bcCount())} ${a ? a.label.toLowerCase() : ''}`;
+  if (bc.audience === 'user') bcEl('bcSendBtn').textContent = bc.user ? `Send to ${bc.user.full_name}` : 'Choose a user first';
+  else bcEl('bcSendBtn').textContent = `Send to ${fmtInt(bcCount())} ${a ? a.label.toLowerCase() : ''}`;
   bcEl('bcSendBtn').disabled = !bcCount();
+  bcRenderUserPicker();
+}
+
+// ---- One user: search, pick, change ----
+function bcRenderUserPicker() {
+  const on = bc.audience === 'user';
+  bcEl('bcUserPicker').classList.toggle('hidden', !on);
+  if (!on) return;
+  const chosen = !!bc.user;
+  bcEl('bcUserSelected').classList.toggle('hidden', !chosen);
+  bcEl('bcUserFinder').classList.toggle('hidden', chosen);
+  if (chosen) {
+    bcEl('bcUserSelectedName').textContent = bc.user.full_name;
+    bcEl('bcUserSelectedMeta').textContent = `${bc.user.email} · ${bc.user.role}${bc.user.store_name ? ' · ' + bc.user.store_name : ''}`;
+    bcEl('bcUserHint').textContent = 'Only this person will receive the email.';
+  }
+}
+
+async function bcSearchUsers() {
+  const q = bcEl('bcUserSearch').value.trim();
+  const list = bcEl('bcUserResults'), hint = bcEl('bcUserHint');
+  const seq = ++bc.userSeq;
+  if (q.length < 2) {
+    list.classList.add('hidden'); list.innerHTML = '';
+    hint.textContent = 'Type at least 2 letters of a name or email.';
+    return;
+  }
+  hint.textContent = 'Searching…';
+  try {
+    const rows = await apiFetch('/admin/broadcasts/users?q=' + encodeURIComponent(q));
+    if (seq !== bc.userSeq) return;
+    if (!rows.length) {
+      list.classList.add('hidden'); list.innerHTML = '';
+      hint.textContent = 'No active account matches that. Check the spelling, or try the email address.';
+      return;
+    }
+    hint.textContent = rows.length === 10 ? 'Showing the first 10. Type more to narrow it down.' : `${rows.length} match${rows.length === 1 ? '' : 'es'}.`;
+    list.innerHTML = rows.map((u, i) => `<li><button type="button" data-user-pick="${i}" class="w-full text-left px-3 py-2 hover:bg-slate-50 min-w-0">
+      <span class="block text-sm font-semibold truncate">${esc(u.full_name)}</span>
+      <span class="block text-xs text-slate-500 break-all">${esc(u.email)} · ${esc(u.role)}${u.store_name ? ' · ' + esc(u.store_name) : ''}</span></button></li>`).join('');
+    list.classList.remove('hidden');
+    list.querySelectorAll('[data-user-pick]').forEach(b => b.onclick = () => bcChooseUser(rows[Number(b.dataset.userPick)]));
+  } catch (err) {
+    if (seq !== bc.userSeq) return;
+    list.classList.add('hidden');
+    hint.textContent = `Couldn't search: ${err.message || err}`;
+  }
+}
+
+function bcChooseUser(u) {
+  bc.user = u;
+  bcEl('bcUserSearch').value = '';
+  bcEl('bcUserResults').classList.add('hidden'); bcEl('bcUserResults').innerHTML = '';
+  bcRenderAudiences();
+  bcSchedulePreview();
 }
 
 function bcPickAudience(key) {
@@ -1124,6 +1197,7 @@ function bcPickAudience(key) {
   bc.pending = false;
   bcRenderAudiences();
   bcSchedulePreview();
+  if (key === 'user' && !bc.user) bcEl('bcUserSearch').focus();
 }
 
 function bcInsert(text) {
@@ -1289,7 +1363,9 @@ bcEl('bcSendBtn').onclick = async () => {
   const m = bcMessage(), a = bcAudience();
   if (!m.subject || !m.body) { bcSay('Write a subject and a message first.', 'error'); return; }
   const n = bcCount();
-  if (!confirm(`Send “${m.subject}” to ${fmtInt(n)} ${a.label.toLowerCase()}?\n\nThis can't be undone. Have you sent yourself a test?`)) return;
+  if (m.audience === 'user' && !bc.user) { bcSay('Choose which user to email first.', 'error'); return; }
+  const who = m.audience === 'user' ? `${bc.user.full_name} (${bc.user.email})` : `${fmtInt(n)} ${a.label.toLowerCase()}`;
+  if (!confirm(`Send “${m.subject}” to ${who}?\n\nThis can't be undone. Have you sent yourself a test?`)) return;
   const btn = bcEl('bcSendBtn'); btn.disabled = true; bcSay('Starting…');
   try {
     const c = await apiFetch('/admin/broadcasts/send', { method: 'POST', body: m });
@@ -1312,9 +1388,10 @@ async function bcLoadCampaigns() {
     body.querySelectorAll('[data-reuse]').forEach(b => b.onclick = async () => {
       try {
         const c = await apiFetch(`/admin/broadcasts/campaigns/${b.dataset.reuse}`);
-        bc.templateId = null; bc.pending = !!c.include_pending;
+        bc.templateId = null; bc.pending = !!c.include_pending; bc.user = null;
         bcFill({ audience: c.audience, subject: c.subject, body: c.body, button_label: c.button_label, button_url: c.button_url });
         bcRenderAudiences(); bcRenderTemplates();
+        if (c.audience === 'user' && c.target_email) { bcEl('bcUserSearch').value = c.target_email; bcSearchUsers(); }
         bcEl('bcSubject').scrollIntoView({ behavior: 'smooth', block: 'center' });
       } catch (err) { bcSay(`Couldn't load that message: ${err.message || err}`, 'error'); }
     });
@@ -1343,6 +1420,8 @@ async function loadEmailCenter() {
       bcEl('bcBold').onclick = () => bcWrapSelection('**', '**', 'bold text');
       bcEl('bcLink').onclick = () => bcWrapSelection('[', '](https://)', 'link text');
       bcEl('bcRefreshCampaigns').onclick = bcLoadCampaigns;
+      bcEl('bcUserSearch').addEventListener('input', () => { clearTimeout(bc.userTimer); bc.userTimer = setTimeout(bcSearchUsers, 300); });
+      bcEl('bcUserChange').onclick = () => { bc.user = null; bcRenderAudiences(); bcSchedulePreview(); bcEl('bcUserSearch').focus(); };
     }
   } catch (err) {
     bcEl('bcWarning').textContent = `Couldn't load the Email center: ${err.message || err}`;

@@ -35,3 +35,11 @@ Needs a throwaway PostgreSQL:
 - Seller dashboard: rebuilds only when the order list changed.
 - Admin dashboard: sidebar badges and attention cards refresh on every tab; the Wholesale tab also refreshes its stats and orders table (same page, filters kept).
 - Pauses on hidden tabs and offline, catches up when the tab returns, never overlaps, backs off after errors, and skips a round while the user has unsaved input (so a half-written customer update is never wiped).
+
+## Email center: One user
+New audience "One user" (admin only). The admin searches by name or email (min 2 letters, active accounts, any role, max 10 results), picks one account, and the normal preview / test / send flow applies to just that person.
+- `GET /api/admin/broadcasts/users?q=` finds accounts. `POST .../preview|send-test|send` accept `audience: "user"` plus `user_id`.
+- Placeholders: `{{first_name}}`, `{{full_name}}`.
+- The send is recorded in Recent sends as "One user: <email>" (new column `email_campaigns.target_email`, migration `20261009_email_campaign_single_user.sql`).
+- The 10-minute duplicate guard is per person, so the same text can go to two different people but not twice to one.
+- Deactivated or unknown accounts are refused with a clear message; nothing is sent.

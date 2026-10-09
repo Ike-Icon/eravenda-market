@@ -7,6 +7,7 @@ Audiences (never mixed in a single send):
   sellers        owners of approved stores (pending ones too when include_pending)
   professionals  approved handyman/service professionals (pending too when include_pending)
   subscribers    people who signed up through the footer's new-arrival alerts
+  user           one account the admin picks by name or email (any role)
 
 A person who is a seller AND a buyer is only in "sellers", and a professional
 is only in "professionals", so nobody gets the same announcement twice and
@@ -36,10 +37,11 @@ import logging
 import re
 import threading
 import time
+import uuid
 from datetime import datetime, timedelta
 from html import escape
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from . import models
@@ -73,6 +75,11 @@ AUDIENCES = {
         "description": "Approved handyman / service professionals.",
         "placeholders": ["first_name", "full_name", "job_title"],
         "pending_label": "Also include professionals who are still awaiting approval",
+    },
+    "user": {
+        "label": "One user",
+        "description": "Pick a single account by name or email and send them a personal message.",
+        "placeholders": ["first_name", "full_name"],
     },
     "subscribers": {
         "label": "Newsletter subscribers",
@@ -118,14 +125,45 @@ def _person(email: str, full_name: str | None, **extra) -> dict:
     }
 
 
-def resolve_recipients(db: Session, audience: str, include_pending: bool = False) -> list[dict]:
+def _single_user(db: Session, user_id: str | None) -> dict:
+    """The one chosen account, or a plain-language reason it can't be emailed."""
+    if not user_id:
+        raise BroadcastError("Choose which user to email first.")
+    try:
+        uuid.UUID(str(user_id))
+    except ValueError:
+        raise BroadcastError("Choose a valid user from the search results.")
+    user = db.query(models.User).filter(models.User.id == str(user_id)).first()
+    if not user:
+        raise BroadcastError("That user could not be found.", 404)
+    if not user.is_active:
+        raise BroadcastError("That account is deactivated, so it can't be emailed.")
+    return _person(user.email, user.full_name)
+
+
+def preview_people(db: Session, message: dict) -> list[dict]:
+    """Recipients to base a preview on. A single-user message with nobody
+    chosen yet previews with a sample person instead of failing."""
+    if message["audience"] == "user" and not message.get("user_id"):
+        return []
+    return resolve_recipients(
+        db, message["audience"], message.get("include_pending", False), message.get("user_id")
+    )
+
+
+def resolve_recipients(
+    db: Session, audience: str, include_pending: bool = False, user_id: str | None = None
+) -> list[dict]:
     """Everyone in the audience, one entry per email address (case-insensitive)."""
     if audience not in AUDIENCES:
         raise BroadcastError("Unknown audience.")
 
     people: list[dict] = []
 
-    if audience == "users":
+    if audience == "user":
+        people = [_single_user(db, user_id)]
+
+    elif audience == "users":
         rows = (
             db.query(models.User)
             .filter(
@@ -199,6 +237,13 @@ def audience_summary(db: Session) -> list[dict]:
     reached by also including applicants who are still pending."""
     out = []
     for key, meta in AUDIENCES.items():
+        if key == "user":
+            # Not a group: the count is whoever the admin picks (shown as 1 once chosen).
+            out.append({
+                "key": key, "label": meta["label"], "description": meta["description"],
+                "placeholders": meta["placeholders"], "count": 0, "pending_label": None,
+            })
+            continue
         entry = {
             "key": key,
             "label": meta["label"],
@@ -329,7 +374,7 @@ def sample_person(db: Session, message: dict, people: list[dict] | None = None) 
     realistic values. Falls back to a made-up person when the group is empty.
     Pass `people` when the audience was already loaded, to avoid loading it twice."""
     if people is None:
-        people = resolve_recipients(db, message["audience"], message.get("include_pending", False))
+        people = preview_people(db, message)
     if people:
         return people[0]
     return _person(
@@ -390,7 +435,11 @@ def campaign_dict(c: models.EmailCampaign, with_body: bool = False) -> dict:
     out = {
         "id": c.id,
         "audience": c.audience,
-        "audience_label": AUDIENCES.get(c.audience, {}).get("label", c.audience),
+        "audience_label": (
+            f"One user: {c.target_email}" if c.audience == "user" and c.target_email
+            else AUDIENCES.get(c.audience, {}).get("label", c.audience)
+        ),
+        "target_email": c.target_email,
         "include_pending": c.include_pending,
         "subject": c.subject,
         "status": c.status,
@@ -418,23 +467,31 @@ def start_campaign(db: Session, message: dict, admin_id: str) -> dict:
             "Another email is still being sent. Wait for it to finish (see Recent sends below), then try again.", 409
         )
 
-    twin = (
-        db.query(models.EmailCampaign)
-        .filter(
-            models.EmailCampaign.audience == message["audience"],
-            models.EmailCampaign.subject == message["subject"],
-            models.EmailCampaign.body == message["body"],
-            models.EmailCampaign.created_at >= datetime.utcnow() - DUPLICATE_WINDOW,
-        )
-        .first()
+    # For a single-user send, "the same audience" means the same person, so the
+    # duplicate guard below must not stop one message going to two people.
+    target_email = None
+    if message["audience"] == "user":
+        target_email = _single_user(db, message.get("user_id"))["email"].lower()
+
+    twin_query = db.query(models.EmailCampaign).filter(
+        models.EmailCampaign.audience == message["audience"],
+        models.EmailCampaign.subject == message["subject"],
+        models.EmailCampaign.body == message["body"],
+        models.EmailCampaign.created_at >= datetime.utcnow() - DUPLICATE_WINDOW,
     )
+    if target_email:
+        twin_query = twin_query.filter(func.lower(models.EmailCampaign.target_email) == target_email)
+    twin = twin_query.first()
     if twin:
         raise BroadcastError(
-            "This exact message was already sent to this audience in the last 10 minutes, "
-            "so it was not sent again. Change the message if you really want to send another.", 409
+            "This exact message was already sent to this " + ("person" if target_email else "audience")
+            + " in the last 10 minutes, so it was not sent again. "
+            "Change the message if you really want to send another.", 409
         )
 
-    recipients = resolve_recipients(db, message["audience"], message.get("include_pending", False))
+    recipients = resolve_recipients(
+        db, message["audience"], message.get("include_pending", False), message.get("user_id")
+    )
     if not recipients:
         raise BroadcastError("There is nobody in this audience yet, so there is nothing to send.")
     if len(recipients) > MAX_RECIPIENTS:
@@ -451,6 +508,7 @@ def start_campaign(db: Session, message: dict, admin_id: str) -> dict:
         button_url=message.get("button_url"),
         status="sending",
         recipient_count=len(recipients),
+        target_email=target_email,
         sent_by=admin_id,
     )
     db.add(campaign)

@@ -906,12 +906,14 @@ class NewsletterSubscribeCreate(BaseModel):
 
 class BroadcastMessage(BaseModel):
     """The message body shared by preview, test, send and saved templates."""
-    audience: Literal["users", "sellers", "professionals", "subscribers"]
+    audience: Literal["users", "sellers", "professionals", "subscribers", "user"]
     subject: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1, max_length=20000)
     button_label: Optional[str] = Field(default=None, max_length=60)
     button_url: Optional[str] = Field(default=None, max_length=500)
     include_pending: bool = False
+    # Required when audience is "user": the one account to email.
+    user_id: Optional[str] = Field(default=None, max_length=64)
 
     @field_validator("subject", "body")
     @classmethod
@@ -929,7 +931,7 @@ class BroadcastMessage(BaseModel):
 
 class EmailTemplateSave(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    audience: Literal["users", "sellers", "professionals", "subscribers"]
+    audience: Literal["users", "sellers", "professionals", "subscribers", "user"]
     subject: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1, max_length=20000)
     button_label: Optional[str] = Field(default=None, max_length=60)

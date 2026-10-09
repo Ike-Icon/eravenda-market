@@ -5,6 +5,7 @@ templates and the send history. Logic lives in broadcast_service.py."""
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException  # type: ignore[reportMissingImports]
+from sqlalchemy import or_  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
 from .. import models, schemas, auth
@@ -14,8 +15,8 @@ from ..broadcast_service import (
     audience_summary,
     campaign_dict,
     check_message,
+    preview_people,
     render_message,
-    resolve_recipients,
     sample_person,
     send_test,
     start_campaign,
@@ -53,6 +54,43 @@ def list_audiences(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/users")
+def search_users(q: str = "", db: Session = Depends(get_db)):
+    """Find one account to email by name or email. Active accounts only, any
+    role. Needs at least 2 characters so it never dumps the whole user table."""
+    term = (q or "").strip()
+    if len(term) < 2:
+        return []
+    like = "%" + term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+    rows = (
+        db.query(models.User)
+        .filter(
+            models.User.is_active.is_(True),
+            or_(models.User.full_name.ilike(like, escape="\\"), models.User.email.ilike(like, escape="\\")),
+        )
+        .order_by(models.User.full_name)
+        .limit(10)
+        .all()
+    )
+    store_names = {}
+    if rows:
+        store_names = dict(
+            db.query(models.Store.owner_id, models.Store.store_name)
+            .filter(models.Store.owner_id.in_([u.id for u in rows]))
+            .all()
+        )
+    return [
+        {
+            "id": u.id,
+            "full_name": u.full_name,
+            "email": u.email,
+            "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+            "store_name": store_names.get(u.id),
+        }
+        for u in rows
+    ]
+
+
 @router.post("/preview")
 def preview(payload: schemas.BroadcastMessage, db: Session = Depends(get_db)):
     """Renders the message exactly as a recipient would get it."""
@@ -61,7 +99,10 @@ def preview(payload: schemas.BroadcastMessage, db: Session = Depends(get_db)):
         check_message(message)
     except BroadcastError as exc:
         _fail(exc)
-    people = resolve_recipients(db, message["audience"], message["include_pending"])
+    try:
+        people = preview_people(db, message)
+    except BroadcastError as exc:
+        _fail(exc)
     person = sample_person(db, message, people)
     rendered = render_message(message, person)
     return {
