@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import models, schemas, auth
+from .. import models, schemas, auth, wholesale
 from ..database import get_db
 
 router = APIRouter(prefix="/cart", tags=["cart"])
@@ -122,7 +122,10 @@ def _validate_item_stock(product: models.Product, quantity: int, color: str | No
 
 def _serialize(cart: models.Cart) -> schemas.CartOut:
     subtotal = sum(_item_unit_price(item) * item.quantity for item in cart.items)
-    return schemas.CartOut(id=cart.id, items=cart.items, subtotal=subtotal)
+    return schemas.CartOut(
+        id=cart.id, items=cart.items, subtotal=subtotal,
+        wholesale_issues=wholesale.cart_issues(cart.items),
+    )
 
 
 @router.get("", response_model=schemas.CartOut)

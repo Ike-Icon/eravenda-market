@@ -48,9 +48,40 @@
         </div>
       </div>
 
+      <fieldset class="border border-slate-200 rounded-md p-4" id="salesTypeFieldset">
+        <legend class="px-1 text-sm font-semibold text-slate-800">Sales type</legend>
+        <div>
+          <label class="block text-sm font-medium mb-1.5" for="salesTypeSelect">Sell this product as</label>
+          <select name="sales_type" id="salesTypeSelect" class="w-full border border-slate-300 rounded-md px-3 py-2.5 bg-white">
+            <option value="retail">Retail</option>
+            <option value="wholesale">Wholesale</option>
+          </select>
+          <p class="text-xs text-slate-500 mt-1.5">Retail products sell to buyers in any quantity. Wholesale products can only be bought once the buyer's quantity reaches the minimum you set.</p>
+        </div>
+        <div id="wholesaleFields" class="hidden mt-4">
+          <label class="block text-sm font-medium mb-1.5" for="wholesaleMinInput">Minimum Wholesale Quantity</label>
+          <input type="number" id="wholesaleMinInput" name="wholesale_min_quantity" min="2" max="100000" step="1" inputmode="numeric" placeholder="e.g. 10" class="w-full border border-slate-300 rounded-md px-3 py-2.5">
+          <p class="text-xs text-slate-500 mt-1.5">The fewest units a buyer must order, for example 5, 10, 50 or 100. The price you enter below is the wholesale price per unit.</p>
+        </div>
+      </fieldset>
+      <script>
+        function syncSalesType() {
+          const sel = document.getElementById("salesTypeSelect");
+          const isWholesale = sel && sel.value === "wholesale";
+          const box = document.getElementById("wholesaleFields");
+          const min = document.getElementById("wholesaleMinInput");
+          const label = document.getElementById("priceLabel");
+          if (box) box.classList.toggle("hidden", !isWholesale);
+          if (min) { min.required = isWholesale; if (!isWholesale) min.value = ""; }
+          if (label) label.textContent = isWholesale ? "Wholesale price per unit (₵)" : "Price (₵)";
+        }
+        document.getElementById("salesTypeSelect").addEventListener("change", syncSalesType);
+        syncSalesType();
+      </script>
+
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium mb-1.5">Price (₵)</label>
+          <label id="priceLabel" class="block text-sm font-medium mb-1.5">Price (₵)</label>
           <input type="number" name="price" step="0.01" min="0" required class="w-full border border-slate-300 rounded-md px-3 py-2.5">
         </div>
         <div>
@@ -246,6 +277,9 @@
       form.condition.value = p.condition || "new";
       form.sku.value = p.sku || "";
       document.getElementById("codEligibleInput").checked = p.cod_eligible !== false;
+      document.getElementById("salesTypeSelect").value = p.sales_type === "wholesale" ? "wholesale" : "retail";
+      document.getElementById("wholesaleMinInput").value = p.wholesale_min_quantity || "";
+      syncSalesType();
       document.getElementById("weightKgInput").value = p.weight_kg ?? "";
       form.specifications.value = (p.specifications || []).join("\n");
       setColors(p.colors || []);
@@ -524,6 +558,8 @@
       sizes: JSON.parse(document.getElementById("sizesJson").value || "[]"),
       price: parseFloat(fd.get("price")),
       discount_price: fd.get("discount_price") ? parseFloat(fd.get("discount_price")) : null,
+      sales_type: document.getElementById("salesTypeSelect").value,
+      wholesale_min_quantity: document.getElementById("salesTypeSelect").value === "wholesale" ? (parseInt(document.getElementById("wholesaleMinInput").value, 10) || null) : null,
       cod_eligible: document.getElementById("codEligibleInput").checked,
       weight_kg: document.getElementById("weightKgInput").value ? parseFloat(document.getElementById("weightKgInput").value) : null,
       stock_quantity: parseInt(document.getElementById("stockQuantityInput").value, 10) || 0,

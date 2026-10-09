@@ -224,6 +224,13 @@ class Product(Base):
     # surcharge on delivery (delivery_fees.py). Null means "not set", and the
     # default item weight from the admin's delivery settings is assumed.
     weight_kg = Column(Numeric(8, 2), nullable=True)
+    # "retail" (default, the original behaviour) or "wholesale". A wholesale
+    # product reuses `price` as its per-unit wholesale price, so every existing
+    # pricing path (cart, checkout, commission, delivery) keeps working. The
+    # seller sets wholesale_min_quantity per product; it is required (and only
+    # kept) while sales_type is "wholesale". See wholesale.py.
+    sales_type = Column(String(20), nullable=False, default="retail", server_default="retail")
+    wholesale_min_quantity = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -231,6 +238,16 @@ class Product(Base):
     category = relationship("Category")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan", order_by="ProductImage.sort_order")
     wishlisted_by = relationship("Wishlist", back_populates="product", cascade="all, delete-orphan")
+
+    @property
+    def is_wholesale(self) -> bool:
+        return (self.sales_type or "retail") == "wholesale"
+
+    @property
+    def wholesale_price(self):
+        """Read-only convenience for the API: a wholesale product's per-unit
+        wholesale price is its normal `price` (no duplicate column to drift)."""
+        return self.price if self.is_wholesale else None
 
 
 class ProductImage(Base):
@@ -316,6 +333,9 @@ class Order(Base):
     commission_amount = Column(Numeric(12, 2), nullable=False, default=0)
     total_amount = Column(Numeric(12, 2), nullable=False)
     payment_method = Column(Enum(PaymentMethod), nullable=False, default=PaymentMethod.mobile_money)
+    # "retail" or "wholesale". Checkout splits a seller's items by sales type,
+    # so every order is wholly one or the other.
+    order_type = Column(String(20), nullable=False, default="retail", server_default="retail")
     seller_note = Column(Text, nullable=True)
     shipping_carrier = Column(String(100), nullable=True)
     tracking_number = Column(String(150), nullable=True)
@@ -329,6 +349,10 @@ class Order(Base):
     address = relationship("Address")
     store = relationship("Store")
     delivery_assignment = relationship("OrderDeliveryAssignment", back_populates="order", uselist=False, cascade="all, delete-orphan")
+
+    @property
+    def total_quantity(self) -> int:
+        return sum(int(i.quantity or 0) for i in (self.items or []))
 
     @property
     def delivery_person(self):
@@ -364,6 +388,10 @@ class OrderItem(Base):
     color = Column(String(60), nullable=True)
     option = Column(String(80), nullable=True)
     size = Column(String(60), nullable=True)
+    # Snapshot of the product's minimum wholesale quantity when the order was
+    # placed (null for retail lines), so the record of the requirement that
+    # applied survives the seller changing it later.
+    wholesale_min_quantity = Column(Integer, nullable=True)
 
     order = relationship("Order", back_populates="items")
     # One-directional on purpose — Product doesn't need a back-reference to

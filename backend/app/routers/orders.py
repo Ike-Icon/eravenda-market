@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
-from .. import models, schemas, auth, delivery_fees
+from .. import models, schemas, auth, delivery_fees, wholesale
 from ..database import get_db
 from ..utils import generate_order_number
 from ..product_pricing import product_commission_rate
@@ -15,20 +15,24 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 def cart_delivery_quotes(cart: models.Cart, address: models.Address, db: Session) -> list[dict]:
     """One quote per store in the cart. The fee rules (distance bands and the
     optional weight surcharge) are the admin's, see delivery_fees.py."""
-    items_by_store: dict[str, list] = defaultdict(list)
+    # Checkout creates one order per (store, sales type), so quote the same way.
+    groups: dict[tuple[str, str], list] = defaultdict(list)
     for item in cart.items:
-        items_by_store[item.product.store_id].append(item)
-    stores = db.query(models.Store).filter(models.Store.id.in_(list(items_by_store))).all()
+        groups[(item.product.store_id, item.product.sales_type or wholesale.RETAIL)].append(item)
+    stores = {
+        s.id: s for s in db.query(models.Store).filter(models.Store.id.in_({k[0] for k in groups})).all()
+    }
     return [
         {
-            "store_id": store.id,
-            "store_name": store.store_name,
+            "store_id": store_id,
+            "store_name": stores[store_id].store_name,
             **delivery_fees.delivery_fee_for(
-                address, store, items_by_store[store.id], db,
-                subtotal=sum(_unit_price_for(i) * i.quantity for i in items_by_store[store.id]),
+                address, stores[store_id], group_items, db,
+                subtotal=sum(_unit_price_for(i) * i.quantity for i in group_items),
             ),
         }
-        for store in stores
+        for (store_id, _sales_type), group_items in groups.items()
+        if store_id in stores
     ]
 
 
@@ -156,6 +160,11 @@ def checkout(
     if not cart or not cart.items:
         raise HTTPException(status_code=400, detail="Your cart is empty")
 
+    # Wholesale minimums and stock, checked against the product rows loaded
+    # from the database (never anything the client sent). Blocks the whole
+    # checkout and names every product that falls short.
+    wholesale.assert_cart_ok(cart.items)
+
     if payload.payment_method == models.PaymentMethod.cash_on_delivery:
         ineligible_names = [item.product.name for item in cart.items if not item.product.cod_eligible]
         if ineligible_names:
@@ -168,7 +177,9 @@ def checkout(
                 ),
             )
 
-    # Group items by store, since each seller gets a separate order
+    # Group items by store and sales type: each seller gets a separate order,
+    # and a seller's wholesale items never share an order with retail ones, so
+    # every order has one clear order_type.
     items_by_store = defaultdict(list)
     for item in cart.items:
         option_info = _priced_option(item.product, item.option)
@@ -191,11 +202,11 @@ def checkout(
 
         if variant_info is None and size_info is None and option_info is None and item.product.stock_quantity < item.quantity:
             raise HTTPException(status_code=400, detail=f"{item.product.name} no longer has enough stock")
-        items_by_store[item.product.store_id].append(item)
+        items_by_store[(item.product.store_id, item.product.sales_type or wholesale.RETAIL)].append(item)
 
     created_orders = []
 
-    for store_id, items in items_by_store.items():
+    for (store_id, order_type), items in items_by_store.items():
         store = db.query(models.Store).filter(models.Store.id == store_id).first()
         subtotal = sum(_unit_price_for(item) * item.quantity for item in items)
         # Pickup skips the delivery fee entirely — the buyer collects from the
@@ -216,6 +227,7 @@ def checkout(
             subtotal=subtotal,
             delivery_fee=delivery_fee,
             is_pickup=payload.is_pickup,
+            order_type=order_type,
             commission_amount=commission_amount,
             total_amount=total_amount,
             payment_method=payload.payment_method,
@@ -240,6 +252,9 @@ def checkout(
                 color=item.color,
                 option=item.option,
                 size=item.size,
+                wholesale_min_quantity=(
+                    item.product.wholesale_min_quantity if order_type == wholesale.WHOLESALE else None
+                ),
             ))
 
             option_info = _priced_option(item.product, item.option)

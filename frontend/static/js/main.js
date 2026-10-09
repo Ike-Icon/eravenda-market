@@ -170,6 +170,7 @@ const GuestCart = {
         price: product.price,
         image_url: product.image_url || "",
         quantity: product.quantity || 1,
+        min_quantity: product.min_quantity || null,
         color: product.color || null,
         option: product.option || null,
         size: product.size || null,
@@ -716,6 +717,7 @@ async function renderAuthState() {
         <a href="/orders.html" class="py-1 hover:text-brand-600">Orders</a>
         <div class="border-t border-slate-100 pt-3 mt-1 flex flex-col gap-2">
           <a href="/products" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-store text-brand-500 mr-2"></i>Marketplace</a>
+          <a href="/products?type=wholesale" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-boxes-stacked text-brand-500 mr-2"></i>Wholesale</a>
           <a href="/services" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
         </div>
         <a href="/services" class="pl-6 py-1 hover:text-brand-600">Hire a Handyman</a>
@@ -1529,6 +1531,81 @@ function createPager(opts) {
   }
 
   return { render, goTo, get page() { return currentPage; } };
+}
+
+// ------------------------------------------------------------------
+// Quiet background refresh for dashboards (new orders show up without a
+// manual reload).
+//
+// - Runs `task` every `intervalMs` (default 30s) while the tab is visible and
+//   the browser is online; a hidden tab does nothing and catches up the
+//   moment the user comes back.
+// - Skips a round while the person is typing or has unsaved changes inside
+//   `container`, so a refresh never wipes a half-written customer update.
+// - Never overlaps with itself, and backs off (up to 5 min) after errors
+//   instead of hammering the server. Errors are silent: the page just keeps
+//   showing the last good data.
+// ------------------------------------------------------------------
+function userIsEditing(container) {
+  if (!container) return false;
+  const active = document.activeElement;
+  if (active && container.contains(active) &&
+      (active.matches('input, textarea, select') || active.isContentEditable)) return true;
+  for (const el of container.querySelectorAll('input, textarea, select')) {
+    if (el.type === 'hidden' || el.type === 'button' || el.type === 'submit') continue;
+    if (el.tagName === 'SELECT') {
+      if (Array.from(el.options).some(o => o.selected !== o.defaultSelected)) return true;
+    } else if (el.type === 'checkbox' || el.type === 'radio') {
+      if (el.checked !== el.defaultChecked) return true;
+    } else if (el.value !== el.defaultValue) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function startAutoRefresh(task, { intervalMs = 30000, container = null, maxDelayMs = 300000 } = {}) {
+  let timer = null, running = false, stopped = false, failures = 0, lastRun = Date.now();
+
+  const delay = () => Math.min(intervalMs * Math.pow(2, failures), maxDelayMs);
+  const schedule = () => { if (!stopped) timer = setTimeout(tick, delay()); };
+
+  async function tick() {
+    clearTimeout(timer);
+    if (stopped) return;
+    if (document.hidden || navigator.onLine === false || running || userIsEditing(container)) {
+      schedule();
+      return;
+    }
+    running = true;
+    try {
+      await task();
+      failures = 0;
+    } catch (e) {
+      failures += 1;
+    } finally {
+      running = false;
+      lastRun = Date.now();
+      schedule();
+    }
+  }
+
+  function onVisible() {
+    if (!document.hidden && Date.now() - lastRun >= intervalMs / 2) tick();
+  }
+  document.addEventListener('visibilitychange', onVisible);
+  window.addEventListener('online', onVisible);
+  schedule();
+
+  return {
+    refreshNow: tick,
+    stop() {
+      stopped = true;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onVisible);
+    },
+  };
 }
 
 // ------------------------------------------------------------------

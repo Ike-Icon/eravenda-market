@@ -38,6 +38,9 @@ def _visible_products(db: Session):
         .filter(
             models.Product.status == models.ProductStatus.approved,
             models.Store.status == models.StoreStatus.approved,
+            # The home page rails are the Retail marketplace; wholesale
+            # products live under /products?type=wholesale.
+            models.Product.sales_type == "retail",
         )
     )
 

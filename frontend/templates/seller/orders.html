@@ -29,20 +29,49 @@
     return div.innerHTML;
   }
 
-  async function load() {
+  let typeFilter = "all"; // all | retail | wholesale
+
+  // Did this wholesale order reach every product's minimum? Counted per
+  // product across its lines, the same way checkout counts it.
+  function minimumStatus(o) {
+    if (o.order_type !== "wholesale") return null;
+    const totals = {};
+    o.items.forEach(i => { totals[i.product_id] = (totals[i.product_id] || 0) + i.quantity; });
+    return o.items.every(i => !i.wholesale_min_quantity || totals[i.product_id] >= i.wholesale_min_quantity);
+  }
+
+  // Auto-refresh state: what we last drew, so a quiet refresh only redraws
+  // (and announces) when something actually changed.
+  let lastSignature = null;
+  let knownOrderIds = null;
+
+  async function load({ silent = false } = {}) {
     const el = document.getElementById("ordersList");
     try {
-      const orders = await apiFetch("/orders/store/mine");
-      if (!orders.length) {
+      const allOrders = await apiFetch("/orders/store/mine");
+      const signature = JSON.stringify(allOrders);
+      if (silent && signature === lastSignature) return;
+      if (knownOrderIds) {
+        const fresh = allOrders.filter(o => !knownOrderIds.has(o.id)).length;
+        if (fresh) showToast(fresh === 1 ? "New order received" : `${fresh} new orders received`);
+      }
+      knownOrderIds = new Set(allOrders.map(o => o.id));
+      lastSignature = signature;
+      if (!allOrders.length) {
         el.innerHTML = `<div class="text-center py-16 text-slate-500">No orders yet. Once a buyer checks out, orders show up here.</div>`;
         return;
       }
-      el.innerHTML = orders.map(o => `
+      const wholesaleCount = allOrders.filter(o => o.order_type === "wholesale").length;
+      const orders = typeFilter === "all" ? allOrders : allOrders.filter(o => o.order_type === typeFilter);
+      const tab = (key, label, count) => `<button type="button" data-type-filter="${key}" class="px-3 py-1.5 rounded-full text-xs font-semibold border ${typeFilter === key ? "bg-brand-500 border-brand-500 text-white" : "bg-white border-slate-300 text-slate-600 hover:border-brand-500"}">${label} (${count})</button>`;
+      const filterBar = `<div class="flex flex-wrap gap-2 mb-4" role="group" aria-label="Filter orders by type">${tab("all", "All", allOrders.length)}${tab("retail", "Retail", allOrders.length - wholesaleCount)}${tab("wholesale", "Wholesale", wholesaleCount)}<span class="ml-auto self-center text-xs text-slate-400">Updates automatically</span></div>`;
+      el.innerHTML = filterBar + (orders.length ? "" : `<div class="text-center py-12 text-slate-500">No ${typeFilter} orders yet.</div>`) + orders.map(o => `
         <div class="border border-slate-200 rounded-md p-5">
           <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
             <div>
               <strong>${escapeHtml(o.order_number)}</strong>
               <span class="text-xs text-slate-500 ml-1">· ${new Date(o.created_at).toLocaleDateString()}</span>
+              ${o.order_type === "wholesale" ? `<span class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-brand-800 bg-brand-50 border border-brand-200 rounded-full px-2 py-0.5"><i class="fas fa-boxes-stacked text-[10px]" aria-hidden="true"></i> Wholesale</span><span class="ml-1 text-xs text-slate-600">${o.total_quantity} units</span>${minimumStatus(o) ? `<span class="ml-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">Met minimum</span>` : `<span class="ml-1 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">Below minimum</span>`}` : ""}
             </div>
             <select data-order="${o.id}" class="status-select border border-slate-300 rounded-md px-2 py-1 text-sm">
               ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}
@@ -64,7 +93,7 @@
                 ${o.items.map(i => `
                   <tr class="border-t border-slate-100">
                     <td class="py-2"><div class="flex items-center gap-2.5">${i.image_url ? `<img src="${escapeHtml(i.image_url)}" alt="" class="w-9 h-9 rounded-md object-cover border border-slate-200 shrink-0">` : `<div class="w-9 h-9 rounded-md bg-slate-100 shrink-0"></div>`}<span>${escapeHtml(i.product_name)}</span></div></td>
-                    <td class="py-2">x${i.quantity}</td>
+                    <td class="py-2">x${i.quantity}${o.order_type === "wholesale" && i.wholesale_min_quantity ? `<div class="text-[11px] text-slate-500">Minimum required: ${i.wholesale_min_quantity}</div>` : ""}</td>
                     <td class="py-2 text-right">${money(i.line_total)}</td>
                   </tr>`).join("")}
               </tbody>
@@ -79,6 +108,9 @@
         </div>
       `).join("");
 
+      el.querySelectorAll("[data-type-filter]").forEach(btn => {
+        btn.addEventListener("click", () => { typeFilter = btn.dataset.typeFilter; load(); });
+      });
       el.querySelectorAll("[data-update-order]").forEach(button => {
         button.addEventListener("click", async () => {
           const id = button.dataset.updateOrder;
@@ -102,10 +134,13 @@
         });
       });
     } catch (err) {
+      if (silent) throw err; // keep showing the last good list; the refresher backs off
       el.innerHTML = `<p class="text-red-600">Couldn't load orders: ${escapeHtml(err.message)}</p>`;
     }
   }
 
   load();
+  // New orders appear on their own every 30s, unless the seller is mid-edit.
+  startAutoRefresh(() => load({ silent: true }), { container: document.getElementById("ordersList") });
 </script>
 {% endblock %}

@@ -72,13 +72,14 @@
         <div class="overflow-x-auto">
           <table class="w-full text-sm border border-slate-200 rounded-md overflow-hidden">
             <thead class="bg-slate-50 text-left text-xs text-slate-500 uppercase">
-              <tr><th class="p-3">Name</th><th class="p-3">Price</th><th class="p-3">Stock</th><th class="p-3">Delivery</th><th class="p-3">Status</th><th class="p-3"></th></tr>
+              <tr><th class="p-3">Name</th><th class="p-3">Type</th><th class="p-3">Price</th><th class="p-3">Stock</th><th class="p-3">Delivery</th><th class="p-3">Status</th><th class="p-3"></th></tr>
             </thead>
             <tbody>
               ${products.map(p => `
                 <tr class="border-t border-slate-100">
                   <td class="p-3">${escapeHtml(p.name)}</td>
-                  <td class="p-3">${money(p.discount_price ?? p.price)}</td>
+                  <td class="p-3">${p.sales_type === "wholesale" ? `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-800 border border-brand-200 whitespace-nowrap"><i class="fas fa-boxes-stacked text-[10px]" aria-hidden="true"></i> Wholesale</span><div class="text-xs text-slate-500 mt-1 whitespace-nowrap">Min. qty: <strong>${p.wholesale_min_quantity}</strong></div>` : `<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Retail</span>`}</td>
+                  <td class="p-3">${money(p.discount_price ?? p.price)}${p.sales_type === "wholesale" ? `<div class="text-[11px] text-slate-500">per unit</div>` : ""}</td>
                   <td class="p-3">${p.stock_quantity} ${Number(p.stock_quantity) < 5 ? `<span class="ml-1 inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Low Stock: Less than 5 remaining</span>` : ""}</td>
                   <td class="p-3">${p.cod_eligible ? `<span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700"><i class="fas fa-truck text-[10px]"></i> COD on</span>` : `<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Online only</span>`}</td>
                   <td class="p-3">${badgeHtml(p.status)}</td>

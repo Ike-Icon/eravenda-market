@@ -39,6 +39,7 @@
       <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
       {% if has_discount %}<span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}
     </div>
+    {% if p.sales_type == 'wholesale' %}<div class="mt-1 text-[10px] font-bold text-brand-700">Wholesale · Min. {{ p.wholesale_min_quantity }} units</div>{% endif %}
   </div>
 </a>
 {% endmacro %}

@@ -164,6 +164,22 @@
       return;
     }
     try {
+      // Wholesale minimums: stop here with the exact shortfall (the server
+      // checks again, so this can't be bypassed by editing the page).
+      const latestCart = await apiFetch("/cart");
+      const wholesaleIssues = latestCart.wholesale_issues || [];
+      if (wholesaleIssues.length) {
+        const text = wholesaleIssues.map(i => i.message).join(" ");
+        errBox.innerHTML = "";
+        errBox.append(document.createTextNode(`${text}${wholesaleIssues.some(i => i.kind === "minimum") ? " Please increase your quantity before continuing. " : " "}`));
+        const link = document.createElement("a");
+        link.href = "/cart";
+        link.className = "font-semibold underline";
+        link.textContent = "Go to cart to update quantities";
+        errBox.append(link);
+        errBox.classList.remove("hidden");
+        return;
+      }
       const payment_method = document.querySelector('[name="payment_method"]:checked').value;
       const is_pickup = document.getElementById("pickupRadio").checked;
       await apiFetch("/orders/checkout", { method: "POST", body: { address_id: selectedAddressId, payment_method, is_pickup } });

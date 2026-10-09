@@ -337,6 +337,10 @@ class ProductCreate(BaseModel):
     sizes: Optional[List[Any]] = None
     cod_eligible: bool = True
     weight_kg: Optional[float] = Field(default=None, gt=0, le=1000)
+    # Wholesale: price above is the per-unit wholesale price. The minimum is
+    # required when sales_type is "wholesale" (enforced in wholesale.py).
+    sales_type: Literal["retail", "wholesale"] = "retail"
+    wholesale_min_quantity: Optional[int] = None
 
     @field_validator("description")
     @classmethod
@@ -375,6 +379,8 @@ class ProductUpdate(BaseModel):
     sizes: Optional[List[Any]] = None
     cod_eligible: Optional[bool] = None
     weight_kg: Optional[float] = Field(default=None, gt=0, le=1000)
+    sales_type: Optional[Literal["retail", "wholesale"]] = None
+    wholesale_min_quantity: Optional[int] = None
 
     @field_validator("description")
     @classmethod
@@ -422,6 +428,9 @@ class ProductOut(BaseModel):
     badge_keys: Optional[List[str]] = None
     cod_eligible: bool = True
     weight_kg: Optional[float] = None
+    sales_type: str = "retail"
+    wholesale_min_quantity: Optional[int] = None
+    wholesale_price: Optional[float] = None
     images: List[ProductImageOut] = []
     created_at: datetime
 
@@ -453,10 +462,23 @@ class CartItemOut(BaseModel):
     size: Optional[str] = None
 
 
+class WholesaleIssueOut(BaseModel):
+    product_id: str
+    product_name: str
+    kind: str  # "minimum" or "stock"
+    minimum_quantity: int
+    current_quantity: int
+    available_stock: int
+    message: str
+
+
 class CartOut(BaseModel):
     id: str
     items: List[CartItemOut]
     subtotal: float
+    # Wholesale products that currently block checkout (below the seller's
+    # minimum, or above stock). Empty for a retail-only cart.
+    wholesale_issues: List[WholesaleIssueOut] = []
 
 
 class WishlistOut(BaseModel):
@@ -487,6 +509,7 @@ class OrderItemOut(BaseModel):
     color: Optional[str] = None
     option: Optional[str] = None
     size: Optional[str] = None
+    wholesale_min_quantity: Optional[int] = None
     # Read from OrderItem.image_url — a property, not a column; see its
     # docstring in models.py for why this isn't snapshotted at order time.
     image_url: Optional[str] = None
@@ -501,6 +524,8 @@ class OrderOut(BaseModel):
     subtotal: float
     delivery_fee: float
     is_pickup: bool = False
+    order_type: str = "retail"
+    total_quantity: int = 0
     commission_amount: float
     total_amount: float
     payment_method: PaymentMethod

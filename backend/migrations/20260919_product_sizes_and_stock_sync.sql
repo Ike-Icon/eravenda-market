@@ -27,6 +27,9 @@ BEGIN
   END IF;
 END $$;
 
+-- Hardened 2026-10-08: a product saved through the API without colors/options/
+-- sizes stores JSON null (not SQL NULL), and json_array_length() errors on it,
+-- which would fail this re-run on every deploy. JSON null now counts as empty.
 -- Data repair: existing products whose colors/sizes stock don't add up to
 -- stock_quantity (the root cause of permanently-disabled Buy/Add-to-Cart
 -- buttons) get corrected once, the same way create/update product now keeps
@@ -37,21 +40,21 @@ SET stock_quantity = COALESCE((
   SELECT SUM(GREATEST(0, (elem->>'stock')::int))
   FROM json_array_elements(sizes) AS elem
 ), 0)
-WHERE sizes IS NOT NULL AND json_array_length(sizes) > 0;
+WHERE sizes IS NOT NULL AND (CASE WHEN json_typeof(sizes) = 'array' THEN json_array_length(sizes) ELSE 0 END) > 0;
 
 UPDATE products
 SET stock_quantity = COALESCE((
   SELECT SUM(GREATEST(0, (elem->>'stock')::int))
   FROM json_array_elements(colors) AS elem
 ), 0)
-WHERE (sizes IS NULL OR json_array_length(sizes) = 0)
-  AND colors IS NOT NULL AND json_array_length(colors) > 0;
+WHERE (sizes IS NULL OR (CASE WHEN json_typeof(sizes) = 'array' THEN json_array_length(sizes) ELSE 0 END) = 0)
+  AND colors IS NOT NULL AND (CASE WHEN json_typeof(colors) = 'array' THEN json_array_length(colors) ELSE 0 END) > 0;
 
 UPDATE products
 SET stock_quantity = COALESCE((
   SELECT SUM(GREATEST(0, (elem->>'stock')::int))
   FROM json_array_elements(options) AS elem
 ), 0)
-WHERE (sizes IS NULL OR json_array_length(sizes) = 0)
-  AND (colors IS NULL OR json_array_length(colors) = 0)
-  AND options IS NOT NULL AND json_array_length(options) > 0;
+WHERE (sizes IS NULL OR (CASE WHEN json_typeof(sizes) = 'array' THEN json_array_length(sizes) ELSE 0 END) = 0)
+  AND (colors IS NULL OR (CASE WHEN json_typeof(colors) = 'array' THEN json_array_length(colors) ELSE 0 END) = 0)
+  AND options IS NOT NULL AND (CASE WHEN json_typeof(options) = 'array' THEN json_array_length(options) ELSE 0 END) > 0;

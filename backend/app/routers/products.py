@@ -9,6 +9,7 @@ from .. import models, schemas, auth
 from ..database import get_db
 from ..utils import slugify, random_suffix
 from ..product_pricing import launch_policy_summary
+from .. import wholesale
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -52,6 +53,7 @@ def list_products(
     max_price: Optional[float] = None,
     brand: Optional[str] = None,
     cod_eligible: Optional[bool] = Query(None, description="Filter to products that accept Pay on Delivery"),
+    sales_type: Optional[str] = Query(None, pattern="^(retail|wholesale)$", description="Only retail or only wholesale products"),
     sort: str = Query("newest", pattern="^(newest|price_asc|price_desc|rating)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -74,6 +76,8 @@ def list_products(
         query = query.filter(models.Product.brand.ilike(f"%{brand}%"))
     if cod_eligible is not None:
         query = query.filter(models.Product.cod_eligible == cod_eligible)
+    if sales_type:
+        query = query.filter(models.Product.sales_type == sales_type)
 
     if sort == "price_asc":
         query = query.order_by(models.Product.price.asc())
@@ -139,6 +143,7 @@ def create_product(
         slug = f"{base_slug}-{random_suffix(4)}"
 
     product = models.Product(store_id=store.id, slug=slug, **payload.model_dump())
+    wholesale.apply_sales_type_rules(product)
     _sync_stock_from_variants(product)
     db.add(product)
     db.commit()
@@ -161,8 +166,11 @@ def update_product(
         raise HTTPException(status_code=404, detail="Product not found")
 
     for field, value in payload.model_dump(exclude_unset=True).items():
+        if field == "sales_type" and value is None:
+            continue  # an explicit null never silently flips a product's type
         setattr(product, field, value)
 
+    wholesale.apply_sales_type_rules(product)
     _sync_stock_from_variants(product)
     db.commit()
     db.refresh(product)

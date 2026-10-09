@@ -8,6 +8,7 @@
   <div id="guestCartBanner" class="hidden mb-4 bg-brand-50 border border-brand-200 rounded-md p-3 text-sm text-brand-800">
     <i class="fas fa-circle-info mr-1.5" aria-hidden="true"></i><a href="/login?next=/cart" class="font-semibold underline">Log in</a> or <a href="/register" class="font-semibold underline">create an account</a> to save your cart permanently.
   </div>
+  <div id="wholesaleIssues" class="hidden mb-4 border border-red-200 bg-red-50 text-red-800 rounded-md p-4 text-sm" role="alert"></div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
     <div id="cartItems" class="md:col-span-2 space-y-4">
       <p class="text-slate-500">Loading your cart…</p>
@@ -31,6 +32,54 @@
 <script>
   function money(n) { return `₵${Number(n).toFixed(2)}`; }
 
+  // ---- Wholesale minimums ----------------------------------------------
+  // The server is the authority (it re-checks at checkout from the database);
+  // this shows the buyer exactly which products fall short and lets them fix
+  // it, and stops the checkout link until they have.
+  let currentIssues = [];
+  function renderIssues(issues) {
+    currentIssues = issues;
+    const box = document.getElementById("wholesaleIssues");
+    const btn = document.getElementById("checkoutBtn");
+    if (!issues.length) {
+      box.classList.add("hidden");
+      box.innerHTML = "";
+      btn.classList.remove("pointer-events-none", "opacity-50");
+      btn.removeAttribute("aria-disabled");
+      return;
+    }
+    const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const hasMin = issues.some(i => i.kind === "minimum");
+    box.innerHTML = `<div class="font-semibold mb-1"><i class="fas fa-triangle-exclamation mr-1.5" aria-hidden="true"></i>Wholesale order can't continue yet</div>
+      <ul class="list-disc pl-5 space-y-0.5">${issues.map(i => `<li>${esc(i.message)}</li>`).join("")}</ul>
+      ${hasMin ? `<p class="mt-2">Please increase your quantity before continuing.</p>` : ""}`;
+    box.classList.remove("hidden");
+    btn.classList.add("pointer-events-none", "opacity-50");
+    btn.setAttribute("aria-disabled", "true");
+  }
+  // Per-product shortfall, summed across all of a product's cart lines.
+  function wholesaleIssuesFromItems(rows) {
+    const totals = new Map();
+    rows.forEach(r => {
+      if (!r.min) return;
+      const t = totals.get(r.id) || { name: r.name, min: r.min, qty: 0 };
+      t.qty += r.qty;
+      totals.set(r.id, t);
+    });
+    return [...totals.entries()].filter(([, t]) => t.qty < t.min).map(([id, t]) => ({
+      product_id: id, kind: "minimum", minimum_quantity: t.min, current_quantity: t.qty,
+      message: `${t.name} requires a minimum wholesale quantity of ${t.min}. Current quantity: ${t.qty}.`,
+    }));
+  }
+  function wholesaleBadge(min, short) {
+    if (!min) return "";
+    return `<div class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold ${short ? "text-red-700 bg-red-50 border-red-200" : "text-brand-800 bg-brand-50 border-brand-200"} border rounded px-1.5 py-0.5"><i class="fas fa-boxes-stacked text-[10px]" aria-hidden="true"></i> Wholesale · Min. ${min}</div>`;
+  }
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("#checkoutBtn");
+    if (btn && currentIssues.length) e.preventDefault();
+  });
+
   // Trash icon on phones (saves width in the row); icon + label from sm up.
   function removeButton(attr, id) {
     return `<button type="button" ${attr}="${id}" title="Remove from cart" aria-label="Remove from cart"
@@ -53,6 +102,9 @@
     }
 
     document.getElementById("sumSubtotal").textContent = money(GuestCart.getTotal());
+    const guestIssues = wholesaleIssuesFromItems(items.map(i => ({ id: i.product_id, name: i.name || "Product", min: i.min_quantity || 0, qty: i.quantity })));
+    renderIssues(guestIssues);
+    const guestShort = new Set(guestIssues.map(i => i.product_id));
 
     el.innerHTML = items.map(item => `
       <div class="flex items-center gap-2 sm:gap-4 border border-slate-200 rounded-md p-3" data-product-id="${item.product_id}">
@@ -63,6 +115,7 @@
           <div class="text-sm sm:text-base font-medium truncate">${item.name || "Product"}</div>
           ${(item.option || item.color || item.size) ? `<div class="text-xs text-slate-500 mt-0.5 truncate">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}${(item.color || item.option) && item.size ? " · " : ""}${item.size ? `Size: ${item.size}` : ""}</div>` : ""}
           <div class="text-xs sm:text-sm text-slate-500">${money(item.price)} each</div>
+          ${wholesaleBadge(item.min_quantity, guestShort.has(item.product_id))}
         </div>
         <input type="number" class="guest-qty-input w-11 sm:w-16 shrink-0 border border-slate-300 rounded px-1 sm:px-2 py-1 text-center text-sm" value="${item.quantity}" min="1" data-product-id="${item.product_id}">
         <div class="text-right shrink-0">
@@ -101,8 +154,12 @@
         return;
       }
 
+      const shortIds = new Set((cart.wholesale_issues || []).filter(i => i.kind === "minimum").map(i => i.product_id));
+      renderIssues(cart.wholesale_issues || []);
+
       el.innerHTML = cart.items.map(item => {
         const p = item.product;
+        const wMin = p.sales_type === "wholesale" ? (p.wholesale_min_quantity || 0) : 0;
         const optionMatch = (item.option && p.options) ? p.options.find(o => o.label === item.option) : null;
         const colorMatch = (item.color && p.colors) ? p.colors.find(c => c.name === item.color) : null;
         const price = optionMatch ? Number(optionMatch.price) : Number(p.discount_price ?? p.price);
@@ -117,6 +174,7 @@
               <div class="text-sm sm:text-base font-medium truncate">${p.name}</div>
               ${(item.option || item.color) ? `<div class="text-xs text-slate-500 mt-0.5 truncate">${item.option ? `Option: ${item.option}` : ""}${item.option && item.color ? " · " : ""}${item.color ? `Color: ${item.color}` : ""}</div>` : ""}
               <div class="text-xs sm:text-sm text-slate-500">${money(price)} each</div>
+              ${wholesaleBadge(wMin, shortIds.has(p.id))}
             </div>
             <input type="number" class="qty-input w-11 sm:w-16 shrink-0 border border-slate-300 rounded px-1 sm:px-2 py-1 text-center text-sm" value="${item.quantity}" min="1" max="${maxStock}" data-item-id="${item.id}">
             <div class="text-right shrink-0">
@@ -133,7 +191,11 @@
       });
       el.querySelectorAll(".qty-input").forEach(input => {
         input.addEventListener("change", async () => {
-          await apiFetch(`/cart/items/${input.dataset.itemId}`, { method: "PUT", body: { product_id: "", quantity: parseInt(input.value, 10) || 1 } });
+          try {
+            await apiFetch(`/cart/items/${input.dataset.itemId}`, { method: "PUT", body: { product_id: "", quantity: parseInt(input.value, 10) || 1 } });
+          } catch (err) {
+            if (typeof showToast === "function") showToast(err.message, "error");
+          }
           loadCart();
           refreshCartBadge();
         });

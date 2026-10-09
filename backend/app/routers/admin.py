@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse  # pyright: ignore[reportMissingImpor
 from pydantic import BaseModel, Field  # pyright: ignore[reportMissingImports]
 from pathlib import Path
 from sqlalchemy.orm import Session, selectinload  # pyright: ignore[reportMissingImports]
-from sqlalchemy import func  # pyright: ignore[reportMissingImports]
+from sqlalchemy import func, or_  # pyright: ignore[reportMissingImports]
 from sqlalchemy.exc import IntegrityError  # pyright: ignore[reportMissingImports]
 
 from .. import models, schemas, auth, delivery_fees
@@ -13,6 +13,7 @@ from ..database import get_db
 from ..service_pricing import service_charge_for, service_commission_for
 from ..email_utils import send_email, SITE_URL, SUPPORT_EMAIL
 from .products import _sync_stock_from_variants
+from .. import wholesale
 import logging
 
 logger = logging.getLogger("eravenda.admin")
@@ -562,8 +563,11 @@ def admin_update_product(product_id: str, payload: schemas.ProductUpdate, db: Se
             raise HTTPException(status_code=404, detail="Category not found")
 
     for field, value in payload.model_dump(exclude_unset=True).items():
+        if field == "sales_type" and value is None:
+            continue
         setattr(product, field, value)
 
+    wholesale.apply_sales_type_rules(product)
     _sync_stock_from_variants(product)
     db.commit()
     db.refresh(product)
@@ -664,6 +668,8 @@ def product_tracking(db: Session = Depends(get_db)):
         "price": float(p.discount_price if p.discount_price is not None else p.price),
         "stock_quantity": p.stock_quantity, "status": p.status.value, "badge_keys": p.badge_keys or [],
         "cod_eligible": p.cod_eligible,
+        "sales_type": p.sales_type or "retail",
+        "wholesale_min_quantity": p.wholesale_min_quantity,
         "updated_at": p.updated_at,
     } for p in products]
 
@@ -677,6 +683,163 @@ def admin_get_product(product_id: str, db: Session = Depends(get_db)):
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
+
+# ---------- WHOLESALE MONITORING ----------
+# Read-only views over wholesale products and orders. Retail orders are never
+# touched; "order_type=all" or "retail" just lets the admin compare. Editing a
+# wholesale product's price/minimum/stock goes through the existing
+# PUT /admin/products/{id}, which keeps the same validation as the seller side.
+
+WHOLESALE_OPEN_STATUSES = (
+    models.OrderStatus.pending, models.OrderStatus.paid,
+    models.OrderStatus.processing, models.OrderStatus.shipped,
+)
+WHOLESALE_CLOSED_STATUSES = (models.OrderStatus.cancelled, models.OrderStatus.refunded)
+
+
+@router.get("/wholesale/summary")
+def wholesale_summary(db: Session = Depends(get_db)):
+    """Headline numbers. Pending = not yet delivered and not cancelled
+    (pending/paid/processing/shipped); Completed = delivered; Cancelled =
+    cancelled or refunded. Sales exclude cancelled/refunded orders."""
+    W = models.Order.order_type == "wholesale"
+
+    def order_count(statuses):
+        return db.query(func.count(models.Order.id)).filter(W, models.Order.status.in_(statuses)).scalar() or 0
+
+    sales = db.query(func.coalesce(func.sum(models.Order.subtotal), 0)).filter(
+        W, ~models.Order.status.in_(WHOLESALE_CLOSED_STATUSES)).scalar() or 0
+    wholesale_products = db.query(func.count(models.Product.id)).filter(models.Product.sales_type == "wholesale").scalar() or 0
+    live_products = db.query(func.count(models.Product.id)).filter(
+        models.Product.sales_type == "wholesale", models.Product.status == models.ProductStatus.approved).scalar() or 0
+    sellers = db.query(func.count(func.distinct(models.Product.store_id))).filter(
+        models.Product.sales_type == "wholesale").scalar() or 0
+    return {
+        "wholesale_products": wholesale_products,
+        "wholesale_products_live": live_products,
+        "wholesale_sellers": sellers,
+        "wholesale_orders": db.query(func.count(models.Order.id)).filter(W).scalar() or 0,
+        "pending_orders": order_count(WHOLESALE_OPEN_STATUSES),
+        "completed_orders": order_count((models.OrderStatus.delivered,)),
+        "cancelled_orders": order_count(WHOLESALE_CLOSED_STATUSES),
+        "wholesale_sales": float(sales),
+        "retail_orders": db.query(func.count(models.Order.id)).filter(models.Order.order_type == "retail").scalar() or 0,
+    }
+
+
+@router.get("/wholesale/products")
+def wholesale_products(
+    store_id: str | None = None,
+    seller_id: str | None = None,
+    q: str | None = None,
+    sales_type: str = "wholesale",
+    db: Session = Depends(get_db),
+):
+    if sales_type not in ("wholesale", "retail", "all"):
+        raise HTTPException(status_code=400, detail="sales_type must be wholesale, retail or all")
+    query = (db.query(models.Product).join(models.Store, models.Product.store_id == models.Store.id)
+             .options(selectinload(models.Product.store).selectinload(models.Store.owner)))
+    if sales_type != "all":
+        query = query.filter(models.Product.sales_type == sales_type)
+    if store_id:
+        query = query.filter(models.Product.store_id == store_id)
+    if seller_id:
+        query = query.filter(models.Store.owner_id == seller_id)
+    if q:
+        query = query.filter(models.Product.name.ilike(f"%{q.strip()}%"))
+    rows = query.order_by(models.Product.updated_at.desc()).limit(500).all()
+    return [{
+        "id": p.id, "name": p.name, "sku": p.sku, "status": p.status.value,
+        "sales_type": p.sales_type or "retail",
+        "wholesale_price": float(p.price) if p.is_wholesale else None,
+        "price": float(p.price),
+        "wholesale_min_quantity": p.wholesale_min_quantity,
+        "stock_quantity": p.stock_quantity,
+        "store_id": p.store_id,
+        "store_name": p.store.store_name if p.store else "",
+        "seller_id": p.store.owner_id if p.store else None,
+        "seller_name": p.store.owner.full_name if p.store and p.store.owner else "",
+        "updated_at": p.updated_at,
+    } for p in rows]
+
+
+@router.get("/wholesale/orders")
+def wholesale_orders(
+    order_type: str = "wholesale",
+    status: str | None = None,  # pending | completed | cancelled (groups) or an exact order status
+    store_id: str | None = None,
+    seller_id: str | None = None,
+    product_id: str | None = None,
+    q: str | None = None,  # order number or buyer name/email
+    date_from: str | None = None,  # YYYY-MM-DD
+    date_to: str | None = None,
+    db: Session = Depends(get_db),
+):
+    if order_type not in ("wholesale", "retail", "all"):
+        raise HTTPException(status_code=400, detail="order_type must be wholesale, retail or all")
+    query = (db.query(models.Order)
+             .join(models.Store, models.Order.store_id == models.Store.id)
+             .join(models.User, models.Order.buyer_id == models.User.id)
+             .options(selectinload(models.Order.items), selectinload(models.Order.store).selectinload(models.Store.owner)))
+    if order_type != "all":
+        query = query.filter(models.Order.order_type == order_type)
+    if status:
+        groups = {"pending": WHOLESALE_OPEN_STATUSES, "completed": (models.OrderStatus.delivered,), "cancelled": WHOLESALE_CLOSED_STATUSES}
+        if status in groups:
+            query = query.filter(models.Order.status.in_(groups[status]))
+        else:
+            try:
+                query = query.filter(models.Order.status == models.OrderStatus(status))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Unknown order status")
+    if store_id:
+        query = query.filter(models.Order.store_id == store_id)
+    if seller_id:
+        query = query.filter(models.Store.owner_id == seller_id)
+    if product_id:
+        query = query.filter(models.Order.id.in_(
+            db.query(models.OrderItem.order_id).filter(models.OrderItem.product_id == product_id)))
+    if q:
+        like = f"%{q.strip()}%"
+        query = query.filter(or_(models.Order.order_number.ilike(like), models.User.full_name.ilike(like), models.User.email.ilike(like)))
+    try:
+        if date_from:
+            query = query.filter(models.Order.created_at >= datetime.strptime(date_from, "%Y-%m-%d"))
+        if date_to:
+            query = query.filter(models.Order.created_at < datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Dates must be in YYYY-MM-DD format")
+
+    orders = query.order_by(models.Order.created_at.desc()).limit(500).all()
+    buyers = {u.id: u for u in db.query(models.User).filter(models.User.id.in_({o.buyer_id for o in orders})).all()} if orders else {}
+    result = []
+    for o in orders:
+        buyer = buyers.get(o.buyer_id)
+        owner = o.store.owner if o.store else None
+        lines = [{
+            "product_id": i.product_id, "product_name": i.product_name, "unit_price": float(i.unit_price),
+            "quantity": i.quantity, "line_total": float(i.line_total),
+            "minimum_quantity": i.wholesale_min_quantity,
+        } for i in o.items]
+        # Minimum is counted per product across variant lines, same as checkout.
+        per_product: dict[str, int] = {}
+        for i in o.items:
+            per_product[i.product_id] = per_product.get(i.product_id, 0) + i.quantity
+        met = all(
+            per_product[i.product_id] >= i.wholesale_min_quantity
+            for i in o.items if i.wholesale_min_quantity
+        ) if o.order_type == "wholesale" else None
+        result.append({
+            "id": o.id, "order_number": o.order_number, "order_type": o.order_type,
+            "status": o.status.value, "created_at": o.created_at,
+            "buyer_id": o.buyer_id, "buyer_name": buyer.full_name if buyer else "", "buyer_email": buyer.email if buyer else "",
+            "store_id": o.store_id, "store_name": o.store.store_name if o.store else "",
+            "seller_id": o.store.owner_id if o.store else None, "seller_name": owner.full_name if owner else "",
+            "total_quantity": o.total_quantity, "order_value": float(o.subtotal), "total_amount": float(o.total_amount),
+            "met_minimum": met, "items": lines,
+        })
+    return result
 
 
 @router.get("/payments/tracking")

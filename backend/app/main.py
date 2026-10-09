@@ -262,6 +262,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         db.query(models.Product)
         .filter(
             models.Product.status == models.ProductStatus.approved,
+            models.Product.sales_type == "retail",
             models.Product.discount_price.isnot(None),
             models.Product.discount_price < models.Product.price,
         )
@@ -273,6 +274,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         db.query(models.Product)
         .filter(
             models.Product.status == models.ProductStatus.approved,
+            models.Product.sales_type == "retail",
             models.Product.average_rating >= 4,
             models.Product.review_count > 0,
         )
@@ -307,9 +309,16 @@ def products_page(
     category_id: str = "",
     sort: str = "newest",
     cod: str = "",
+    type: str = "retail",
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.Product).filter(models.Product.status == models.ProductStatus.approved)
+    # Marketplace section: Retail (default, how the site always worked) or
+    # Wholesale. Anything else falls back to Retail.
+    sales_type = "wholesale" if type.strip().lower() == "wholesale" else "retail"
+    query = db.query(models.Product).filter(
+        models.Product.status == models.ProductStatus.approved,
+        models.Product.sales_type == sales_type,
+    )
 
     if q:
         like = f"%{q}%"
@@ -357,6 +366,7 @@ def products_page(
         db, limit=8,
         category_ids=_category_and_child_ids(db, category_id) if category_id else None,
     )
+    promoted_strip = [p for p in promoted_strip if (p.sales_type or "retail") == sales_type]
 
     return templates.TemplateResponse(
         "products.html",
@@ -368,6 +378,7 @@ def products_page(
             selected_category_id=category_id,
             sort=sort,
             cod_only=cod_only,
+            sales_type=sales_type,
             page_size=PRODUCTS_PAGE_SIZE,
             # Non-zero only when more products match than the page can hold, so
             # the template can say so instead of silently dropping the rest.

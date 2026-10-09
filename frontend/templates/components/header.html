@@ -9,6 +9,7 @@
 {% set is_services_page = request.url.path.startswith('/services') %}
 {% set is_admin_page = request.url.path.startswith('/admin') %}
 {% set is_products_page = request.url.path.startswith('/products') or request.url.path.startswith('/product/') %}
+{% set is_wholesale_page = request.url.path.startswith('/products') and request.query_params.get('type') == 'wholesale' %}
 <header id="siteHeader" data-services-page="{{ 'true' if is_services_page else 'false' }}" class="sticky top-0 z-40 bg-white border-b border-slate-200">
 
   <div class="max-w-7xl mx-auto w-full px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 lg:gap-4">
@@ -114,7 +115,7 @@
     </button>
 
     <!-- Live search with category dropdown -->
-    {% if not is_services_page and not is_admin_page %}<form action="/products" method="get" class="hidden lg:flex flex-1 min-w-0 max-w-2xl">
+    {% if not is_services_page and not is_admin_page %}<form action="/products" method="get" class="hidden lg:flex flex-1 min-w-0 max-w-2xl">{% if is_wholesale_page %}<input type="hidden" name="type" value="wholesale">{% endif %}
       <select name="category_id"
         class="border border-slate-300 border-r-0 rounded-l-md bg-slate-50 text-sm px-2 focus:outline-none focus:ring-2 focus:ring-brand-500 max-w-[9rem] truncate">
         <option value="">All</option>
@@ -158,9 +159,13 @@
         </div>
       </div>
 
-      <a href="/products" aria-current="{{ 'page' if is_products_page else 'false' }}" class="ev-nav-item inline-flex items-center gap-1 px-2 py-2 rounded-full {{ 'bg-brand-50 text-brand-700' if is_products_page else 'text-slate-700 hover:text-brand-700' }}">
+      <a href="/products" aria-current="{{ 'page' if (is_products_page and not is_wholesale_page) else 'false' }}" class="ev-nav-item inline-flex items-center gap-1 px-2 py-2 rounded-full {{ 'bg-brand-50 text-brand-700' if (is_products_page and not is_wholesale_page) else 'text-slate-700 hover:text-brand-700' }}">
         <i class="ev-nav-icon ev-nav-icon-blue fas fa-store"></i>
         <span>Marketplace</span>
+      </a>
+      <a href="/products?type=wholesale" aria-current="{{ 'page' if is_wholesale_page else 'false' }}" class="ev-nav-item inline-flex items-center gap-1 px-2 py-2 rounded-full {{ 'bg-brand-50 text-brand-700' if is_wholesale_page else 'text-slate-700 hover:text-brand-700' }}">
+        <i class="ev-nav-icon ev-nav-icon-blue fas fa-boxes-stacked"></i>
+        <span>Wholesale</span>
       </a>
 
       <div id="guestLinks" class="flex items-center gap-1 sm:gap-2">
@@ -221,7 +226,7 @@
        the header, and the header is sticky (top-0), so this scrolls up with
        the nav bar and stays pinned to the top of the screen while scrolling. -->
   {% if not is_services_page and not is_admin_page %}<div class="lg:hidden border-t border-slate-200 bg-white px-3 sm:px-4 py-2">
-    <form action="/products" method="get" class="flex">
+    <form action="/products" method="get" class="flex">{% if is_wholesale_page %}<input type="hidden" name="type" value="wholesale">{% endif %}
       <input type="search" name="q" value="{{ search_query|default('') }}"
         placeholder="Search products, brands and categories"
         class="flex-1 border border-slate-300 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
@@ -325,6 +330,7 @@
       <a href="/register" class="py-1 hover:text-brand-600">Sign Up</a>
       <div class="border-t border-slate-100 pt-3 mt-1 flex flex-col gap-2">
         <a href="/products" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-store text-brand-500 mr-2"></i>Marketplace</a>
+        <a href="/products?type=wholesale" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-boxes-stacked text-brand-500 mr-2"></i>Wholesale</a>
         <a href="/services" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
       </div>
       <a href="/services" class="pl-6 py-1 hover:text-brand-600">Hire a Handyman</a>
