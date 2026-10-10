@@ -12,6 +12,7 @@ password reset and the contact form both work end-to-end in local dev
 without any setup, and you never lose a reset link during testing.
 """
 
+import base64
 import os
 import time
 import logging
@@ -162,8 +163,12 @@ def send_email(
     items: list[dict] | None = None,
     html: str | None = None,
     headers: dict | None = None,
+    attachments: list[dict] | None = None,
 ) -> None:
-    """items, when given, renders as a thumbnail + name (+ qty/price if present)
+    """attachments, when given, is a list of {"filename": str, "content": bytes,
+    "content_type": str (optional)}; sent to Resend as base64 (e.g. the PDF receipt).
+
+    items, when given, renders as a thumbnail + name (+ qty/price if present)
     block in the HTML version only — the plain-text `body` already has its own
     text-only item list (e.g. "- Widget x2 — GHS 40.00") built by the caller,
     since a plain-text email can't show an image anyway. Each dict: {"name",
@@ -177,6 +182,8 @@ def send_email(
         logger.info("To: %s", to)
         logger.info("Subject: %s", subject)
         logger.info("Body:\n%s", body)
+        for att in attachments or []:
+            logger.info("Attachment: %s (%d bytes)", att.get("filename"), len(att.get("content") or b""))
         logger.info("=== END EMAIL ===")
         return
 
@@ -192,6 +199,15 @@ def send_email(
         payload["reply_to"] = reply_to
     if headers:
         payload["headers"] = headers
+    if attachments:
+        payload["attachments"] = [
+            {
+                "filename": att["filename"],
+                "content": base64.b64encode(att["content"]).decode("ascii"),
+                **({"content_type": att["content_type"]} if att.get("content_type") else {}),
+            }
+            for att in attachments
+        ]
 
     # Same 10s ceiling the old SMTP path used: fail fast on a network hiccup
     # rather than hanging the request (and whatever button triggered it).

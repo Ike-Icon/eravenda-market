@@ -8,7 +8,7 @@ import httpx  # type: ignore[reportMissingImports]
 from fastapi import APIRouter, Depends, HTTPException, Request  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
-from .. import models, schemas, auth
+from .. import models, schemas, auth, receipts
 from ..database import get_db
 from ..email_utils import ADMIN_NOTIFICATION_EMAIL, SUPPORT_EMAIL, send_email, SITE_URL
 from ..service_pricing import service_commission_for
@@ -113,6 +113,13 @@ def _notify_product_payment(db: Session, payment: models.Payment, order: models.
                 if order.is_pickup
                 else f"Delivery fee: GHS {float(order.delivery_fee):.2f}"
             )
+            # The receipt rides along with the confirmation. If it can't be built the email still goes out (see
+            # receipts.receipt_attachments), just without the PDF and without claiming one is attached.
+            receipt_files = receipts.receipt_attachments(db, order, payment)
+            receipt_line = (
+                "Your receipt is attached as a PDF. You can also download it any time from your orders page:\n"
+                f"{SITE_URL}/orders.html\n\n"
+            ) if receipt_files else ""
             send_email(
                 to=buyer.email,
                 subject=f"Your EraVenda order {order.order_number} is confirmed",
@@ -124,11 +131,13 @@ def _notify_product_payment(db: Session, payment: models.Payment, order: models.
                     f"Subtotal: GHS {float(order.subtotal):.2f}\n"
                     f"{fulfillment_line}\n"
                     f"Total paid: GHS {float(order.total_amount):.2f}\n\n"
+                    f"{receipt_line}"
                     f"Track your order any time here:\n{SITE_URL}/orders/track?order_id={order.id}\n\n"
                     "— The EraVenda Market team"
                 ),
                 reply_to=SUPPORT_EMAIL,
                 items=email_items,
+                attachments=receipt_files or None,
             )
         except Exception:
             logger.exception("Could not send buyer order confirmation for order %s", order.id)

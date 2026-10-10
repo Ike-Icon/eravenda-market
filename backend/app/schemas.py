@@ -526,6 +526,10 @@ class OrderOut(BaseModel):
     is_pickup: bool = False
     order_type: str = "retail"
     total_quantity: int = 0
+    # True once a payment has been confirmed; the buyer's order page and the admin ledger use this to show the
+    # receipt button. The receipt itself is served by GET /orders/{id}/receipt (and /admin/orders/{id}/receipt).
+    receipt_available: bool = False
+    receipt_number: Optional[str] = None
     commission_amount: float
     total_amount: float
     payment_method: PaymentMethod

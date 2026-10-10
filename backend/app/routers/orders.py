@@ -1,9 +1,9 @@
 from collections import defaultdict
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException  # type: ignore[reportMissingImports]
+from fastapi import APIRouter, Depends, HTTPException, Response  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
-from .. import models, schemas, auth, delivery_fees, wholesale
+from .. import models, schemas, auth, delivery_fees, wholesale, receipts
 from ..database import get_db
 from ..utils import generate_order_number
 from ..product_pricing import product_commission_rate
@@ -423,6 +423,36 @@ def get_order(
         raise HTTPException(status_code=403, detail="You can't view this order")
 
     return order
+
+
+def _own_order_or_404(db: Session, order_id: str, user: models.User) -> models.Order:
+    """The order, only if it is this user's own purchase. Someone else's order reads as 'not found' (not 'forbidden')
+    so order ids can't be probed."""
+    order = receipts.find_order(db, order_id)
+    if not order or order.buyer_id != user.id:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@router.get("/{order_id}/receipt", response_class=Response, responses={200: {"content": {"application/pdf": {}}}})
+def download_receipt(
+    order_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """The PDF payment receipt for one of your own paid orders."""
+    return receipts.receipt_response(db, _own_order_or_404(db, order_id, current_user))
+
+
+@router.post("/{order_id}/receipt/email")
+def email_my_receipt(
+    order_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Email the receipt (as a PDF attachment) to the address on your account."""
+    sent_to = receipts.email_receipt(db, _own_order_or_404(db, order_id, current_user))
+    return {"sent_to": sent_to}
 
 
 @router.put("/{order_id}/status", response_model=schemas.OrderOut)

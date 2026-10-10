@@ -349,6 +349,27 @@ class Order(Base):
     address = relationship("Address")
     store = relationship("Store")
     delivery_assignment = relationship("OrderDeliveryAssignment", back_populates="order", uselist=False, cascade="all, delete-orphan")
+    # Read-only view of this order's payment attempts (a buyer can retry, so there may be several; only a
+    # successful or refunded one makes a receipt). selectin keeps order lists to one extra query, not one per order.
+    payments = relationship("Payment", viewonly=True, order_by="Payment.created_at", lazy="selectin")
+
+    @property
+    def receipt_payment(self):
+        """The payment a receipt is issued for: the latest successful one, otherwise the latest refunded one,
+        otherwise None (pending/failed attempts never produce a receipt)."""
+        for wanted in (PaymentStatus.success, PaymentStatus.refunded):
+            matches = [p for p in (self.payments or []) if p.status == wanted]
+            if matches:
+                return matches[-1]
+        return None
+
+    @property
+    def receipt_available(self) -> bool:
+        return self.receipt_payment is not None
+
+    @property
+    def receipt_number(self) -> str | None:
+        return f"RCP-{self.order_number}" if self.receipt_available else None
 
     @property
     def total_quantity(self) -> int:

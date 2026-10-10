@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from calendar import monthrange
-from fastapi import APIRouter, Depends, HTTPException  # pyright: ignore[reportMissingImports]
+from fastapi import APIRouter, Depends, HTTPException, Response  # pyright: ignore[reportMissingImports]
 from fastapi.responses import FileResponse  # pyright: ignore[reportMissingImports]
 from pydantic import BaseModel, Field  # pyright: ignore[reportMissingImports]
 from pathlib import Path
@@ -13,7 +13,7 @@ from ..database import get_db
 from ..service_pricing import service_charge_for, service_commission_for
 from ..email_utils import send_email, SITE_URL, SUPPORT_EMAIL
 from .products import _sync_stock_from_variants
-from .. import wholesale
+from .. import wholesale, receipts
 import logging
 
 logger = logging.getLogger("eravenda.admin")
@@ -851,13 +851,32 @@ def payment_tracking(db: Session = Depends(get_db)):
             .order_by(models.Payment.created_at.desc())
             .limit(300).all())
     return [{
-        "id": payment.id, "order_number": order.order_number, "buyer_name": buyer.full_name,
+        "id": payment.id, "order_id": order.id, "order_number": order.order_number, "buyer_name": buyer.full_name,
         "buyer_email": buyer.email, "store_name": store.store_name, "provider": payment.provider,
         "reference": payment.provider_reference, "amount": float(payment.amount), "currency": payment.currency,
         "status": payment.status.value, "paid_at": payment.paid_at, "created_at": payment.created_at,
         "payment_method": order.payment_method.value, "commission_amount": float(order.commission_amount),
         "delivery_fee": float(order.delivery_fee),
     } for payment, order, buyer, store in rows]
+
+
+def _order_or_404(db: Session, order_id: str) -> models.Order:
+    order = receipts.find_order(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@router.get("/orders/{order_id}/receipt", response_class=Response, responses={200: {"content": {"application/pdf": {}}}})
+def admin_download_receipt(order_id: str, db: Session = Depends(get_db)):
+    """Download the PDF receipt for any paid order (admin only, via this router's dependency)."""
+    return receipts.receipt_response(db, _order_or_404(db, order_id))
+
+
+@router.post("/orders/{order_id}/receipt/email")
+def admin_email_receipt(order_id: str, db: Session = Depends(get_db)):
+    """Re-send the receipt to the buyer's own account email."""
+    return {"sent_to": receipts.email_receipt(db, _order_or_404(db, order_id))}
 
 
 @router.get("/orders/cod-pending")

@@ -116,6 +116,75 @@ async function apiFetch(path, { method = "GET", body, auth = true } = {}) {
 }
 
 // ------------------------------------------------------------------
+// Module: Receipts
+// A receipt is a protected download (it needs the sign-in token), so a plain
+// <a href> can't fetch it. Any page can show a button like
+//   <button type="button" data-receipt-download="ORDER_ID">Download receipt</button>
+//   <button type="button" data-receipt-email="ORDER_ID">Email receipt</button>
+// (add data-receipt-admin="1" on the admin dashboard) and the click handler at
+// the bottom of this module does the rest, including for buttons that are
+// rendered later by a page's own script.
+// ------------------------------------------------------------------
+function receiptPath(orderId, admin) {
+  return `${admin ? "/admin" : ""}/orders/${encodeURIComponent(orderId)}/receipt`;
+}
+
+async function downloadReceipt(orderId, { admin = false } = {}) {
+  const res = await fetch(`${API_BASE}${receiptPath(orderId, admin)}`, {
+    headers: { Authorization: `Bearer ${Auth.getToken()}` },
+  });
+  if (res.status === 401) {
+    Auth.clearSession();
+    window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}&reason=session_expired`;
+    return new Promise(() => {});
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error((data && typeof data.detail === "string" && data.detail) || `Could not download the receipt (${res.status})`);
+  }
+  const blob = await res.blob();
+  const named = /filename="?([^";]+)"?/i.exec(res.headers.get("Content-Disposition") || "");
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = named ? named[1] : "EraVenda-Receipt.pdf";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
+}
+
+function emailReceipt(orderId, { admin = false } = {}) {
+  return apiFetch(`${receiptPath(orderId, admin)}/email`, { method: "POST" });
+}
+
+document.addEventListener("click", async (event) => {
+  const btn = event.target.closest("[data-receipt-download], [data-receipt-email]");
+  if (!btn || btn.disabled) return;
+  event.preventDefault();
+  const admin = btn.dataset.receiptAdmin === "1";
+  const isDownload = btn.hasAttribute("data-receipt-download");
+  const orderId = isDownload ? btn.dataset.receiptDownload : btn.dataset.receiptEmail;
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = isDownload ? "Preparing…" : "Sending…";
+  try {
+    if (isDownload) {
+      await downloadReceipt(orderId, { admin });
+      showToast("Receipt downloaded");
+    } else {
+      const result = await emailReceipt(orderId, { admin });
+      showToast(`Receipt emailed to ${result.sent_to}`);
+    }
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+});
+
+// ------------------------------------------------------------------
 // Module: Toast
 // Brief, auto-dismissing status message. Keeps cart/wishlist feedback
 // consistent across every page without each template reinventing it.
