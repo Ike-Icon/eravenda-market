@@ -222,7 +222,7 @@ const activeFilterBadge = document.getElementById('activeFilterBadge');
 // is kept in sync so a refresh or shared link lands on the same page.
 // createPager() lives in /static/js/main.js and is shared with the store,
 // wishlist, seller and admin product lists.
-const PAGE_SIZE = {{ page_size|default(24) }};
+const PAGE_SIZE = {{ page_size|default(48) }};
 let filteredCards = productCards.slice();
 let lastFilterSignature = null;
 
