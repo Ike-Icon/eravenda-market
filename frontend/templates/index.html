@@ -29,72 +29,18 @@
      people who prefer reduced motion). Behaviour: script at the bottom of
      this file; styles: "HERO SLIDESHOW" in custom.css.
      ============================================================ -->
-<section class="bg-white dark:bg-slate-950 pt-4 sm:pt-6">
+<section class="bg-white dark:bg-slate-950 pt-4 sm:pt-6" >
   <div class="max-w-7xl mx-auto px-4">
     <h1 class="sr-only">EraVenda — Ghana's Marketplace for Products & Handyman Services</h1>
-    <div id="heroSlider" class="ev-hero group" role="region" aria-roledescription="carousel" aria-label="Featured on EraVenda">
-      <div class="ev-hero-track">
-
-        <!-- Slide 1: Handyman Hub (the original banner image) -->
-        <a href="/services" class="ev-slide is-active" data-slide aria-roledescription="slide" aria-label="1 of 3: Handyman Hub">
-          <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789761496/eravenda-handyman-hero.jpg"
-            alt="Explore EraVenda Handyman Hub" fetchpriority="high" class="ev-slide-img">
-        </a>
-
-        <!-- Slide 2: Retail marketplace -->
-        <a href="/products" class="ev-slide ev-slide-retail" data-slide aria-roledescription="slide" aria-label="2 of 3: Retail marketplace">
-          {% if hero_retail_image %}<img src="{{ hero_retail_image }}" alt="" class="ev-slide-img ev-slide-bgimg"><span class="ev-slide-shade"></span>{% endif %}
-          <span class="ev-orb ev-orb-a" aria-hidden="true"></span><span class="ev-orb ev-orb-b" aria-hidden="true"></span>
-          <span class="ev-slide-inner">
-            <span class="ev-slide-copy">
-              <span class="ev-anim ev-kicker"><i class="fas fa-store" aria-hidden="true"></i> Retail marketplace</span>
-              <span class="ev-anim ev-title">Shop from verified sellers across Ghana</span>
-              <span class="ev-anim ev-sub">Phones, fashion, home &amp; more. Pay on Delivery on eligible items.</span>
-              <span class="ev-anim ev-cta">Shop now <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
-            </span>
-            {% if hero_retail_photos|default([]) and not hero_retail_image %}
-            <span class="ev-collage" aria-hidden="true">
-              {% for url in hero_retail_photos %}<span class="ev-thumb{% if loop.index > 2 %} ev-thumb-extra{% endif %}" style="--i: {{ loop.index0 }}"><img src="{{ url }}" alt="" loading="lazy"></span>{% endfor %}
-            </span>
-            {% elif not hero_retail_image %}
-            <span class="ev-slide-art" aria-hidden="true"><i class="fas fa-bag-shopping"></i></span>
-            {% endif %}
-          </span>
-        </a>
-
-        <!-- Slide 3: Wholesale -->
-        <a href="/products?type=wholesale" class="ev-slide ev-slide-wholesale" data-slide aria-roledescription="slide" aria-label="3 of 3: Wholesale">
-          {% if hero_wholesale_image %}<img src="{{ hero_wholesale_image }}" alt="" class="ev-slide-img ev-slide-bgimg"><span class="ev-slide-shade"></span>{% endif %}
-          <span class="ev-orb ev-orb-a" aria-hidden="true"></span><span class="ev-orb ev-orb-b" aria-hidden="true"></span>
-          <span class="ev-slide-inner">
-            <span class="ev-slide-copy">
-              <span class="ev-anim ev-kicker"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Wholesale</span>
-              <span class="ev-anim ev-title">Buy in bulk at wholesale prices</span>
-              <span class="ev-anim ev-sub">Per-unit pricing straight from sellers, with clear minimum order quantities.</span>
-              <span class="ev-anim ev-cta">Browse wholesale <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
-            </span>
-            {% if hero_wholesale_photos|default([]) and not hero_wholesale_image %}
-            <span class="ev-collage" aria-hidden="true">
-              {% for url in hero_wholesale_photos %}<span class="ev-thumb{% if loop.index > 2 %} ev-thumb-extra{% endif %}" style="--i: {{ loop.index0 }}"><img src="{{ url }}" alt="" loading="lazy"></span>{% endfor %}
-            </span>
-            {% elif not hero_wholesale_image %}
-            <span class="ev-slide-art" aria-hidden="true"><i class="fas fa-boxes-stacked"></i></span>
-            {% endif %}
-          </span>
-        </a>
-      </div>
-
-      <button type="button" class="ev-hero-arrow ev-hero-prev" data-hero-prev aria-label="Previous slide"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
-      <button type="button" class="ev-hero-arrow ev-hero-next" data-hero-next aria-label="Next slide"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
-      <div class="ev-hero-dots" role="tablist" aria-label="Choose slide">
-        <button type="button" role="tab" class="ev-dot is-active" data-hero-dot="0" aria-label="Slide 1: Handyman Hub" aria-selected="true"></button>
-        <button type="button" role="tab" class="ev-dot" data-hero-dot="1" aria-label="Slide 2: Retail marketplace" aria-selected="false"></button>
-        <button type="button" role="tab" class="ev-dot" data-hero-dot="2" aria-label="Slide 3: Wholesale" aria-selected="false"></button>
-      </div>
-      <span class="ev-hero-progress" aria-hidden="true"></span>
-    </div>
+    <a href="/services" aria-label="Explore the Handyman Hub"
+      class="group relative block w-full overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl bg-slate-950" >
+      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789761496/eravenda-handyman-hero.jpg"
+        alt="Explore EraVenda Handyman Hub" fetchpriority="high"
+        class="w-full h-auto block transition-transform duration-700 group-hover:scale-[1.02]">
+    </a>
   </div>
 </section>
+
 
 <!-- ============================================================
      1B. DUAL-INTENT SEARCH CONSOLE — sits below the hero banner
