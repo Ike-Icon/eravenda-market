@@ -462,6 +462,32 @@
   </div>
 </div>
 {% endif %}
+
+{# ============================================================
+   MOBILE STICKY BUY BAR — replaces the tab bar on product pages.
+   Heart, quantity, share and Add to Cart. Every control hands off to the
+   existing in-page control (#wishlistBtn, #qtyInput, #shareProductBtn,
+   #addToCartBtn), so variant, stock and wholesale-minimum rules stay in one
+   place. Phones/tablets only; desktop keeps the buy box in the sidebar.
+   ============================================================ #}
+<div id="pdpStickyBar" class="ev-pdp-bar lg:hidden" role="group" aria-label="Buy this product">
+  <button type="button" id="stickyWishlistBtn" class="ev-pdp-icon" aria-label="Add to wishlist" title="Wishlist">
+    <i class="far fa-heart text-red-500" aria-hidden="true"></i>
+  </button>
+  <div class="ev-pdp-qty" role="group" aria-label="Quantity">
+    <button type="button" id="stickyQtyMinus" aria-label="Decrease quantity">&minus;</button>
+    <output id="stickyQty" aria-live="polite">1</output>
+    <button type="button" id="stickyQtyPlus" aria-label="Increase quantity">+</button>
+  </div>
+  <div data-share-wrap class="relative shrink-0">
+    <button type="button" id="stickyShareBtn" class="ev-pdp-icon" aria-label="Share this product" title="Share">
+      <i class="fas fa-share-nodes" aria-hidden="true"></i>
+    </button>
+  </div>
+  <button type="button" id="stickyAddBtn" class="ev-pdp-add"{% if product.stock_quantity == 0 or wholesale_short %} disabled{% endif %}>
+    <i class="fas fa-shopping-cart ev-pdp-add-icon" aria-hidden="true"></i><span>{% if product.stock_quantity == 0 %}Out of stock{% elif wholesale_short %}Unavailable{% else %}Add to Cart{% endif %}</span>
+  </button>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -637,6 +663,7 @@
     const max = anySelected ? stock : BASE_STOCK;
     qtyEl.max = max;
     if (parseInt(qtyEl.value, 10) > max) qtyEl.value = max || 1;
+    if (window.syncStickyQty) window.syncStickyQty();
   }
 
   function saveVariants() {
@@ -720,5 +747,82 @@
       }
     }
   });
+</script>
+<script>
+// ---- Mobile sticky buy bar: hands every action to the in-page controls ----
+(function () {
+  const bar = document.getElementById("pdpStickyBar");
+  if (!bar) return;
+  const qtyEl = document.getElementById("qtyInput");
+  const out = document.getElementById("stickyQty");
+  const minus = document.getElementById("stickyQtyMinus");
+  const plus = document.getElementById("stickyQtyPlus");
+  const addBtn = document.getElementById("addToCartBtn");
+  const pdpMessage = document.getElementById("pdpMessage");
+
+  const bounds = () => {
+    const min = parseInt(qtyEl.min, 10) || 1;
+    const max = parseInt(qtyEl.max, 10);
+    return { min, max: Number.isFinite(max) && max > 0 ? max : Infinity };
+  };
+  // Mirrors #qtyInput (also called by refreshVariantUI when a variant changes the stock).
+  window.syncStickyQty = function () {
+    const { min, max } = bounds();
+    const v = parseInt(qtyEl.value, 10) || min;
+    out.textContent = v;
+    minus.disabled = v <= min;
+    plus.disabled = v >= max;
+  };
+  function setQty(next) {
+    const { min, max } = bounds();
+    qtyEl.value = Math.min(max, Math.max(min, next));
+    qtyEl.dispatchEvent(new Event("input", { bubbles: true }));
+    window.syncStickyQty();
+  }
+  minus.addEventListener("click", () => setQty((parseInt(qtyEl.value, 10) || 1) - 1));
+  plus.addEventListener("click", () => {
+    const cur = parseInt(qtyEl.value, 10) || 1;
+    const { max } = bounds();
+    if (cur >= max) { showToast(`Only ${max} available`, "error"); return; }
+    setQty(cur + 1);
+  });
+  qtyEl.addEventListener("input", window.syncStickyQty);
+  qtyEl.addEventListener("change", window.syncStickyQty);
+  window.syncStickyQty();
+
+  // Heart: click the real wishlist button, mirror its filled/outline state.
+  const heart = document.getElementById("stickyWishlistBtn");
+  const realWish = document.getElementById("wishlistBtn");
+  function mirrorHeart() {
+    const filled = realWish.querySelector("i")?.classList.contains("fas");
+    heart.querySelector("i").className = `${filled ? "fas" : "far"} fa-heart text-red-500`;
+    heart.setAttribute("aria-pressed", filled ? "true" : "false");
+    heart.setAttribute("aria-label", filled ? "Remove from wishlist" : "Add to wishlist");
+  }
+  heart.addEventListener("click", () => realWish.click());
+  new MutationObserver(mirrorHeart).observe(realWish, { attributes: true, childList: true, subtree: true, attributeFilter: ["class"] });
+  mirrorHeart();
+
+  // Share: same behaviour as the in-page share button, anchored to this bar.
+  document.getElementById("stickyShareBtn").addEventListener("click", (e) => {
+    shareLink(e.currentTarget, {
+      url: "{{ canonical_url }}",
+      title: {{ (product.name + " — Eravenda Market") | tojson }},
+      text: {{ ("Check out " + product.name + " on Eravenda Market") | tojson }},
+    });
+  });
+
+  // Add to Cart: run the real handler, then surface its result as a toast
+  // (its message line is in the page body, out of sight behind this bar).
+  let pending = false;
+  document.getElementById("stickyAddBtn").addEventListener("click", () => { pending = true; addBtn.click(); });
+  new MutationObserver(() => {
+    if (!pending) return;
+    const text = (pdpMessage.textContent || "").trim();
+    if (!text) return;
+    pending = false;
+    showToast(text, pdpMessage.className.includes("red") ? "error" : "success");
+  }).observe(pdpMessage, { childList: true, characterData: true, subtree: true });
+})();
 </script>
 {% endblock %}

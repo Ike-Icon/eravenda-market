@@ -17,18 +17,82 @@
 {% block content %}
 {% from "components/promo-card.html" import promo_card %}
 
+{# Optional: paste an image URL here to use your own artwork as the background of
+   the Retail or Wholesale slide. Leave empty to show photos of live listings. #}
+{% set hero_retail_image = '' %}
+{% set hero_wholesale_image = '' %}
+
 <!-- ============================================================
-     1. HERO BANNER (click-through to Handyman Hub)
+     1. HERO SLIDESHOW — Handyman Hub, Retail marketplace, Wholesale.
+     Crossfade + zoom, staggered text, product photos pop in. Autoplays
+     (pauses on hover/focus/touch and when the tab is hidden; no autoplay for
+     people who prefer reduced motion). Behaviour: script at the bottom of
+     this file; styles: "HERO SLIDESHOW" in custom.css.
      ============================================================ -->
-<section class="bg-white dark:bg-slate-950 pt-4 sm:pt-6" >
+<section class="bg-white dark:bg-slate-950 pt-4 sm:pt-6">
   <div class="max-w-7xl mx-auto px-4">
     <h1 class="sr-only">EraVenda — Ghana's Marketplace for Products & Handyman Services</h1>
-    <a href="/services" aria-label="Explore the Handyman Hub"
-      class="group relative block w-full overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl bg-slate-950" >
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789761496/eravenda-handyman-hero.jpg"
-        alt="Explore EraVenda Handyman Hub" fetchpriority="high"
-        class="w-full h-auto block transition-transform duration-700 group-hover:scale-[1.02]">
-    </a>
+    <div id="heroSlider" class="ev-hero group" role="region" aria-roledescription="carousel" aria-label="Featured on EraVenda">
+      <div class="ev-hero-track">
+
+        <!-- Slide 1: Handyman Hub (the original banner image) -->
+        <a href="/services" class="ev-slide is-active" data-slide aria-roledescription="slide" aria-label="1 of 3: Handyman Hub">
+          <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789761496/eravenda-handyman-hero.jpg"
+            alt="Explore EraVenda Handyman Hub" fetchpriority="high" class="ev-slide-img">
+        </a>
+
+        <!-- Slide 2: Retail marketplace -->
+        <a href="/products" class="ev-slide ev-slide-retail" data-slide aria-roledescription="slide" aria-label="2 of 3: Retail marketplace">
+          {% if hero_retail_image %}<img src="{{ hero_retail_image }}" alt="" class="ev-slide-img ev-slide-bgimg"><span class="ev-slide-shade"></span>{% endif %}
+          <span class="ev-orb ev-orb-a" aria-hidden="true"></span><span class="ev-orb ev-orb-b" aria-hidden="true"></span>
+          <span class="ev-slide-inner">
+            <span class="ev-slide-copy">
+              <span class="ev-anim ev-kicker"><i class="fas fa-store" aria-hidden="true"></i> Retail marketplace</span>
+              <span class="ev-anim ev-title">Shop from verified sellers across Ghana</span>
+              <span class="ev-anim ev-sub">Phones, fashion, home &amp; more. Pay on Delivery on eligible items.</span>
+              <span class="ev-anim ev-cta">Shop now <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+            </span>
+            {% if hero_retail_photos|default([]) and not hero_retail_image %}
+            <span class="ev-collage" aria-hidden="true">
+              {% for url in hero_retail_photos %}<span class="ev-thumb{% if loop.index > 2 %} ev-thumb-extra{% endif %}" style="--i: {{ loop.index0 }}"><img src="{{ url }}" alt="" loading="lazy"></span>{% endfor %}
+            </span>
+            {% elif not hero_retail_image %}
+            <span class="ev-slide-art" aria-hidden="true"><i class="fas fa-bag-shopping"></i></span>
+            {% endif %}
+          </span>
+        </a>
+
+        <!-- Slide 3: Wholesale -->
+        <a href="/products?type=wholesale" class="ev-slide ev-slide-wholesale" data-slide aria-roledescription="slide" aria-label="3 of 3: Wholesale">
+          {% if hero_wholesale_image %}<img src="{{ hero_wholesale_image }}" alt="" class="ev-slide-img ev-slide-bgimg"><span class="ev-slide-shade"></span>{% endif %}
+          <span class="ev-orb ev-orb-a" aria-hidden="true"></span><span class="ev-orb ev-orb-b" aria-hidden="true"></span>
+          <span class="ev-slide-inner">
+            <span class="ev-slide-copy">
+              <span class="ev-anim ev-kicker"><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Wholesale</span>
+              <span class="ev-anim ev-title">Buy in bulk at wholesale prices</span>
+              <span class="ev-anim ev-sub">Per-unit pricing straight from sellers, with clear minimum order quantities.</span>
+              <span class="ev-anim ev-cta">Browse wholesale <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+            </span>
+            {% if hero_wholesale_photos|default([]) and not hero_wholesale_image %}
+            <span class="ev-collage" aria-hidden="true">
+              {% for url in hero_wholesale_photos %}<span class="ev-thumb{% if loop.index > 2 %} ev-thumb-extra{% endif %}" style="--i: {{ loop.index0 }}"><img src="{{ url }}" alt="" loading="lazy"></span>{% endfor %}
+            </span>
+            {% elif not hero_wholesale_image %}
+            <span class="ev-slide-art" aria-hidden="true"><i class="fas fa-boxes-stacked"></i></span>
+            {% endif %}
+          </span>
+        </a>
+      </div>
+
+      <button type="button" class="ev-hero-arrow ev-hero-prev" data-hero-prev aria-label="Previous slide"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" class="ev-hero-arrow ev-hero-next" data-hero-next aria-label="Next slide"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+      <div class="ev-hero-dots" role="tablist" aria-label="Choose slide">
+        <button type="button" role="tab" class="ev-dot is-active" data-hero-dot="0" aria-label="Slide 1: Handyman Hub" aria-selected="true"></button>
+        <button type="button" role="tab" class="ev-dot" data-hero-dot="1" aria-label="Slide 2: Retail marketplace" aria-selected="false"></button>
+        <button type="button" role="tab" class="ev-dot" data-hero-dot="2" aria-label="Slide 3: Wholesale" aria-selected="false"></button>
+      </div>
+      <span class="ev-hero-progress" aria-hidden="true"></span>
+    </div>
   </div>
 </section>
 
@@ -184,6 +248,84 @@
   </div>
 </section>
 
+
+
+<!-- ============================================================
+     HOT ARRIVALS — only products added in the last 30 days, newest first.
+     "See all" opens /products?sort=new (every product from that window).
+     ============================================================ -->
+{% if hot_arrivals|default([]) %}
+<section id="hotArrivalsSection" class="max-w-7xl mx-auto px-4 py-8" aria-labelledby="hot-arrivals-heading">
+  <div class="flex items-end justify-between gap-3 mb-4">
+    <div class="min-w-0">
+      <span class="text-xs font-bold tracking-[0.18em] text-amber-600 uppercase">Just landed</span>
+      <h2 id="hot-arrivals-heading" class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+        <a href="/products?sort=new" class="inline-flex items-center gap-2 hover:text-brand-600"><i class="fas fa-fire text-amber-500" aria-hidden="true"></i>Hot Arrivals</a>
+      </h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">New products added in the last 30 days</p>
+    </div>
+    <a href="/products?sort=new" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group shrink-0">
+      <span>See All</span>
+      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+    </a>
+  </div>
+
+  <div class="relative" data-scroll-rail>
+    <button type="button" data-scroll-prev aria-label="Scroll left"
+      class="hidden absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </button>
+    <div data-scroll-track class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-px-1 pb-1">
+      {% for p in hot_arrivals %}
+      {% set price = p.discount_price if p.discount_price else p.price %}
+      {% set has_discount = p.discount_price and p.discount_price < p.price %}
+      {% set discount_pct = (((1 - (price / p.price)) * 100) | round | int) if has_discount else 0 %}
+      {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
+      {% set out_of_stock = p.stock_quantity <= 0 %}
+      <article data-product-card data-product-url="/product/{{ p.id }}"
+        class="group shrink-0 snap-start w-[136px] sm:w-[160px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <div class="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+          <span class="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-slate-900 text-[9px] font-extrabold tracking-wide px-1.5 py-0.5 rounded shadow-sm">NEW</span>
+          {% if has_discount and not out_of_stock %}
+          <span class="absolute top-1.5 right-1.5 z-10 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">-{{ discount_pct }}%</span>
+          {% endif %}
+          {% if out_of_stock %}
+          <div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none">
+            <span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span>
+          </div>
+          {% endif %}
+          {% if primary_image %}
+          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
+          {% else %}
+          <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>
+          {% endif %}
+        </div>
+        <div class="p-2">
+          <h3 class="text-[11px] sm:text-xs font-medium text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{{ p.name }}</h3>
+          <div class="flex items-center gap-1 text-[10px] text-amber-500 mt-1">
+            <span>★ {{ "%.1f"|format(p.average_rating) }}</span>
+            <span class="text-slate-400">({{ p.review_count }})</span>
+          </div>
+          <div class="mt-1 flex items-baseline gap-1">
+            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">₵{{ "%.2f"|format(price) }}</span>
+            {% if has_discount %}<span class="text-[10px] text-slate-400 line-through">₵{{ "%.2f"|format(p.price) }}</span>{% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+      <a href="/products?sort=new" class="shrink-0 snap-start w-[136px] sm:w-[160px] rounded-lg border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-slate-900 flex flex-col items-center justify-center gap-2 text-center text-xs font-semibold text-amber-700 dark:text-amber-400 hover:border-brand-500 hover:text-brand-700 transition-colors p-3">
+        <i class="fas fa-fire text-xl" aria-hidden="true"></i>
+        <span>See everything added this month</span>
+      </a>
+    </div>
+    <button type="button" data-scroll-next aria-label="Scroll right"
+      class="hidden absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400">
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>
+  </div>
+</section>
+{% endif %}
 
 
 <!-- ============================================================
@@ -418,6 +560,9 @@
       <button type="button" data-product-filter="all" class="product-filter-tab active px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
         All Products
       </button>
+      <a href="/products?sort=new" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-slate-800 text-amber-800 dark:text-amber-300 hover:border-brand-500 whitespace-nowrap">
+        🔥 Hot Arrivals
+      </a>
       <button type="button" data-product-filter="deals" class="product-filter-tab px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand-500 whitespace-nowrap">
         🔥 Top Deals
       </button>
@@ -1229,5 +1374,66 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+// ---- Hero slideshow ----------------------------------------------------
+// The progress bar's CSS animation is the autoplay clock: when it ends, go to
+// the next slide. Pausing (hover / focus / touch / hidden tab) just pauses
+// that animation, so there are no timers to keep in step. With reduced motion
+// the bar is not drawn, so nothing autoplays.
+(function () {
+  const root = document.getElementById("heroSlider");
+  if (!root) return;
+  const slides = [...root.querySelectorAll("[data-slide]")];
+  const dots = [...root.querySelectorAll("[data-hero-dot]")];
+  const progress = root.querySelector(".ev-hero-progress");
+  if (slides.length < 2) return;
+  let index = 0;
 
+  function show(n) {
+    index = (n + slides.length) % slides.length;
+    slides.forEach((slide, i) => {
+      const active = i === index;
+      slide.classList.toggle("is-active", active);
+      slide.setAttribute("aria-hidden", active ? "false" : "true");
+      slide.tabIndex = active ? 0 : -1;
+    });
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("is-active", i === index);
+      dot.setAttribute("aria-selected", i === index ? "true" : "false");
+    });
+    // restart the progress animation for the new slide
+    progress.classList.remove("is-running");
+    void progress.offsetWidth;
+    progress.classList.add("is-running");
+  }
+
+  progress.addEventListener("animationend", () => show(index + 1));
+  root.querySelector("[data-hero-prev]").addEventListener("click", () => show(index - 1));
+  root.querySelector("[data-hero-next]").addEventListener("click", () => show(index + 1));
+  dots.forEach(dot => dot.addEventListener("click", () => show(parseInt(dot.dataset.heroDot, 10))));
+
+  const pause = () => root.classList.add("is-paused");
+  const resume = () => root.classList.remove("is-paused");
+  root.addEventListener("mouseenter", pause);
+  root.addEventListener("mouseleave", resume);
+  root.addEventListener("focusin", pause);
+  root.addEventListener("focusout", resume);
+  document.addEventListener("visibilitychange", () => (document.hidden ? pause() : resume()));
+
+  // swipe on touch screens
+  let startX = null, startY = null;
+  root.addEventListener("touchstart", (e) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; pause(); }, { passive: true });
+  root.addEventListener("touchend", (e) => {
+    if (startX !== null) {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) show(index + (dx < 0 ? 1 : -1));
+    }
+    startX = startY = null;
+    resume();
+  }, { passive: true });
+
+  show(0);
+})();
+</script>
 {% endblock %}

@@ -18,8 +18,13 @@
     </a>
   </div>
   <h1 class="font-head text-2xl font-semibold mb-4">
-    {% if search_query %}{{ 'Wholesale results' if is_wholesale else 'Results' }} for "{{ search_query }}"{% elif is_wholesale %}Wholesale products{% else %}All products{% endif %}
+    {% if search_query %}{{ 'Wholesale results' if is_wholesale else 'Results' }} for "{{ search_query }}"{% elif sort == "new" %}{{ 'Wholesale hot arrivals' if is_wholesale else 'Hot arrivals' }}{% elif is_wholesale %}Wholesale products{% else %}All products{% endif %}
   </h1>
+  {% if sort == "new" %}
+  <p class="text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-4">
+    <i class="fas fa-fire text-amber-500 mr-1.5" aria-hidden="true"></i>Showing every product added in the last 30 days, newest first.
+  </p>
+  {% endif %}
   {% if is_wholesale %}
   <p class="text-sm text-slate-600 bg-brand-50 border border-brand-200 rounded-md px-3 py-2 mb-4">
     <i class="fas fa-circle-info text-brand-500 mr-1.5" aria-hidden="true"></i>Wholesale prices apply per unit, and each product has a minimum order quantity set by the seller. You can only check out once your quantity reaches that minimum.
@@ -115,10 +120,17 @@
           {% endfor %}
           {% endfor %}
         </select>
-        <select name="sort" class="border border-slate-300 rounded-md px-3 py-2 text-sm">
-          <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest</option>
-          <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>Price: low to high</option>
-          <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Price: high to low</option>
+        {% set sort_current = sort if sort in ['new','name_asc','name_desc','model_asc','model_desc','price_asc','price_desc'] else 'default' %}
+        <label class="sr-only" for="sortSelect">Sort products</label>
+        <select name="sort" id="sortSelect" class="border border-slate-300 rounded-md px-3 py-2 text-sm" onchange="this.form.submit()">
+          <option value="default" {% if sort_current == "default" %}selected{% endif %}>Sort: Default</option>
+          <option value="new" {% if sort_current == "new" %}selected{% endif %}>New (last 30 days)</option>
+          <option value="name_asc" {% if sort_current == "name_asc" %}selected{% endif %}>Name (A-Z)</option>
+          <option value="name_desc" {% if sort_current == "name_desc" %}selected{% endif %}>Name (Z-A)</option>
+          <option value="model_asc" {% if sort_current == "model_asc" %}selected{% endif %}>Model (A-Z)</option>
+          <option value="model_desc" {% if sort_current == "model_desc" %}selected{% endif %}>Model (Z-A)</option>
+          <option value="price_asc" {% if sort_current == "price_asc" %}selected{% endif %}>Price: low to high</option>
+          <option value="price_desc" {% if sort_current == "price_desc" %}selected{% endif %}>Price: high to low</option>
         </select>
         <button type="submit" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-md">Apply</button>
       </form>
@@ -141,13 +153,13 @@
       </p>
       {% endif %}
   {% if products|default([]) %}
-  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
     {% for p in products %}
     {% set price = p.discount_price if p.discount_price else p.price %}
     {% set has_discount = p.discount_price and p.discount_price < p.price %}
     {% set primary_image = (p.images | selectattr("is_primary") | list | first) or (p.images | first) %}
     {% set out_of_stock = p.stock_quantity <= 0 %}
-    <article data-product-card data-product-url="/product/{{ p.id }}" data-category="{{ p.category_id }}" data-parent-category="{{ p.category.parent_id if p.category else '' }}" data-stock="{{ p.stock_quantity }}" data-cod="{{ 'true' if p.cod_eligible else 'false' }}" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500{% if loop.index > page_size|default(24) %} hidden{% endif %}">
+    <article data-product-card data-product-url="/product/{{ p.id }}" data-category="{{ p.category_id }}" data-parent-category="{{ p.category.parent_id if p.category else '' }}" data-stock="{{ p.stock_quantity }}" data-cod="{{ 'true' if p.cod_eligible else 'false' }}" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500{% if loop.index > page_size|default(48) %} hidden{% endif %}">
       <div class="relative aspect-square bg-slate-100 lazy-img">
         {% if has_discount and not out_of_stock %}
         <span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">
@@ -197,7 +209,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <div class="text-center py-16 text-slate-500">{% if is_wholesale %}No wholesale products match those filters yet.{% else %}No products match those filters.{% endif %}</div>
+  <div class="text-center py-16 text-slate-500">{% if sort == "new" %}Nothing new in the last 30 days. <a href="/products{% if is_wholesale %}?type=wholesale{% endif %}" class="text-brand-600 font-semibold hover:underline">Browse all products</a>{% elif is_wholesale %}No wholesale products match those filters yet.{% else %}No products match those filters.{% endif %}</div>
   {% endif %}
   <nav id="productPagination" class="hidden mt-8 flex-wrap items-center justify-center gap-1.5" aria-label="Product pages"></nav>
   <p id="productPageSummary" class="mt-3 text-center text-xs text-slate-500"></p>
@@ -222,7 +234,7 @@ const activeFilterBadge = document.getElementById('activeFilterBadge');
 // is kept in sync so a refresh or shared link lands on the same page.
 // createPager() lives in /static/js/main.js and is shared with the store,
 // wishlist, seller and admin product lists.
-const PAGE_SIZE = {{ page_size|default(24) }};
+const PAGE_SIZE = {{ page_size|default(48) }};
 let filteredCards = productCards.slice();
 let lastFilterSignature = null;
 

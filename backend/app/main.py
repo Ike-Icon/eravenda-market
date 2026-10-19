@@ -2,7 +2,7 @@
 
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import text
+from sqlalchemy import text, func, case
 from sqlalchemy.orm import Session, selectinload
 
 from .database import Base, engine, get_db
@@ -146,7 +146,9 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 # Cards per page on the browse (/products) and store (/store/{id}) pages.
 # Passed to the templates as `page_size` so the server-rendered markup and the
 # browser-side pager can never disagree about it.
-PRODUCTS_PAGE_SIZE = 24
+PRODUCTS_PAGE_SIZE = 48
+# "New" / Hot Arrivals window: products added in the last 30 days.
+NEW_ARRIVALS_DAYS = 30
 # Upper bound on how many products /products sends to the browser to page
 # through (the pager works client-side so the sidebar filters span everything).
 PRODUCTS_PAGE_MAX = 500
@@ -285,11 +287,51 @@ def home_page(request: Request, db: Session = Depends(get_db)):
     # Feeds the "Pay on Delivery" rail — sellers opt individual products in or
     # out of COD (Product.cod_eligible), so this only shows ones they've kept eligible.
     pay_on_delivery = fair_random_products(db, 14, models.Product.cod_eligible.is_(True))
+    # Hot Arrivals: only products added in the last NEW_ARRIVALS_DAYS days,
+    # newest first. "See all" on the rail opens /products?sort=new, which lists
+    # every product from the same window.
+    def _visible(sales_type: str):
+        # Same rule as home_feed._visible_products: approved product from a
+        # store that is still approved, of the given sales type.
+        return (
+            db.query(models.Product)
+            .join(models.Store, models.Store.id == models.Product.store_id)
+            .filter(
+                models.Product.status == models.ProductStatus.approved,
+                models.Store.status == models.StoreStatus.approved,
+                models.Product.sales_type == sales_type,
+            )
+        )
+
+    hot_arrivals = (
+        _visible("retail")
+        .filter(models.Product.created_at >= datetime.utcnow() - timedelta(days=NEW_ARRIVALS_DAYS))
+        .order_by(models.Product.created_at.desc())
+        .limit(14)
+        .all()
+    )
+
+    # Photos for the Retail and Wholesale hero slides (a few random listings
+    # that actually have a picture, so the slides always show real stock).
+    def _hero_photos(sales_type: str) -> list[str]:
+        picks = _visible(sales_type).order_by(func.random()).limit(24).all()
+        urls = []
+        for prod in picks:
+            img = next((i for i in prod.images if i.is_primary), None) or (prod.images[0] if prod.images else None)
+            if img and img.image_url:
+                urls.append(img.image_url)
+            if len(urls) == 4:
+                break
+        return urls
+
     return templates.TemplateResponse(
         "index.html",
         page_context(
             request,
             db,
+            hot_arrivals=hot_arrivals,
+            hero_retail_photos=_hero_photos("retail"),
+            hero_wholesale_photos=_hero_photos("wholesale"),
             products=products_list,
             flash_deals=flash_deals,
             featured_stores=featured_stores,
@@ -307,7 +349,7 @@ def products_page(
     request: Request,
     q: str = "",
     category_id: str = "",
-    sort: str = "newest",
+    sort: str = "default",
     cod: str = "",
     type: str = "retail",
     db: Session = Depends(get_db),
@@ -329,7 +371,36 @@ def products_page(
     if cod_only:
         query = query.filter(models.Product.cod_eligible.is_(True))
 
-    if sort == "price_asc":
+    # Sort options on the page: default, new, name A-Z / Z-A, model A-Z / Z-A
+    # (plus the existing price sorts). Unknown values fall back to "default",
+    # and the old "newest" value that existing links may carry means the same.
+    #   default    - newest listings first (how the page has always ordered)
+    #   new        - ONLY products added in the last NEW_ARRIVALS_DAYS days,
+    #                newest first (the Hot Arrivals "see all" target)
+    #   name_*     - product name, case-insensitive
+    #   model_*    - the product's model/brand field (products have a single
+    #                `brand` column), products with none last, then by name
+    valid_sorts = {
+        "default", "new", "name_asc", "name_desc", "model_asc", "model_desc",
+        "price_asc", "price_desc",
+    }
+    if sort == "newest" or sort not in valid_sorts:
+        sort = "default"
+    name_key = func.lower(models.Product.name)
+    model_key = func.lower(func.coalesce(models.Product.brand, ""))
+    has_model_first = case((func.coalesce(func.trim(models.Product.brand), "") == "", 1), else_=0)
+    if sort == "new":
+        cutoff = datetime.utcnow() - timedelta(days=NEW_ARRIVALS_DAYS)
+        query = query.filter(models.Product.created_at >= cutoff).order_by(models.Product.created_at.desc())
+    elif sort == "name_asc":
+        query = query.order_by(name_key.asc())
+    elif sort == "name_desc":
+        query = query.order_by(name_key.desc())
+    elif sort == "model_asc":
+        query = query.order_by(has_model_first.asc(), model_key.asc(), name_key.asc())
+    elif sort == "model_desc":
+        query = query.order_by(has_model_first.asc(), model_key.desc(), name_key.asc())
+    elif sort == "price_asc":
         query = query.order_by(models.Product.price.asc())
     elif sort == "price_desc":
         query = query.order_by(models.Product.price.desc())

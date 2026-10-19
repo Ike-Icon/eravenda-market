@@ -1316,3 +1316,250 @@ dialog#quickViewModal[open] {
   border-color: #1c6b4f;
   box-shadow: 0 0 0 1px #1c6b4f;
 }
+
+
+/* ==========================================================================
+   MOBILE SHELL: bottom tab bar, category sheet, floating actions
+   (components/bottom-nav.html, components/floating-actions.html, js/shell.js)
+   ========================================================================== */
+:root { --ev-bar-h: 0px; }
+@media (max-width: 1023.98px) {
+  /* A sticky bottom bar (tab bar, or the product page's buy bar) exists on
+     this page: reserve its height so it never covers content or the footer,
+     and lift the floating buttons above it. */
+  body.has-bottom-bar { --ev-bar-h: 64px; padding-bottom: calc(var(--ev-bar-h) + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ---- Tab bar ---- */
+.ev-bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: #fff; border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, .06);
+}
+.ev-bn-item {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  min-width: 0; padding: 6px 2px; background: none; border: 0; cursor: pointer;
+  color: #64748b; -webkit-tap-highlight-color: transparent; transition: color .15s ease;
+}
+.ev-bn-item:active { background: #f1f5f9; }
+.ev-bn-icon { position: relative; display: inline-flex; font-size: 19px; line-height: 1; transition: transform .2s ease; }
+.ev-bn-label { font-size: 11px; line-height: 1; font-weight: 600; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.ev-bn-item.is-active { color: #1c6b4f; }
+.ev-bn-item.is-active .ev-bn-icon { transform: translateY(-1px) scale(1.08); }
+.ev-bn-item.is-active::before {
+  content: ""; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 3px 3px; background: #1c6b4f;
+}
+.ev-bn-badge {
+  position: absolute; top: -7px; right: -11px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--badge-bg, #ef4444); color: var(--badge-text, #fff); font-size: 10px; font-weight: 700; line-height: 1;
+  box-shadow: 0 0 0 2px #fff;
+}
+.ev-bn-badge.hidden { display: none; }
+html[data-theme="dark"] .ev-bottom-nav { background: #0f172a; border-top-color: #1e293b; }
+html[data-theme="dark"] .ev-bn-item { color: #94a3b8; }
+html[data-theme="dark"] .ev-bn-item:active { background: #1e293b; }
+html[data-theme="dark"] .ev-bn-item.is-active { color: #5fa886; }
+html[data-theme="dark"] .ev-bn-item.is-active::before { background: #5fa886; }
+html[data-theme="dark"] .ev-bn-badge { box-shadow: 0 0 0 2px #0f172a; }
+
+/* ---- Category bottom sheet ---- */
+.ev-sheet { position: fixed; inset: 0; z-index: 60; }
+.ev-sheet[hidden] { display: none; }
+.ev-sheet-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .5); opacity: 0; transition: opacity .25s ease; }
+.ev-sheet-panel {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 78dvh; display: flex; flex-direction: column;
+  background: #fff; border-radius: 16px 16px 0 0; box-shadow: 0 -10px 30px rgba(15, 23, 42, .2);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateY(100%); transition: transform .26s ease;
+}
+.ev-sheet-body { overflow-y: auto; overscroll-behavior: contain; }
+.ev-sheet.is-open .ev-sheet-backdrop { opacity: 1; }
+.ev-sheet.is-open .ev-sheet-panel { transform: translateY(0); }
+html[data-theme="dark"] .ev-sheet-panel { background: #0f172a; }
+
+/* ---- Floating actions: back to top / WhatsApp / email (all screen sizes) ---- */
+.ev-fab-stack {
+  position: fixed; right: 12px; z-index: 45;
+  bottom: calc(var(--ev-bar-h) + env(safe-area-inset-bottom, 0px) + 12px);
+  display: flex; flex-direction: column; overflow: hidden; border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, .25);
+}
+@media (min-width: 1024px) { .ev-fab-stack { right: 20px; bottom: 20px; } }
+.ev-fab {
+  display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; flex: none;
+  border: 0; color: #fff; font-size: 20px; cursor: pointer; text-decoration: none;
+  transition: filter .15s ease, height .25s ease, opacity .25s ease;
+}
+.ev-fab:hover { filter: brightness(1.08); }
+.ev-fab:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
+.ev-fab + .ev-fab { border-top: 1px solid rgba(255, 255, 255, .25); }
+.ev-fab-wa { background: #25d366; }
+.ev-fab-mail { background: #1c6b4f; }
+/* Back to top collapses away until the page has been scrolled. */
+.ev-fab-top { background: #334155; height: 0; opacity: 0; border-top-width: 0 !important; pointer-events: none; font-size: 16px; }
+.ev-fab-stack.show-top .ev-fab-top { height: 46px; opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .ev-fab, .ev-sheet-panel, .ev-sheet-backdrop, .ev-bn-icon { transition: none; }
+}
+.ev-fab-stack:not(.show-top) .ev-fab-wa { border-top: 0; }
+
+/* ---- Product page: mobile sticky buy bar (heart | qty | share | Add to Cart) ---- */
+.ev-pdp-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: flex; align-items: center; gap: 6px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px)); padding: 8px 8px env(safe-area-inset-bottom, 0px);
+  background: #fff; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 16px rgba(15, 23, 42, .08);
+}
+.ev-pdp-icon {
+  flex: none; width: 42px; height: 44px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #475569; font-size: 18px; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ev-pdp-icon:active { background: #f1f5f9; }
+.ev-pdp-qty { flex: none; display: flex; align-items: stretch; height: 44px; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff; }
+.ev-pdp-qty button { width: 32px; border: 0; background: #f8fafc; color: #0f172a; font-size: 18px; font-weight: 700; cursor: pointer; }
+.ev-pdp-qty button:active:not(:disabled) { background: #e2e8f0; }
+.ev-pdp-qty button:disabled { color: #cbd5e1; cursor: not-allowed; }
+.ev-pdp-qty output { min-width: 30px; padding: 0 4px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+.ev-pdp-add {
+  flex: 1 1 0; min-width: 0; height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  border: 0; border-radius: 8px; background: #f2a93b; color: #0f172a; font-weight: 700; font-size: 14px; white-space: nowrap; cursor: pointer;
+}
+.ev-pdp-add:active:not(:disabled) { background: #c98a22; }
+.ev-pdp-add:disabled { opacity: .5; cursor: not-allowed; }
+/* Small phones (iPhone 12 mini and narrower): keep the label on one line by trimming size, never by letting it split. */
+@media (max-width: 389px) {
+  .ev-pdp-bar { gap: 4px; padding-left: 6px; padding-right: 6px; }
+  .ev-pdp-icon { width: 38px; }
+  .ev-pdp-qty button { width: 28px; }
+  .ev-pdp-add { font-size: 13px; }
+}
+@media (max-width: 349px) { .ev-pdp-add-icon { display: none; } .ev-pdp-add { font-size: 12px; } }
+/* The share menu opens upward from the bar instead of off the bottom of the screen. */
+.ev-pdp-bar [data-share-menu] { top: auto; bottom: 100%; right: 0; margin: 0 0 10px; }
+html[data-theme="dark"] .ev-pdp-bar { background: #0f172a; border-top-color: #1e293b; }
+html[data-theme="dark"] .ev-pdp-icon, html[data-theme="dark"] .ev-pdp-qty { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+html[data-theme="dark"] .ev-pdp-qty button { background: #1e293b; color: #f1f5f9; }
+
+
+/* ==========================================================================
+   HERO SLIDESHOW (index.html): Handyman Hub / Retail / Wholesale
+   All slides share one grid cell, so the box is as tall as the handyman banner
+   at its natural ratio (with a floor so the text slides always fit).
+   ========================================================================== */
+.ev-hero { position: relative; overflow: hidden; border-radius: 16px; background: #0b2d20; box-shadow: 0 20px 40px -12px rgba(15, 23, 42, .35); }
+@media (min-width: 640px) { .ev-hero { border-radius: 24px; } }
+.ev-hero-track { display: grid; min-height: 210px; }
+@media (min-width: 640px) { .ev-hero-track { min-height: 260px; } }
+@media (min-width: 1024px) { .ev-hero-track { min-height: 280px; } }
+
+.ev-slide {
+  grid-area: 1 / 1; position: relative; display: block; overflow: hidden; color: #fff; text-decoration: none;
+  opacity: 0; visibility: hidden; z-index: 0;
+  transition: opacity .8s ease, visibility 0s linear .8s;
+}
+.ev-slide.is-active { opacity: 1; visibility: visible; z-index: 1; transition: opacity .8s ease, visibility 0s; }
+.ev-slide-img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.ev-slide.is-active > .ev-slide-img:not(.ev-slide-bgimg) { animation: evKen 9s ease-out both; }
+.ev-slide-bgimg { position: absolute; inset: 0; }
+.ev-slide-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.7), rgba(0,0,0,.15)); }
+.ev-slide-retail { background: linear-gradient(120deg, #0b2d20 0%, #12503a 55%, #1c6b4f 100%); }
+.ev-slide-wholesale { background: linear-gradient(120deg, #0f172a 0%, #334155 55%, #c98a22 135%); }
+
+.ev-orb { position: absolute; border-radius: 9999px; pointer-events: none; animation: evDrift 9s ease-in-out infinite alternate; }
+.ev-orb-a { width: 160px; height: 160px; top: -40px; right: -30px; background: rgba(244, 184, 92, .2); }
+.ev-orb-b { width: 140px; height: 140px; bottom: -50px; left: 32%; background: rgba(255, 255, 255, .07); animation-delay: -4s; }
+@media (min-width: 1024px) { .ev-orb-a { width: 260px; height: 260px; } .ev-orb-b { width: 220px; height: 220px; } }
+
+.ev-slide-inner {
+  position: relative; z-index: 2; height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 16px 34px;
+}
+@media (min-width: 640px) { .ev-slide-inner { padding: 28px 40px 44px; gap: 24px; } }
+@media (min-width: 1024px) { .ev-slide-inner { padding: 36px 64px 48px; } }
+.ev-slide-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; max-width: 34rem; }
+.ev-kicker {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 9999px; white-space: nowrap;
+  background: rgba(255, 255, 255, .12); color: #f4b85c; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+}
+.ev-title { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 18px; line-height: 1.15; overflow-wrap: normal; hyphens: none; }
+.ev-sub { display: none; font-size: 13px; line-height: 1.4; color: rgba(255, 255, 255, .85); }
+.ev-cta {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 7px 13px; border-radius: 9999px; white-space: nowrap;
+  background: #f2a93b; color: #0f172a; font-size: 12px; font-weight: 700;
+}
+.ev-cta i { transition: transform .2s ease; font-size: 10px; }
+.ev-slide:hover .ev-cta i { transform: translateX(3px); }
+@media (min-width: 640px) {
+  .ev-title { font-size: 28px; }
+  .ev-sub { display: block; }
+  .ev-cta { font-size: 14px; padding: 9px 18px; margin-top: 8px; }
+  .ev-kicker { font-size: 11px; }
+}
+@media (min-width: 1024px) { .ev-title { font-size: 38px; } .ev-sub { font-size: 15px; } }
+
+/* product photos */
+.ev-collage { flex: none; display: grid; grid-template-columns: 1fr; gap: 6px; width: 76px; }
+@media (min-width: 640px) { .ev-collage { grid-template-columns: 1fr 1fr; gap: 10px; width: 210px; } }
+@media (min-width: 1024px) { .ev-collage { width: 300px; gap: 12px; } }
+.ev-thumb {
+  display: block; aspect-ratio: 1; overflow: hidden; border-radius: 10px; background: rgba(255, 255, 255, .1);
+  border: 2px solid rgba(255, 255, 255, .75); box-shadow: 0 8px 18px rgba(0, 0, 0, .3);
+  opacity: 0; transform: translateY(14px) scale(.9);
+}
+.ev-thumb:nth-child(odd) { --r: -3deg; }
+.ev-thumb:nth-child(even) { --r: 3deg; }
+.ev-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ev-thumb-extra { display: none; }
+@media (min-width: 640px) { .ev-thumb-extra { display: block; } }
+.ev-slide.is-active .ev-thumb { animation: evPop .6s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.35s + var(--i, 0) * .12s); }
+.ev-slide-art { flex: none; font-size: 64px; color: rgba(255, 255, 255, .2); animation: evFloat 4s ease-in-out infinite alternate; }
+@media (min-width: 640px) { .ev-slide-art { font-size: 120px; } }
+
+/* staggered text entrance */
+.ev-anim { opacity: 0; transform: translateY(16px); }
+.ev-slide.is-active .ev-anim { animation: evRise .6s ease both; }
+.ev-slide.is-active .ev-kicker { animation-delay: .15s; }
+.ev-slide.is-active .ev-title { animation-delay: .3s; }
+.ev-slide.is-active .ev-sub { animation-delay: .45s; }
+.ev-slide.is-active .ev-cta { animation-delay: .6s; }
+
+/* controls */
+.ev-hero-dots {
+  position: absolute; left: 50%; bottom: 9px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 7px;
+  padding: 5px 9px; border-radius: 9999px; background: rgba(0, 0, 0, .3); backdrop-filter: blur(4px);
+}
+.ev-dot { position: relative; width: 7px; height: 7px; padding: 0; border: 0; border-radius: 9999px; background: rgba(255, 255, 255, .55); cursor: pointer; transition: width .25s ease, background .25s ease; }
+.ev-dot::after { content: ""; position: absolute; inset: -9px -4px; }
+.ev-dot.is-active { width: 20px; background: #fff; }
+.ev-hero-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 5; display: none; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border: 0; border-radius: 9999px; background: rgba(255, 255, 255, .92); color: #0f172a; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .25); opacity: 0; transition: opacity .2s ease, background .2s ease;
+}
+.ev-hero-arrow:hover { background: #fff; }
+.ev-hero-prev { left: 12px; }
+.ev-hero-next { right: 12px; }
+@media (min-width: 640px) { .ev-hero-arrow { display: flex; } }
+.ev-hero:hover .ev-hero-arrow, .ev-hero:focus-within .ev-hero-arrow { opacity: 1; }
+.ev-hero-progress { position: absolute; left: 0; bottom: 0; z-index: 6; width: 100%; height: 3px; background: #f2a93b; transform: scaleX(0); transform-origin: left; }
+.ev-hero-progress.is-running { animation: evProgress 6s linear forwards; }
+.ev-hero.is-paused .ev-hero-progress { animation-play-state: paused; }
+
+@keyframes evKen { from { transform: scale(1); } to { transform: scale(1.07); } }
+@keyframes evRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes evPop { from { opacity: 0; transform: translateY(14px) scale(.9) rotate(0deg); } to { opacity: 1; transform: translateY(0) scale(1) rotate(var(--r, 0deg)); } }
+@keyframes evDrift { from { transform: translate(0, 0); } to { transform: translate(-14px, 12px); } }
+@keyframes evFloat { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-10px) rotate(4deg); } }
+@keyframes evProgress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ev-slide, .ev-slide.is-active { transition: none; }
+  .ev-hero-progress { display: none; }
+  .ev-anim, .ev-thumb { opacity: 1; transform: none; animation: none !important; }
+  .ev-slide.is-active > .ev-slide-img, .ev-orb, .ev-slide-art { animation: none !important; }
+}

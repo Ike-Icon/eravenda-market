@@ -1,0 +1,20 @@
+<!-- ============================================================
+     FLOATING ACTIONS — one sticky block on every screen size:
+     Back to top (appears after scrolling), WhatsApp, Email.
+     Sits bottom-right; on phones it rides above the bottom nav / the product
+     page's buy bar (see --ev-bar-h in custom.css). Numbers/addresses match
+     the footer.
+     ============================================================ -->
+<div id="floatingActions" class="ev-fab-stack" role="group" aria-label="Quick contact and scroll">
+  <button type="button" id="backToTopBtn" class="ev-fab ev-fab-top" aria-label="Back to top" title="Back to top" tabindex="-1">
+    <i class="fas fa-arrow-up" aria-hidden="true"></i>
+  </button>
+  <a href="https://wa.me/233554372279?text=Hello%20EraVenda%2C%20I%20need%20help%20with%20" target="_blank" rel="noopener"
+    class="ev-fab ev-fab-wa" aria-label="Chat with us on WhatsApp" title="Chat on WhatsApp">
+    <i class="fab fa-whatsapp" aria-hidden="true"></i>
+  </a>
+  <a href="mailto:support@eravenda.com?subject=EraVenda%20support%20request"
+    class="ev-fab ev-fab-mail" aria-label="Email support@eravenda.com" title="Email us">
+    <i class="fas fa-envelope" aria-hidden="true"></i>
+  </a>
+</div>

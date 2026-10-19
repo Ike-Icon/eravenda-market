@@ -268,7 +268,7 @@ const GuestCart = {
   },
   _updateBadge() {
     const count = this.getCount();
-    ["cartCountBadge", "mobileCartCountBadge"].forEach(id => {
+    ["cartCountBadge", "mobileCartCountBadge", "bottomCartBadge"].forEach(id => {
       const badge = document.getElementById(id);
       if (!badge) return;
       badge.textContent = count;
@@ -325,7 +325,7 @@ const GuestWishlist = {
 // from localStorage; for logged-in users, fetches from the server.
 // ------------------------------------------------------------------
 function refreshWishlistBadge() {
-  const badges = ["wishlistCountBadge", "mobileWishlistCountBadge"]
+  const badges = ["wishlistCountBadge", "mobileWishlistCountBadge", "bottomWishlistBadge"]
     .map(id => document.getElementById(id)).filter(Boolean);
   if (!badges.length) return;
 
@@ -893,8 +893,10 @@ function initMobileAccountDropdown() {
 // person last updated their cart on a different page or device.
 // ------------------------------------------------------------------
 async function refreshCartBadge() {
-  const badge = document.getElementById("cartCountBadge");
-  if (!badge) return;
+  // Header (desktop + mobile) and the mobile bottom tab bar each have a badge.
+  const badges = ["cartCountBadge", "mobileCartCountBadge", "bottomCartBadge"]
+    .map(id => document.getElementById(id)).filter(Boolean);
+  if (!badges.length) return;
 
   if (!Auth.isLoggedIn()) {
     GuestCart._updateBadge();
@@ -904,8 +906,10 @@ async function refreshCartBadge() {
   try {
     const cart = await apiFetch("/cart");
     const count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-    badge.textContent = count;
-    badge.classList.toggle("hidden", count === 0);
+    badges.forEach(badge => {
+      badge.textContent = count;
+      badge.classList.toggle("hidden", count === 0);
+    });
   } catch {
     // Cart badge is a nice-to-have; fail quietly rather than breaking the page.
   }
