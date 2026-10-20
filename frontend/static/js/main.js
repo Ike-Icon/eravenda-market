@@ -15,7 +15,14 @@ const Auth = {
   },
   getUser() {
     const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      // A corrupted saved profile must not break every script on the page.
+      localStorage.removeItem("user");
+      return null;
+    }
   },
   setSession(token, user) {
     localStorage.setItem("token", token);
@@ -605,42 +612,75 @@ function initMobileMenu() {
   const closeBtn = document.getElementById("mobileDrawerClose");
   if (!btn || !drawer) return;
 
-  const isOpen = () => drawer.classList.contains("is-open");
+  // The panel slides in from the left and covers 3/4 of the screen width
+  // (CSS: .ev-drawer). "hidden" keeps it out of the layout while closed; the
+  // is-open class runs the slide transition.
+  let open = false;
+  let closeTimer = null;
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // The drawer slides in from the right (CSS .ev-drawer). While closed it is
-  // inert + aria-hidden so keyboard and screen-reader users cannot reach it.
-  const setOpen = (open) => {
-    drawer.classList.toggle("is-open", open);
-    if (backdrop) backdrop.classList.toggle("is-open", open);
-    drawer.setAttribute("aria-hidden", String(!open));
-    if ("inert" in drawer) drawer.inert = !open;
-    document.body.classList.toggle("overflow-hidden", open);
-    btn.setAttribute("aria-expanded", String(open));
-    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
-    if (open && closeBtn) closeBtn.focus({ preventScroll: true });
+  const setOpen = (next) => {
+    if (next === open) return;
+    open = next;
+    clearTimeout(closeTimer);
+    btn.setAttribute("aria-expanded", String(next));
+    btn.setAttribute("aria-label", next ? "Close menu" : "Open menu");
+    document.body.classList.toggle("overflow-hidden", next);
+    if (next) {
+      drawer.classList.remove("hidden");
+      backdrop?.classList.remove("hidden");
+      // Force a reflow so the browser paints the closed position first;
+      // otherwise display:none -> open can skip the slide-in entirely.
+      void drawer.offsetWidth;
+      drawer.classList.add("is-open");
+      backdrop?.classList.add("is-open");
+      closeBtn?.focus({ preventScroll: true });
+    } else {
+      drawer.classList.remove("is-open");
+      backdrop?.classList.remove("is-open");
+      closeTimer = setTimeout(() => {
+        drawer.classList.add("hidden");
+        backdrop?.classList.add("hidden");
+      }, reduceMotion ? 0 : 280);
+    }
   };
-  setOpen(false);
 
-  btn.addEventListener("click", () => setOpen(!isOpen()));
-  if (closeBtn) closeBtn.addEventListener("click", () => { setOpen(false); btn.focus(); });
-  if (backdrop) backdrop.addEventListener("click", () => setOpen(false));
+  btn.addEventListener("click", () => setOpen(!open));
+  closeBtn?.addEventListener("click", () => { setOpen(false); btn.focus({ preventScroll: true }); });
+  backdrop?.addEventListener("click", () => setOpen(false));
 
-  // Close after navigation so the next page never inherits an open drawer.
+  // Close after navigation so the next page never inherits an open panel.
+  // (Not for the expand/collapse rows, which are <summary>, not links.)
   drawer.addEventListener("click", (event) => {
     if (event.target.closest("a")) setOpen(false);
   });
 
+  // Swipe the panel (or the dimmed area) left to close it.
+  let touchX = null, touchY = null;
+  const onStart = (e) => { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; };
+  const onEnd = (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    const dy = e.changedTouches[0].clientY - touchY;
+    touchX = touchY = null;
+    if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.5) setOpen(false);
+  };
+  drawer.addEventListener("touchstart", onStart, { passive: true });
+  drawer.addEventListener("touchend", onEnd, { passive: true });
+  backdrop?.addEventListener("touchstart", onStart, { passive: true });
+  backdrop?.addEventListener("touchend", onEnd, { passive: true });
+
   // Keep keyboard users from getting trapped in the mobile navigation.
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && isOpen()) {
+    if (event.key === "Escape" && open) {
       setOpen(false);
-      btn.focus();
+      btn.focus({ preventScroll: true });
     }
   });
 
   // If the viewport crosses into desktop, reset the mobile state.
   window.addEventListener("resize", () => {
-    if (window.innerWidth >= 1024 && isOpen()) setOpen(false);
+    if (window.innerWidth >= 1024 && open) setOpen(false);
   });
 }
 
@@ -662,12 +702,9 @@ async function renderAuthState() {
     userLinks.classList.remove("hidden");
     userLinks.classList.add("flex");
     initUserDropdown();
-    // Show the signed-in drawer block right away; the role checks below can take a moment.
-    document.querySelectorAll("#mobileDrawer [data-auth='guest']").forEach((el) => { el.style.display = "none"; });
-    document.querySelectorAll("#mobileDrawer [data-auth='user']").forEach((el) => { el.style.display = ""; });
 
     const firstName = document.getElementById("userFirstName");
-    if (firstName) firstName.textContent = user.full_name.split(" ")[0];
+    if (firstName) firstName.textContent = (user.full_name || "").split(" ")[0];
 
     const avatarImg = document.getElementById("userAvatarImg");
     const avatarFallback = document.getElementById("userAvatarFallback");
@@ -678,46 +715,47 @@ async function renderAuthState() {
         avatarImg.classList.remove("hidden");
         avatarFallback.classList.add("hidden");
       } else {
-        avatarFallback.textContent = user.full_name.trim().charAt(0).toUpperCase();
+        avatarFallback.textContent = (user.full_name || "").trim().charAt(0).toUpperCase();
         avatarFallback.classList.remove("hidden");
         avatarImg.classList.add("hidden");
       }
     }
 
-    // Mobile nav-bar account icon: same avatar-or-initial logic as the
-    // desktop dropdown trigger. The icon itself is a button that opens a
-    // small dropdown (wired by initMobileAccountDropdown) rather than
-    // navigating straight to a page.
-    const mobileAvatarImg = document.getElementById("mobileUserAvatarImg");
-    const mobileAvatarFallback = document.getElementById("mobileUserAvatarFallback");
-    const mobileGuestIcon = document.getElementById("mobileAccountGuestIcon");
-    // NOTE: mobileGuestIcon carries the shared ".ev-nav-icon" class, which
-    // has a "#siteHeader .ev-nav-icon { display: inline-flex }" rule in
-    // custom.css with higher specificity than Tailwind's ".hidden". Toggling
-    // the "hidden" class alone would silently fail to hide it, so this is
-    // set via inline style (which always wins) instead.
-    if (mobileGuestIcon) mobileGuestIcon.style.display = "none";
-    if (mobileAvatarImg && mobileAvatarFallback) {
+    // Menu panel: switch to the signed-in account section, with avatar + name on top.
+    document.getElementById("mobileGuestMenu")?.classList.add("hidden");
+    document.getElementById("mobileUserMenu")?.classList.remove("hidden");
+    const accountHeading = document.getElementById("mobileAccountHeading");
+    if (accountHeading) accountHeading.setAttribute("href", "/account");
+
+    const popupAvatar = document.getElementById("mobilePopupAvatar");
+    const popupInitial = document.getElementById("mobilePopupInitial");
+    if (popupAvatar && popupInitial) {
+      const initial = (user.full_name || "?").trim().charAt(0).toUpperCase();
+      popupInitial.textContent = initial;
+      const showInitial = () => {
+        popupAvatar.classList.add("hidden");
+        popupInitial.classList.remove("hidden");
+        popupInitial.classList.add("flex");
+      };
       if (user.avatar_key || user.avatar_url) {
-        mobileAvatarImg.src = userAvatarSrc(user);
-        mobileAvatarImg.alt = user.full_name;
-        mobileAvatarImg.classList.remove("hidden");
-        mobileAvatarFallback.classList.add("hidden");
+        popupAvatar.onerror = showInitial;
+        popupAvatar.src = userAvatarSrc(user, 96);
+        popupAvatar.alt = user.full_name || "";
+        popupAvatar.classList.remove("hidden");
+        popupInitial.classList.add("hidden");
+        popupInitial.classList.remove("flex");
       } else {
-        mobileAvatarFallback.textContent = user.full_name.trim().charAt(0).toUpperCase();
-        mobileAvatarFallback.classList.remove("hidden");
-        mobileAvatarFallback.classList.add("flex");
-        mobileAvatarImg.classList.add("hidden");
+        showInitial();
       }
     }
 
     const mobileFirstName = document.getElementById("mobileUserFirstName");
-    if (mobileFirstName) mobileFirstName.textContent = user.full_name.split(" ")[0];
+    if (mobileFirstName) mobileFirstName.textContent = (user.full_name || "").split(" ")[0];
     const mobileEmail = document.getElementById("mobileUserEmail");
     if (mobileEmail) mobileEmail.textContent = user.email || "";
 
     const navName = document.getElementById("userNavName");
-    if (navName) navName.textContent = user.full_name.split(" ")[0];
+    if (navName) navName.textContent = (user.full_name || "").split(" ")[0];
 
     const dashboardLink = document.getElementById("dashboardLink");
     const professionalDashboardLink = document.getElementById("professionalDashboardLink");
@@ -793,43 +831,21 @@ async function renderAuthState() {
       deliveryFooterDashboard.style.display = hasDeliveryProfile ? "" : "none";
     }
 
-    // Hamburger drawer: swap the guest block for the signed-in block and fill
-    // the dashboard links (shown only when the account actually has them).
-    document.querySelectorAll("#mobileDrawer [data-auth='guest']").forEach((el) => { el.style.display = "none"; });
-    document.querySelectorAll("#mobileDrawer [data-auth='user']").forEach((el) => { el.style.display = ""; });
+    // "Become a Seller" only for accounts that don't have a store dashboard yet.
+    const becomeSeller = document.getElementById("mobileBecomeSellerLink");
+    if (becomeSeller) becomeSeller.style.display = hasDashboard ? "none" : "";
 
-    const drawerDashboard = document.getElementById("drawerDashboardLink");
-    const drawerBecomeSeller = document.getElementById("drawerBecomeSellerLink");
-    const drawerPro = document.getElementById("drawerProDashboardLink");
-    const drawerDelivery = document.getElementById("drawerDeliveryDashboardLink");
-    const drawerJoinHandyman = document.getElementById("drawerJoinHandymanLink");
-    if (drawerDashboard) {
-      if (hasDashboard) {
-        drawerDashboard.href = user.role === "admin" ? "/admin/dashboard.html" : "/seller/dashboard.html";
-        const icon = drawerDashboard.querySelector("i");
-        const span = drawerDashboard.querySelector("span");
-        if (user.role === "admin") {
-          if (icon) icon.className = "fas fa-gauge-high text-brand-600 w-5 text-center";
-          if (span) span.textContent = "Admin Dashboard";
-        } else {
-          if (icon) icon.className = "fas fa-store text-brand-600 w-5 text-center";
-          if (span) span.textContent = "My Store";
-        }
-        drawerDashboard.style.display = "";
-      } else {
-        drawerDashboard.style.display = "none";
-      }
+    const mobileLogoutBtn = document.getElementById("mobileAccountLogoutBtn");
+    if (mobileLogoutBtn && !mobileLogoutBtn.dataset.bound) {
+      mobileLogoutBtn.dataset.bound = "true";
+      mobileLogoutBtn.addEventListener("click", logOut);
     }
-    if (drawerBecomeSeller) drawerBecomeSeller.style.display = hasDashboard ? "none" : "";
-    if (drawerPro) drawerPro.style.display = hasProfessionalProfile ? "" : "none";
-    if (drawerDelivery) drawerDelivery.style.display = hasDeliveryProfile ? "" : "none";
-    if (drawerJoinHandyman) drawerJoinHandyman.style.display = hasProfessionalProfile ? "none" : "";
-
-    const drawerLogout = document.getElementById("mobileLogoutBtn");
-    if (drawerLogout) drawerLogout.addEventListener("click", logOut);
 
     const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) logoutBtn.addEventListener("click", logOut);
+    if (logoutBtn && !logoutBtn.dataset.bound) {
+      logoutBtn.dataset.bound = "true";
+      logoutBtn.addEventListener("click", logOut);
+    }
 
     refreshWishlistBadge();
   }
@@ -869,52 +885,28 @@ function logOut() {
   window.location.href = "/";
 }
 
-// Mobile nav-bar account icon: opens the signed-out (Log In / Sign Up) or
-// signed-in (account menu + Log Out) panel depending on auth state at the
-// moment it's clicked, so it works correctly whether or not renderAuthState
-// has finished its async role checks yet.
-function initMobileAccountDropdown() {
-  const btn = document.getElementById("mobileAccountBtn");
-  const guestDropdown = document.getElementById("mobileGuestDropdown");
-  const userDropdown = document.getElementById("mobileUserDropdown");
-  if (!btn || !guestDropdown || !userDropdown || btn.dataset.bound) return;
-  btn.dataset.bound = "true";
-
-  function activeDropdown() {
-    return Auth.isLoggedIn() ? userDropdown : guestDropdown;
-  }
-
-  function closeAll() {
-    guestDropdown.classList.add("hidden");
-    userDropdown.classList.add("hidden");
-    btn.setAttribute("aria-expanded", "false");
-  }
-
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const dropdown = activeDropdown();
-    const isOpen = !dropdown.classList.contains("hidden");
-    closeAll();
-    if (!isOpen) {
-      dropdown.classList.remove("hidden");
-      btn.setAttribute("aria-expanded", "true");
-    }
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!btn.contains(e.target) && !guestDropdown.contains(e.target) && !userDropdown.contains(e.target)) {
-      closeAll();
-    }
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeAll();
-    }
-  });
-
-  const logoutBtn = document.getElementById("mobileAccountLogoutBtn");
-  if (logoutBtn) logoutBtn.addEventListener("click", logOut);
+// Re-reads the signed-in user's profile at most every 10 minutes so the avatar
+// shown in the header popup and the bottom "Me" tab is current even when it was
+// changed on another device, or the session predates avatar photos.
+async function syncUserFromServer() {
+  if (!Auth.isLoggedIn()) return;
+  const KEY = "ev_user_synced_at";
+  try {
+    const last = parseInt(sessionStorage.getItem(KEY) || "0", 10);
+    if (Date.now() - last < 10 * 60 * 1000) return;
+    sessionStorage.setItem(KEY, String(Date.now()));
+    const fresh = await apiFetch("/users/me");
+    const stored = Auth.getUser();
+    if (!fresh || !stored) return;
+    const changed = ["avatar_key", "avatar_url", "full_name"].some(k => (stored[k] || null) !== (fresh[k] || null));
+    if (!changed) return;
+    stored.avatar_key = fresh.avatar_key;
+    stored.avatar_url = fresh.avatar_url || null;
+    stored.full_name = fresh.full_name || stored.full_name;
+    Auth.setSession(Auth.getToken(), stored);
+    if (typeof renderAuthState === "function") renderAuthState();
+    if (typeof evRefreshBottomNavAvatar === "function") evRefreshBottomNavAvatar();
+  } catch (_) { /* offline or not signed in anymore: keep what we have */ }
 }
 
 // ------------------------------------------------------------------
@@ -2078,8 +2070,8 @@ function initRichTextEditor() {
 // ------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   initMobileMenu();
-  initMobileAccountDropdown();
   renderAuthState();
+  syncUserFromServer();
   refreshCartBadge();
   refreshWishlistBadge();
   initLazyImages();

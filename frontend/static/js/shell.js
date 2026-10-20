@@ -38,22 +38,44 @@
       try { me.setAttribute("href", Auth.isLoggedIn() ? "/account" : "/login"); } catch (_) {}
     }
 
-    // Avatar on the "Me" tab: the user's own photo (or preset avatar) once signed in.
+    // Avatar on the "Me" tab: the signed-in user's photo (or preset avatar). If the
+    // picture is missing or fails to load, their initial letter is shown instead,
+    // so a signed-in user never sees the plain guest icon. Guests see the person icon.
     function paintMeAvatar() {
       const img = document.getElementById("bottomNavMeAvatar");
+      const initial = document.getElementById("bottomNavMeInitial");
       const icon = document.getElementById("bottomNavMeIcon");
       if (!img || !icon || typeof Auth === "undefined") return;
       let user = null;
       try { user = Auth.isLoggedIn() ? Auth.getUser() : null; } catch (_) {}
-      const has = !!(user && (user.avatar_url || user.avatar_key) && typeof userAvatarSrc === "function");
-      if (has) {
+
+      const showInitial = () => {
+        img.classList.add("hidden");
+        if (initial) {
+          initial.textContent = ((user && user.full_name) || "?").trim().charAt(0).toUpperCase();
+          initial.classList.remove("hidden");
+        }
+      };
+
+      if (!user) {                       // guest
+        img.classList.add("hidden");
+        initial && initial.classList.add("hidden");
+        icon.style.display = "";
+        me && me.setAttribute("aria-label", "Me");
+        return;
+      }
+      icon.style.display = "none";
+      me && me.setAttribute("aria-label", `Me, signed in as ${user.full_name || "you"}`);
+      if ((user.avatar_url || user.avatar_key) && typeof userAvatarSrc === "function") {
         const src = userAvatarSrc(user, 64);
+        initial && initial.classList.add("hidden");
+        img.onerror = showInitial;
         if (img.getAttribute("src") !== src) img.src = src;
         img.alt = "";
+        img.classList.remove("hidden");
+      } else {
+        showInitial();
       }
-      img.classList.toggle("hidden", !has);
-      icon.style.display = has ? "none" : "";
-      if (me) me.setAttribute("aria-label", has ? `Me, signed in as ${user.full_name || "you"}` : "Me");
     }
     window.evRefreshBottomNavAvatar = paintMeAvatar; // called by the account page after the photo changes
     paintMeAvatar();
