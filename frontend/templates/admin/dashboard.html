@@ -220,7 +220,7 @@
           <form id="categoryForm" class="grid sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
             <div class="field !mb-0"><label>Name</label><input name="name" required placeholder="e.g. Home & Garden"></div>
             <div class="field !mb-0"><label>Parent category</label><select name="parent_id"><option value="">None (top-level)</option></select></div>
-            <div class="field !mb-0"><label>Icon (optional)</label><input name="icon_url" placeholder="e.g. sofa"></div>
+            <div class="field !mb-0"><label>Icon or image URL (optional)</label><input name="icon_url" placeholder="e.g. sofa, or https://... photo for the home page"></div>
             <button type="submit" class="btn btn-primary h-[42px]">Add</button>
           </form>
         </section>
@@ -1732,7 +1732,7 @@ async function loadCategories() {
   cats.forEach(c => { (byParent[c.parent_id || 'root'] ||= []).push(c); });
   const renderGroup = parentId => (byParent[parentId] || []).map(c => `
     <div class="border border-slate-100 rounded-lg p-3 flex items-center justify-between gap-3 ${parentId !== 'root' ? 'ml-6 mt-2' : 'mt-2'}">
-      <div class="flex items-center gap-2 min-w-0"><i data-lucide="${c.icon_url || 'shopping-bag'}" class="w-4 h-4 text-slate-400 shrink-0"></i><span class="text-sm font-medium truncate">${esc(c.name)}</span></div>
+      <div class="flex items-center gap-2 min-w-0">${/^(https?:)?\//.test(c.icon_url || '') ? `<img src="${esc(c.icon_url)}" alt="" class="w-5 h-5 rounded object-cover shrink-0">` : `<i data-lucide="${esc(c.icon_url || 'shopping-bag')}" class="w-4 h-4 text-slate-400 shrink-0"></i>`}<span class="text-sm font-medium truncate">${esc(c.name)}</span></div>
       <button data-cat-delete="${c.id}" class="text-xs text-red-600 font-semibold shrink-0">Delete</button>
     </div>
     ${renderGroup(c.id)}

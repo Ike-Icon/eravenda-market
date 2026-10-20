@@ -33,10 +33,12 @@
   <div class="max-w-7xl mx-auto px-4">
     <h1 class="sr-only">EraVenda — Ghana's Marketplace for Products & Handyman Services</h1>
     <a href="/services" aria-label="Explore the Handyman Hub"
-      class="group relative block w-full overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl bg-slate-950" >
+      class="ev-hero-single group relative block w-full overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl bg-slate-950">
       <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789761496/eravenda-handyman-hero.jpg"
         alt="Explore EraVenda Handyman Hub" fetchpriority="high"
-        class="w-full h-auto block transition-transform duration-700 group-hover:scale-[1.02]">
+        class="ev-hero-single-img w-full h-auto block">
+      <span class="ev-hero-shine" aria-hidden="true"></span>
+      <span class="ev-hero-hint" aria-hidden="true">Explore now <i class="fas fa-arrow-right"></i></span>
     </a>
   </div>
 </section>
@@ -201,7 +203,7 @@
      "See all" opens /products?sort=new (every product from that window).
      ============================================================ -->
 {% if hot_arrivals|default([]) %}
-<section id="hotArrivalsSection" class="max-w-7xl mx-auto px-4 py-8" aria-labelledby="hot-arrivals-heading">
+<section id="hotArrivalsSection" data-reveal class="max-w-7xl mx-auto px-4 py-8" aria-labelledby="hot-arrivals-heading">
   <div class="flex items-end justify-between gap-3 mb-4">
     <div class="min-w-0">
       <span class="text-xs font-bold tracking-[0.18em] text-amber-600 uppercase">Just landed</span>
@@ -427,7 +429,7 @@
      3. VISUAL DEPARTMENTS & CATEGORIES CAROUSEL
      ============================================================ -->
 {% if category_tree|default([]) %}
-<section class="max-w-7xl mx-auto px-4 py-8">
+<section class="max-w-7xl mx-auto px-4 py-8" data-reveal>
   <div class="flex items-end justify-between mb-4">
     <div>
       <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Departments</span>
@@ -439,15 +441,50 @@
     </a>
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+  {# Category photos (Unsplash, free to use under the Unsplash License: https://unsplash.com/license).
+     Chosen by category slug/name keywords. To use your own picture for a category, put a full image
+     URL (https://...) in that category's "Icon" field in the admin dashboard; it wins over these.
+     A category with no match keeps the icon design. #}
+  {% set category_photo_ids = [
+    ('electronic', 'photo-1515940175183-6798529cb860'), ('gadget', 'photo-1515940175183-6798529cb860'),
+    ('fashion', 'photo-1441984904996-e0b6ba687e04'), ('apparel', 'photo-1441984904996-e0b6ba687e04'), ('cloth', 'photo-1441984904996-e0b6ba687e04'),
+    ('beauty', 'photo-1620917669809-1af0497965de'), ('health', 'photo-1620917669809-1af0497965de'), ('personal-care', 'photo-1620917669809-1af0497965de'),
+    ('home', 'photo-1616047006789-b7af5afb8c20'), ('kitchen', 'photo-1616047006789-b7af5afb8c20'), ('living', 'photo-1616047006789-b7af5afb8c20'), ('furniture', 'photo-1616047006789-b7af5afb8c20'),
+    ('grocer', 'photo-1759344114577-b6c32e4d68c8'), ('food', 'photo-1759344114577-b6c32e4d68c8'), ('essential', 'photo-1759344114577-b6c32e4d68c8'),
+    ('sport', 'photo-1728486145245-d4cb0c9c3470'), ('fitness', 'photo-1728486145245-d4cb0c9c3470'), ('outdoor', 'photo-1728486145245-d4cb0c9c3470'),
+    ('toy', 'photo-1575364289437-fb1479d52732'), ('kid', 'photo-1575364289437-fb1479d52732'), ('baby', 'photo-1575364289437-fb1479d52732'),
+    ('automotive', 'photo-1637640125496-31852f042a60'), ('tool', 'photo-1637640125496-31852f042a60'), ('auto', 'photo-1637640125496-31852f042a60'),
+  ] %}
+  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
     {% for c in category_tree %}
-    <a href="/products?category_id={{ c.id }}"
-      class="group border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 text-center bg-white dark:bg-slate-900 hover:border-brand-500 dark:hover:border-brand-400 hover:shadow-md transition-all flex flex-col items-center justify-center min-h-[110px]">
-      <div class="w-11 h-11 rounded-full bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-        <i data-lucide="{{ c.icon_url or 'shopping-bag' }}" class="w-5 h-5"></i>
-      </div>
-      <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 line-clamp-1 w-full">{{ c.name }}</span>
-      <span class="text-[10px] text-slate-400 mt-0.5">{{ c.children|length if c.children else 'Browse' }} items</span>
+    {% set ns = namespace(photo='') %}
+    {% if c.icon_url and (c.icon_url.startswith('http') or c.icon_url.startswith('/')) %}
+      {% set ns.photo = c.icon_url %}
+    {% else %}
+      {% set key = ((c.slug or '') ~ ' ' ~ (c.name or ''))|lower|replace(' ', '-') %}
+      {% for word, pid in category_photo_ids %}
+        {% if not ns.photo and word in key %}{% set ns.photo = 'https://images.unsplash.com/' ~ pid ~ '?auto=format&fit=crop&w=420&h=520&q=70' %}{% endif %}
+      {% endfor %}
+    {% endif %}
+    <a href="/products?category_id={{ c.id }}" data-reveal style="--i: {{ loop.index0 }}"
+      aria-label="{{ c.name }}{% if c.children %}, {{ c.children|length }} sub-categories{% endif %}"
+      class="ev-cat-tile group relative block overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 aspect-[5/4] sm:aspect-[4/5] hover:border-brand-500 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+      {% if ns.photo %}
+      <img src="{{ ns.photo }}" alt="" loading="lazy" decoding="async"
+        class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+        onerror="this.remove()">
+      <span class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" aria-hidden="true"></span>
+      {% else %}
+      <span class="absolute inset-0 flex items-center justify-center text-brand-600 dark:text-brand-400" aria-hidden="true">
+        <i data-lucide="{{ c.icon_url if (c.icon_url and not c.icon_url.startswith('http') and not c.icon_url.startswith('/')) else 'shopping-bag' }}" class="w-10 h-10 group-hover:scale-110 transition-transform"></i>
+      </span>
+      {% endif %}
+      <span class="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 text-left {{ 'text-white' if ns.photo else 'text-slate-800 dark:text-slate-100' }}">
+        <span class="block text-xs sm:text-[13px] font-bold leading-tight line-clamp-2 drop-shadow">{{ c.name }}</span>
+        <span class="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold {{ 'text-amber-300' if ns.photo else 'text-brand-600' }} opacity-90 group-hover:gap-2 transition-all">
+          {{ (c.children|length ~ ' sub-categories') if c.children else 'Browse' }} <i class="fas fa-arrow-right text-[8px]" aria-hidden="true"></i>
+        </span>
+      </span>
     </a>
     {% endfor %}
   </div>
@@ -492,7 +529,7 @@
 <!-- ============================================================
      6. INTERACTIVE PRODUCT DISCOVERY WITH FILTER TABS
      ============================================================ -->
-<section class="max-w-7xl mx-auto px-4 py-8">
+<section class="max-w-7xl mx-auto px-4 py-8" data-reveal>
   <!-- Section Title & Filter Tabs -->
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
     <div>
@@ -527,7 +564,7 @@
 
   <!-- Products Grid -->
   {% if products|default([]) %}
-  <div data-product-grid class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+  <div data-product-grid data-page-step="24" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
     {% for p in products %}
     {% set price = p.discount_price if p.discount_price else p.price %}
     {% set has_discount = p.discount_price and p.discount_price < p.price %}
@@ -644,7 +681,16 @@
     No products found in this category filter.
   </div>
 
-  <div class="text-center mt-8">
+  <div id="homeShowMoreWrap" class="hidden text-center mt-8">
+    <button type="button" id="homeShowMore"
+      class="inline-flex items-center gap-2 border-2 border-brand-600 text-brand-700 dark:text-brand-400 hover:bg-brand-600 hover:text-white font-bold px-8 py-3 rounded-xl transition-colors">
+      <i class="fas fa-plus text-xs" aria-hidden="true"></i>
+      <span>Show more products</span>
+      <span id="homeShowMoreLeft" class="text-xs font-semibold opacity-75"></span>
+    </button>
+  </div>
+
+  <div class="text-center mt-6">
     <a href="/products"
       class="inline-flex items-center gap-2 bg-brand-700 hover:bg-slate-800 text-white dark:bg-accent-200 dark:hover:bg-slate-100 dark:text-slate-950 font-bold px-8 py-3 rounded-xl transition-colors shadow">
       <span>Browse Complete Catalog</span>

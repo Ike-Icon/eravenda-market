@@ -1563,3 +1563,70 @@ html[data-theme="dark"] .ev-pdp-qty button { background: #1e293b; color: #f1f5f9
   .ev-anim, .ev-thumb { opacity: 1; transform: none; animation: none !important; }
   .ev-slide.is-active > .ev-slide-img, .ev-orb, .ev-slide-art { animation: none !important; }
 }
+
+
+/* ==========================================================================
+   DARK MODE FIX: the global `html[data-theme="dark"] a { color: green }` rule
+   made white icons on coloured buttons (WhatsApp, email) green-on-green.
+   ========================================================================== */
+html[data-theme="dark"] .ev-fab,
+html[data-theme="dark"] .ev-fab:hover,
+html[data-theme="dark"] .ev-fab:visited { color: #fff; }
+html[data-theme="dark"] .ev-fab-wa { background: #25d366; }
+html[data-theme="dark"] .ev-fab-mail { background: #1c6b4f; }
+html[data-theme="dark"] .ev-fab-stack { box-shadow: 0 6px 20px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .12); }
+
+/* ==========================================================================
+   HOME HERO IMAGE: it slowly zooms in and out, a light streak sweeps across,
+   a glow pulses around the frame and an "Explore now" pill ripples, so it is
+   obvious the banner is clickable.
+   ========================================================================== */
+.ev-hero-single { animation: evHeroGlow 3.2s ease-in-out infinite; -webkit-tap-highlight-color: transparent; }
+.ev-hero-single-img { transform-origin: center; animation: evHeroZoom 7s ease-in-out infinite; will-change: transform; }
+.ev-hero-single:hover .ev-hero-single-img { animation-duration: 3.5s; }
+.ev-hero-single:active { transform: scale(.992); }
+.ev-hero-shine {
+  position: absolute; top: 0; bottom: 0; left: -45%; width: 35%; pointer-events: none;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, .0) 20%, rgba(255, 255, 255, .55) 50%, rgba(255, 255, 255, 0) 80%, transparent 100%);
+  transform: skewX(-20deg); animation: evHeroShine 4.5s ease-in-out infinite;
+}
+.ev-hero-hint {
+  position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 9999px;
+  background: #f2a93b; color: #0f172a; font-size: 11px; font-weight: 800; letter-spacing: .02em; white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35); animation: evHeroRipple 2s ease-out infinite;
+}
+.ev-hero-hint i { font-size: 10px; animation: evHeroNudge 1.2s ease-in-out infinite; }
+@media (min-width: 640px) { .ev-hero-hint { right: 18px; bottom: 18px; padding: 9px 18px; font-size: 14px; } }
+html[data-theme="dark"] .ev-hero-hint, html[data-theme="dark"] .ev-hero-hint:hover { color: #0f172a; }
+
+@keyframes evHeroZoom { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+@keyframes evHeroShine { 0%, 55% { left: -45%; opacity: 0; } 62% { opacity: 1; } 100% { left: 125%; opacity: 0; } }
+@keyframes evHeroGlow {
+  0%, 100% { box-shadow: 0 10px 30px -8px rgba(15, 23, 42, .45), 0 0 0 0 rgba(242, 169, 59, 0); }
+  50% { box-shadow: 0 12px 36px -6px rgba(15, 23, 42, .5), 0 0 0 4px rgba(242, 169, 59, .55), 0 0 28px 4px rgba(242, 169, 59, .35); }
+}
+@keyframes evHeroRipple {
+  0% { box-shadow: 0 4px 14px rgba(0, 0, 0, .35), 0 0 0 0 rgba(242, 169, 59, .75); }
+  70%, 100% { box-shadow: 0 4px 14px rgba(0, 0, 0, .35), 0 0 0 9px rgba(242, 169, 59, 0); }
+}
+@keyframes evHeroNudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .ev-hero-single, .ev-hero-single-img, .ev-hero-shine, .ev-hero-hint, .ev-hero-hint i { animation: none !important; }
+  .ev-hero-shine { display: none; }
+}
+
+
+/* ==========================================================================
+   HOME PAGE INTERACTIVITY: scroll reveal, category photo tiles, "Show more"
+   ========================================================================== */
+.js [data-reveal] { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; transition-delay: calc(var(--i, 0) * 60ms); }
+.js [data-reveal].is-in { opacity: 1; transform: none; }
+.ev-cat-tile { transition: opacity .6s ease, transform .6s ease, box-shadow .25s ease, border-color .25s ease; }
+.ev-cat-tile.is-in:hover { transform: translateY(-4px); transition-delay: 0s; }
+.ev-card-in { animation: evCardIn .45s ease both; animation-delay: var(--d, 0ms); }
+@keyframes evCardIn { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] { opacity: 1; transform: none; transition: none; }
+  .ev-card-in { animation: none; }
+}
+.js .ev-cat-tile[data-reveal] { transition: opacity .6s ease, transform .6s ease, box-shadow .25s ease, border-color .25s ease; }

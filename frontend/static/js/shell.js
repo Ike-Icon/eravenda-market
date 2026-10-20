@@ -87,7 +87,32 @@
     });
   }
 
+  // ---- Scroll reveal --------------------------------------------------
+  // Elements marked data-reveal fade/slide in the first time they scroll into
+  // view (CSS: ".js [data-reveal]"). Without IntersectionObserver, or with
+  // reduced motion, they are simply shown.
+  function initReveal() {
+    const items = [...document.querySelectorAll("[data-reveal]")];
+    if (!items.length) return;
+    if (reduceMotion || !("IntersectionObserver" in window)) {
+      items.forEach((el) => el.classList.add("is-in"));
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-in");
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0, rootMargin: "0px 0px -6% 0px" });
+    items.forEach((el) => io.observe(el));
+    // Safety net: never leave content hidden if something goes wrong.
+    setTimeout(() => items.forEach((el) => el.classList.add("is-in")), 4000);
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
+    initReveal();
     initGoBack();
     initBottomNav();
     initFloatingActions();

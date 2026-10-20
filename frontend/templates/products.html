@@ -68,7 +68,7 @@
           <button type="button" id="closeFilters" class="lg:hidden text-slate-400 hover:text-slate-700 text-lg leading-none" aria-label="Close filters">&times;</button>
         </div>
       </div>
-      <p class="text-xs text-slate-500 mb-3">Select one or more categories to narrow the products shown.</p>
+      <p class="text-xs text-slate-500 mb-3">Pick a category to jump straight to it.</p>
       <div id="categoryFilters" class="space-y-3 text-sm">
         {% for c in category_tree|default([]) %}
         <div>
@@ -111,7 +111,7 @@
         <input type="hidden" name="q" value="{{ search_query|default('') }}">
         {% if is_wholesale %}<input type="hidden" name="type" value="wholesale">{% endif %}
         <input type="hidden" name="cod" id="codHiddenField" value="{{ '1' if cod_only else '' }}">
-        <select name="category_id" class="border border-slate-300 rounded-md px-3 py-2 text-sm">
+        <select name="category_id" class="border border-slate-300 rounded-md px-3 py-2 text-sm" onchange="this.form.submit()">
           <option value="">All categories</option>
           {% for c in category_tree|default([]) %}
           <option value="{{ c.id }}" {% if selected_category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
@@ -291,12 +291,40 @@ function applyCategoryFilters() {
   }
 }
 
-categoryFilterInputs.forEach(input => input.addEventListener('change', applyCategoryFilters));
+// ---- Category = instant switch ----------------------------------------
+// The server returns only the products of the category in the URL, so a
+// category pick has to reload the list for that category (a client-side filter
+// over the already-narrowed page would just show nothing). Picking a category
+// in the sidebar or the mobile chips therefore goes straight to it, keeping the
+// search, wholesale/retail tab, sort and Pay-on-Delivery choices. One category
+// at a time (a parent category already includes its sub-categories).
+const urlParams = new URLSearchParams(window.location.search);
+const activeCategoryId = {{ (selected_category_id|default(''))|string|tojson }};
+
+function goToCategory(categoryId) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('page');
+  if (categoryId) url.searchParams.set('category_id', categoryId); else url.searchParams.delete('category_id');
+  if (codOnly?.checked) url.searchParams.set('cod', '1'); else url.searchParams.delete('cod');
+  if (inStockOnly?.checked) url.searchParams.set('stock', '1'); else url.searchParams.delete('stock');
+  window.location.href = url.toString();
+}
+
+// Tick the sidebar box for the category this page is already showing.
+categoryFilterInputs.forEach(input => { input.checked = activeCategoryId !== '' && String(input.value) === activeCategoryId; });
+// In-stock choice survives the category switch.
+if (inStockOnly) inStockOnly.checked = urlParams.get('stock') === '1';
+
+categoryFilterInputs.forEach(input => input.addEventListener('change', () => {
+  categoryFilterInputs.forEach(other => { if (other !== input) other.checked = false; });
+  goToCategory(input.checked ? input.value : '');
+}));
 document.getElementById('clearCategoryFilters')?.addEventListener('click', () => {
   categoryFilterInputs.forEach(input => { input.checked = false; });
   if (inStockOnly) inStockOnly.checked = false;
   if (codOnly) codOnly.checked = false;
   if (quickSearchInput) quickSearchInput.value = '';
+  if (activeCategoryId !== '' || urlParams.has('cod') || urlParams.has('stock')) { goToCategory(''); return; }
   applyCategoryFilters();
 });
 inStockOnly?.addEventListener('change', applyCategoryFilters);
@@ -308,21 +336,13 @@ quickSearchInput?.addEventListener('input', () => {
 });
 applyCategoryFilters();
 
-// One-tap category chips (mobile) — toggle the matching checkbox and re-filter.
+// One-tap category chips (mobile) go straight to that category (tap the active one again to clear it).
 quickChips.forEach(chip => {
+  const value = chip.dataset.quickCategory;
+  chip.classList.toggle('active', value === '' ? activeCategoryId === '' : String(value) === activeCategoryId);
   chip.addEventListener('click', () => {
-    const value = chip.dataset.quickCategory;
-    if (!value) {
-      categoryFilterInputs.forEach(input => { input.checked = false; });
-    } else {
-      const input = categoryFilterInputs.find(i => String(i.value) === String(value));
-      if (input) {
-        const wasOnlyOneChecked = input.checked && categoryFilterInputs.filter(i => i.checked).length === 1;
-        categoryFilterInputs.forEach(i => { i.checked = false; });
-        input.checked = !wasOnlyOneChecked;
-      }
-    }
-    applyCategoryFilters();
+    if (!value || String(value) === activeCategoryId) goToCategory('');
+    else goToCategory(value);
   });
 });
 

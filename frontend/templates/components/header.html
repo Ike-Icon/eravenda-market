@@ -55,6 +55,9 @@
 
     <!-- Mobile quick actions stay visible beside the hamburger menu. -->
     <div class="lg:hidden ml-auto flex items-center gap-0.5 bg-slate-50 rounded-full p-0.5" aria-label="Quick actions">
+      {# Cart + Wishlist live in the bottom tab bar on phones, so they are not repeated up here.
+         Pages without the tab bar (product page, checkout, dashboards) keep them. #}
+      {% if not show_bottom_nav|default(false) %}
       <a href="/wishlist" class="mobile-nav-action relative p-2 rounded-full hover:bg-white" aria-label="Wishlist" title="Wishlist">
         <i class="ev-nav-icon ev-nav-icon-red fas fa-heart text-base"></i>
         <span id="mobileWishlistCountBadge" class="wishlist-badge hidden">0</span>
@@ -63,6 +66,7 @@
         <i class="ev-nav-icon ev-nav-icon-gold fas fa-cart-shopping text-base"></i>
         <span id="mobileCartCountBadge" class="hidden absolute -top-0.5 -right-0.5 bg-accent-500 text-slate-900 text-[9px] font-bold rounded-full px-1 min-w-[1rem] text-center">0</span>
       </a>
+      {% endif %}
       <!-- Account icon: opens a small dropdown instead of navigating away.
            Signed out -> Log In / Sign Up. Signed in -> account menu + Log Out.
            Server renders the safe "guest" default; main.js swaps the avatar

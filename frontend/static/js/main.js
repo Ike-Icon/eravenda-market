@@ -1737,42 +1737,75 @@ function initFlashCountdown() {
 
 function initProductFilterTabs() {
   const tabs = document.querySelectorAll("[data-product-filter]");
+  const grid = document.querySelector("[data-product-grid]");
   const productCards = document.querySelectorAll("[data-product-grid] [data-product-card]");
   const noMatchesEl = document.getElementById("noProductMatches");
   if (!tabs.length || !productCards.length) return;
+
+  // "Show more products": the page sends a big batch, shows `step` of them and
+  // reveals `step` more on each click. Works together with the filter tabs:
+  // the cap applies to whatever the active tab matches.
+  const step = parseInt(grid?.dataset.pageStep || "0", 10);
+  const moreWrap = document.getElementById("homeShowMoreWrap");
+  const moreBtn = document.getElementById("homeShowMore");
+  const moreLeft = document.getElementById("homeShowMoreLeft");
+  const capped = step > 0 && moreBtn;
+  let limit = step;
+  let filter = "all";
+
+  const matches = (card) => {
+    if (filter === "all") return true;
+    if (filter === "deals") return card.dataset.hasDiscount === "true";
+    if (filter === "top-rated") return parseFloat(card.dataset.rating || "0") >= 4.0;
+    return card.dataset.category === filter || card.dataset.parentCategory === filter;
+  };
+
+  function render(animateFrom = -1) {
+    let seen = 0;
+    productCards.forEach(card => {
+      let show = matches(card);
+      if (show) {
+        seen++;
+        if (capped && seen > limit) show = false;
+      }
+      const wasHidden = card.classList.contains("hidden");
+      card.classList.toggle("hidden", !show);
+      // newly revealed cards fade/slide in
+      if (show && wasHidden && animateFrom >= 0 && seen > animateFrom) {
+        card.classList.remove("ev-card-in");
+        void card.offsetWidth;
+        card.classList.add("ev-card-in");
+        card.style.setProperty("--d", `${Math.min(seen - animateFrom, 12) * 40}ms`);
+      }
+    });
+    let total = 0;
+    productCards.forEach(card => { if (matches(card)) total++; });
+    if (noMatchesEl) noMatchesEl.classList.toggle("hidden", total > 0);
+    if (capped && moreWrap) {
+      const left = Math.max(0, total - limit);
+      moreWrap.classList.toggle("hidden", left === 0);
+      if (moreLeft) moreLeft.textContent = left ? `(${left} more)` : "";
+    }
+  }
 
   tabs.forEach(tab => {
     tab.addEventListener("click", () => {
       tabs.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
-      const filter = tab.dataset.productFilter;
-
-      let visibleCount = 0;
-      productCards.forEach(card => {
-        let show = false;
-        if (filter === "all") {
-          show = true;
-        } else if (filter === "deals") {
-          show = card.dataset.hasDiscount === "true";
-        } else if (filter === "top-rated") {
-          show = parseFloat(card.dataset.rating || "0") >= 4.0;
-        } else {
-          show = card.dataset.category === filter || card.dataset.parentCategory === filter;
-        }
-
-        if (show) {
-          card.classList.remove("hidden");
-          visibleCount++;
-        } else {
-          card.classList.add("hidden");
-        }
-      });
-
-      if (noMatchesEl) {
-        noMatchesEl.classList.toggle("hidden", visibleCount > 0);
-      }
+      filter = tab.dataset.productFilter;
+      limit = step;
+      render();
     });
   });
+
+  if (capped) {
+    moreBtn.addEventListener("click", () => {
+      const before = limit;
+      limit += step;
+      render(before);
+    });
+  }
+  render();
 }
 
 function initQuickViewModal() {

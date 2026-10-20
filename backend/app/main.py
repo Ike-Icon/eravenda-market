@@ -149,6 +149,9 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 PRODUCTS_PAGE_SIZE = 48
 # "New" / Hot Arrivals window: products added in the last 30 days.
 NEW_ARRIVALS_DAYS = 30
+# Home page "Discover Products" grid: how many random products are sent to the
+# page. The page shows the first 24 and reveals more with "Show more products".
+HOME_GRID_SIZE = 72
 # Upper bound on how many products /products sends to the browser to page
 # through (the pager works client-side so the sidebar filters span everything).
 PRODUCTS_PAGE_MAX = 500
@@ -235,9 +238,9 @@ def home_page(request: Request, db: Session = Depends(get_db)):
     # newest-first, so no seller owns the home page just by uploading last.
     promoted_products = live_promoted_products(db, limit=12)
     promoted_ids = [p.id for p in promoted_products]
-    products_list = fair_random_products(db, 30, exclude_ids=promoted_ids)
+    products_list = fair_random_products(db, HOME_GRID_SIZE, exclude_ids=promoted_ids)
     if not products_list:  # tiny catalogue: everything is already in the promoted rail
-        products_list = fair_random_products(db, 30)
+        products_list = fair_random_products(db, HOME_GRID_SIZE)
     flash_deals = fair_random_products(
         db, 8,
         models.Product.discount_price.isnot(None),
