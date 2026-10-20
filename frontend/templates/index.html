@@ -482,7 +482,10 @@
         {% endif %}
       </span>
       <span class="mt-2 block w-full text-[11px] sm:text-xs font-semibold leading-tight text-slate-800 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 line-clamp-2 transition-colors">{{ c.name }}</span>
-      <span class="mt-0.5 hidden sm:block text-[10px] text-slate-400">{{ (c.children|length ~ ' sub-categories') if c.children else 'Browse' }}</span>
+      {# Item count under the name: short "N items" on phones, "N sub-categories" from sm up. #}
+      <span class="mt-0.5 block text-[10px] leading-tight text-slate-400 dark:text-slate-500">
+        {% if c.children %}<span class="sm:hidden">{{ c.children|length }} items</span><span class="hidden sm:inline">{{ c.children|length }} sub-categories</span>{% else %}Browse{% endif %}
+      </span>
     </a>
     {% endfor %}
   </div>
