@@ -834,6 +834,9 @@ async function renderAuthState() {
     // "Become a Seller" only for accounts that don't have a store dashboard yet.
     const becomeSeller = document.getElementById("mobileBecomeSellerLink");
     if (becomeSeller) becomeSeller.style.display = hasDashboard ? "none" : "";
+    // "Sell on EraVenda" (More from EraVenda): existing sellers/admins go straight to their dashboard.
+    const sellLink = document.getElementById("mobileSellLink");
+    if (sellLink && hasDashboard && dashboardLink) sellLink.setAttribute("href", dashboardLink.getAttribute("href"));
 
     const mobileLogoutBtn = document.getElementById("mobileAccountLogoutBtn");
     if (mobileLogoutBtn && !mobileLogoutBtn.dataset.bound) {
