@@ -1670,3 +1670,56 @@ html[data-theme="dark"] .ev-crop-panel { background: #0f172a; color: #e2e8f0; }
 html[data-theme="dark"] .ev-crop-hint { color: #94a3b8; }
 html[data-theme="dark"] .ev-crop-icon, html[data-theme="dark"] .ev-crop-btn { background: #1e293b; border-color: #334155; color: #e2e8f0; }
 html[data-theme="dark"] .ev-crop-primary { background: #1c6b4f; border-color: #1c6b4f; color: #fff; }
+
+
+/* ============================================================
+   Mobile hamburger drawer: slides in from the right at 3/4 of the screen width.
+   Sits outside <header>, above the bottom tab bar (z 40) and category sheet (z 60).
+   ============================================================ */
+.ev-drawer-backdrop {
+  position: fixed; inset: 0; z-index: 65;
+  background: rgba(15, 23, 42, .5);
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s ease, visibility 0s linear .25s;
+}
+.ev-drawer-backdrop.is-open { opacity: 1; visibility: visible; transition-delay: 0s; }
+
+.ev-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 70;
+  width: 75vw; max-width: none; max-height: none;
+  background: #fff; box-shadow: -8px 0 24px rgba(15, 23, 42, .18);
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateX(100%); visibility: hidden;
+  transition: transform .25s ease, visibility 0s linear .25s;
+}
+.ev-drawer.is-open { transform: translateX(0); visibility: visible; transition-delay: 0s; }
+#mobileDrawer.ev-drawer { max-height: none; }
+
+.ev-drawer-head {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: #fff; border-bottom: 1px solid #e2e8f0;
+}
+.ev-drawer-link {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 44px; padding: 8px 8px; border-radius: 8px;
+  color: #334155; background: none; border: 0; cursor: pointer;
+}
+.ev-drawer-link:hover, .ev-drawer-link:active { background: #f1f5f9; color: #0a5c36; }
+.ev-drawer-link.is-current { background: #ecfdf5; color: #0a5c36; }
+.ev-drawer-sublink {
+  display: block; padding: 8px 8px 8px 38px; font-weight: 400; font-size: 13px; color: #64748b;
+}
+.ev-drawer-sublink:hover { color: #0a5c36; }
+
+html[data-theme="dark"] .ev-drawer,
+html[data-theme="dark"] .ev-drawer-head { background: #0f172a; border-color: #1e293b; }
+html[data-theme="dark"] .ev-drawer-link { color: #e2e8f0; }
+html[data-theme="dark"] .ev-drawer-link:hover { background: #1e293b; color: #5fa886; }
+html[data-theme="dark"] .ev-drawer-link.is-current { background: #14352a; color: #5fa886; }
+html[data-theme="dark"] .ev-drawer-sublink { color: #94a3b8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ev-drawer, .ev-drawer-backdrop { transition: none; }
+}

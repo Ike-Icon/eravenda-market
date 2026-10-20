@@ -601,17 +601,29 @@ function initCardActions() {
 function initMobileMenu() {
   const btn = document.getElementById("mobileMenuBtn");
   const drawer = document.getElementById("mobileDrawer");
+  const backdrop = document.getElementById("mobileDrawerBackdrop");
+  const closeBtn = document.getElementById("mobileDrawerClose");
   if (!btn || !drawer) return;
 
+  const isOpen = () => drawer.classList.contains("is-open");
+
+  // The drawer slides in from the right (CSS .ev-drawer). While closed it is
+  // inert + aria-hidden so keyboard and screen-reader users cannot reach it.
   const setOpen = (open) => {
-    drawer.classList.toggle("hidden", !open);
+    drawer.classList.toggle("is-open", open);
+    if (backdrop) backdrop.classList.toggle("is-open", open);
+    drawer.setAttribute("aria-hidden", String(!open));
+    if ("inert" in drawer) drawer.inert = !open;
+    document.body.classList.toggle("overflow-hidden", open);
     btn.setAttribute("aria-expanded", String(open));
     btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    if (open && closeBtn) closeBtn.focus({ preventScroll: true });
   };
+  setOpen(false);
 
-  btn.addEventListener("click", () => {
-    setOpen(drawer.classList.contains("hidden"));
-  });
+  btn.addEventListener("click", () => setOpen(!isOpen()));
+  if (closeBtn) closeBtn.addEventListener("click", () => { setOpen(false); btn.focus(); });
+  if (backdrop) backdrop.addEventListener("click", () => setOpen(false));
 
   // Close after navigation so the next page never inherits an open drawer.
   drawer.addEventListener("click", (event) => {
@@ -620,7 +632,7 @@ function initMobileMenu() {
 
   // Keep keyboard users from getting trapped in the mobile navigation.
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !drawer.classList.contains("hidden")) {
+    if (event.key === "Escape" && isOpen()) {
       setOpen(false);
       btn.focus();
     }
@@ -628,9 +640,7 @@ function initMobileMenu() {
 
   // If the viewport crosses into desktop, reset the mobile state.
   window.addEventListener("resize", () => {
-    if (window.innerWidth >= 1024 && !drawer.classList.contains("hidden")) {
-      setOpen(false);
-    }
+    if (window.innerWidth >= 1024 && isOpen()) setOpen(false);
   });
 }
 
@@ -643,7 +653,6 @@ function initMobileMenu() {
 async function renderAuthState() {
   const guestLinks = document.getElementById("guestLinks");
   const userLinks = document.getElementById("userLinks");
-  const mobileAuthLinks = document.getElementById("mobileAuthLinks");
   if (!guestLinks || !userLinks) return;
 
   const user = Auth.getUser();
@@ -653,6 +662,9 @@ async function renderAuthState() {
     userLinks.classList.remove("hidden");
     userLinks.classList.add("flex");
     initUserDropdown();
+    // Show the signed-in drawer block right away; the role checks below can take a moment.
+    document.querySelectorAll("#mobileDrawer [data-auth='guest']").forEach((el) => { el.style.display = "none"; });
+    document.querySelectorAll("#mobileDrawer [data-auth='user']").forEach((el) => { el.style.display = ""; });
 
     const firstName = document.getElementById("userFirstName");
     if (firstName) firstName.textContent = user.full_name.split(" ")[0];
@@ -781,33 +793,40 @@ async function renderAuthState() {
       deliveryFooterDashboard.style.display = hasDeliveryProfile ? "" : "none";
     }
 
-    if (mobileAuthLinks) {
-      const roleLink = hasDashboard
-        ? `<a href="${dashboardLink.href}" class="py-2 px-2 hover:bg-brand-50 rounded-lg">${dashboardLink.querySelector("span")?.textContent || "Dashboard"}</a>`
-        : `<a href="/account#seller-application" class="py-2 px-2 hover:bg-brand-50 rounded-lg">Become a Seller</a>`;
-      const professionalLink = hasProfessionalProfile
-        ? `<a href="/professional/dashboard.html" class="py-2 px-2 hover:bg-brand-50 rounded-lg"><i class="fas fa-briefcase text-accent-600 mr-2"></i>Pro Dashboard</a>`
-        : `<a href="/services/register" class="py-2 px-2 hover:bg-brand-50 rounded-lg"><i class="fas fa-user-plus text-accent-600 mr-2"></i>Join as a Handyman</a>`;
-      const deliveryLink = hasDeliveryProfile
-        ? `<a href="/delivery/dashboard" class="py-2 px-2 hover:bg-brand-50 rounded-lg"><i class="fas fa-truck text-teal-600 mr-2"></i>Delivery Dashboard</a>`
-        : "";
-      mobileAuthLinks.innerHTML = `
-        ${roleLink}
-        ${deliveryLink}
-        <a href="/orders.html" class="py-1 hover:text-brand-600">Orders</a>
-        <div class="border-t border-slate-100 pt-3 mt-1 flex flex-col gap-2">
-          <a href="/products" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-store text-brand-500 mr-2"></i>Marketplace</a>
-          <a href="/products?type=wholesale" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-boxes-stacked text-brand-500 mr-2"></i>Wholesale</a>
-          <a href="/services" class="py-2 px-2 rounded-lg text-brand-700 hover:bg-brand-50"><i class="fas fa-screwdriver-wrench text-brand-500 mr-2"></i>Handyman Hub</a>
-        </div>
-        <a href="/services" class="pl-6 py-1 hover:text-brand-600">Hire a Handyman</a>
-        <a href="/services/register" class="pl-6 py-1 hover:text-brand-600">Join as a Handyman</a>
-        <a href="/services/bookings" class="pl-6 py-1 hover:text-brand-600">My Handyman Bookings</a>
-        <a href="/account" class="py-1 hover:text-brand-600">Account</a>
-        <button id="mobileLogoutBtn" type="button" class="py-1 text-left hover:text-brand-600">Log out</button>
-      `;
-      document.getElementById("mobileLogoutBtn").addEventListener("click", logOut);
+    // Hamburger drawer: swap the guest block for the signed-in block and fill
+    // the dashboard links (shown only when the account actually has them).
+    document.querySelectorAll("#mobileDrawer [data-auth='guest']").forEach((el) => { el.style.display = "none"; });
+    document.querySelectorAll("#mobileDrawer [data-auth='user']").forEach((el) => { el.style.display = ""; });
+
+    const drawerDashboard = document.getElementById("drawerDashboardLink");
+    const drawerBecomeSeller = document.getElementById("drawerBecomeSellerLink");
+    const drawerPro = document.getElementById("drawerProDashboardLink");
+    const drawerDelivery = document.getElementById("drawerDeliveryDashboardLink");
+    const drawerJoinHandyman = document.getElementById("drawerJoinHandymanLink");
+    if (drawerDashboard) {
+      if (hasDashboard) {
+        drawerDashboard.href = user.role === "admin" ? "/admin/dashboard.html" : "/seller/dashboard.html";
+        const icon = drawerDashboard.querySelector("i");
+        const span = drawerDashboard.querySelector("span");
+        if (user.role === "admin") {
+          if (icon) icon.className = "fas fa-gauge-high text-brand-600 w-5 text-center";
+          if (span) span.textContent = "Admin Dashboard";
+        } else {
+          if (icon) icon.className = "fas fa-store text-brand-600 w-5 text-center";
+          if (span) span.textContent = "My Store";
+        }
+        drawerDashboard.style.display = "";
+      } else {
+        drawerDashboard.style.display = "none";
+      }
     }
+    if (drawerBecomeSeller) drawerBecomeSeller.style.display = hasDashboard ? "none" : "";
+    if (drawerPro) drawerPro.style.display = hasProfessionalProfile ? "" : "none";
+    if (drawerDelivery) drawerDelivery.style.display = hasDeliveryProfile ? "" : "none";
+    if (drawerJoinHandyman) drawerJoinHandyman.style.display = hasProfessionalProfile ? "none" : "";
+
+    const drawerLogout = document.getElementById("mobileLogoutBtn");
+    if (drawerLogout) drawerLogout.addEventListener("click", logOut);
 
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", logOut);
