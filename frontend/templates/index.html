@@ -455,7 +455,7 @@
     ('toy', 'photo-1575364289437-fb1479d52732'), ('kid', 'photo-1575364289437-fb1479d52732'), ('baby', 'photo-1575364289437-fb1479d52732'),
     ('automotive', 'photo-1637640125496-31852f042a60'), ('tool', 'photo-1637640125496-31852f042a60'), ('auto', 'photo-1637640125496-31852f042a60'),
   ] %}
-  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+  <div class="grid grid-cols-4 lg:grid-cols-8 gap-x-2 gap-y-5 sm:gap-x-4">
     {% for c in category_tree %}
     {% set ns = namespace(photo='') %}
     {% if c.icon_url and (c.icon_url.startswith('http') or c.icon_url.startswith('/')) %}
@@ -463,28 +463,26 @@
     {% else %}
       {% set key = ((c.slug or '') ~ ' ' ~ (c.name or ''))|lower|replace(' ', '-') %}
       {% for word, pid in category_photo_ids %}
-        {% if not ns.photo and word in key %}{% set ns.photo = 'https://images.unsplash.com/' ~ pid ~ '?auto=format&fit=crop&w=420&h=520&q=70' %}{% endif %}
+        {# fm=png: delivered as PNG, cropped square (the circle is done in CSS) #}
+        {% if not ns.photo and word in key %}{% set ns.photo = 'https://images.unsplash.com/' ~ pid ~ '?fm=png&fit=crop&w=240&h=240&q=80' %}{% endif %}
       {% endfor %}
     {% endif %}
     <a href="/products?category_id={{ c.id }}" data-reveal style="--i: {{ loop.index0 }}"
       aria-label="{{ c.name }}{% if c.children %}, {{ c.children|length }} sub-categories{% endif %}"
-      class="ev-cat-tile group relative block overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 aspect-[5/4] sm:aspect-[4/5] hover:border-brand-500 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-      {% if ns.photo %}
-      <img src="{{ ns.photo }}" alt="" loading="lazy" decoding="async"
-        class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-        onerror="this.remove()">
-      <span class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" aria-hidden="true"></span>
-      {% else %}
-      <span class="absolute inset-0 flex items-center justify-center text-brand-600 dark:text-brand-400" aria-hidden="true">
-        <i data-lucide="{{ c.icon_url if (c.icon_url and not c.icon_url.startswith('http') and not c.icon_url.startswith('/')) else 'shopping-bag' }}" class="w-10 h-10 group-hover:scale-110 transition-transform"></i>
-      </span>
-      {% endif %}
-      <span class="absolute inset-x-0 bottom-0 p-2.5 sm:p-3 text-left {{ 'text-white' if ns.photo else 'text-slate-800 dark:text-slate-100' }}">
-        <span class="block text-xs sm:text-[13px] font-bold leading-tight line-clamp-2 drop-shadow">{{ c.name }}</span>
-        <span class="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold {{ 'text-amber-300' if ns.photo else 'text-brand-600' }} opacity-90 group-hover:gap-2 transition-all">
-          {{ (c.children|length ~ ' sub-categories') if c.children else 'Browse' }} <i class="fas fa-arrow-right text-[8px]" aria-hidden="true"></i>
+      class="ev-cat-tile group flex flex-col items-center text-center focus:outline-none">
+      <span class="ev-cat-circle relative block w-full max-w-[84px] sm:max-w-[104px] lg:max-w-[112px] aspect-square rounded-full overflow-hidden bg-brand-50 dark:bg-slate-800 ring-2 ring-white dark:ring-slate-900 shadow-md group-hover:shadow-xl group-focus-visible:ring-brand-500 transition-all duration-300">
+        {% if ns.photo %}
+        <img src="{{ ns.photo }}" alt="" loading="lazy" decoding="async" width="240" height="240"
+          class="w-full h-full object-cover rounded-full transition-transform duration-500 ease-out group-hover:scale-110"
+          onerror="this.remove()">
+        {% else %}
+        <span class="absolute inset-0 flex items-center justify-center text-brand-600 dark:text-brand-400" aria-hidden="true">
+          <i data-lucide="{{ c.icon_url if (c.icon_url and not c.icon_url.startswith('http') and not c.icon_url.startswith('/')) else 'shopping-bag' }}" class="w-8 h-8 group-hover:scale-110 transition-transform"></i>
         </span>
+        {% endif %}
       </span>
+      <span class="mt-2 block w-full text-[11px] sm:text-xs font-semibold leading-tight text-slate-800 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 line-clamp-2 transition-colors">{{ c.name }}</span>
+      <span class="mt-0.5 hidden sm:block text-[10px] text-slate-400">{{ (c.children|length ~ ' sub-categories') if c.children else 'Browse' }}</span>
     </a>
     {% endfor %}
   </div>

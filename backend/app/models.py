@@ -112,6 +112,9 @@ class User(Base):
     oauth_provider = Column(String(20), nullable=True)  # "google" | "apple" | None for password accounts
     oauth_sub = Column(String(255), nullable=True)  # stable id from the provider's token, not their email
     avatar_key = Column(String(40), nullable=False, default="Avery")
+    # Optional photo the user uploaded (cropped in the browser, stored on Cloudinary).
+    # When set it wins over the preset avatar_key; None means "use the preset".
+    avatar_url = Column(Text, nullable=True)
     region = Column(String(100), nullable=True)
     city = Column(String(100), nullable=True)
     sub_town = Column(String(150), nullable=True)

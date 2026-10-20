@@ -26,7 +26,19 @@
         <input name="phone" placeholder="0244 000 000" class="w-full border border-slate-300 rounded-md px-3 py-2">
       </div>
       <div>
-        <label class="block text-sm font-medium mb-2">Avatar</label>
+        <label class="block text-sm font-medium mb-2">Profile photo</label>
+        <div class="flex items-center gap-4 mb-4">
+          <img id="avatarPreview" src="" alt="Your current profile picture" class="w-20 h-20 rounded-full object-cover border border-slate-200 bg-slate-50 shrink-0">
+          <div class="flex flex-col items-start gap-2 min-w-0">
+            <button type="button" id="uploadPhotoBtn" class="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white text-sm font-semibold px-4 py-2 rounded-md transition-colors">
+              <i class="fas fa-camera" aria-hidden="true"></i><span>Upload your photo</span>
+            </button>
+            <button type="button" id="removePhotoBtn" class="hidden text-sm text-red-600 hover:underline">Remove my photo</button>
+            <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden">
+            <p class="text-xs text-slate-400">JPG, PNG or WebP, up to 10 MB. You can crop and zoom it before it is saved.</p>
+          </div>
+        </div>
+        <p class="text-sm text-slate-600 mb-2">Or pick one of our avatars</p>
         <div id="avatarChoices" class="grid grid-cols-4 gap-2"></div>
         <input type="hidden" name="avatar_key" value="Avery">
       </div>
@@ -113,6 +125,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/avatar-cropper.js"></script>
 <script>
   if (!Auth.isLoggedIn()) {
     window.location.href = "/login?next=/account";
@@ -125,6 +138,8 @@
       document.getElementById("emailField").value = user.email || "";
       document.querySelector('[name="phone"]').value = user.phone || "";
       setSelectedAvatar(user.avatar_key || "Avery");
+      avatarUrl = user.avatar_url || null;   // after setSelectedAvatar, which clears it
+      renderAvatar();
       document.getElementById("seller-application").classList.toggle("hidden", user.role !== "buyer");
     } catch (err) {
       document.getElementById("profileError").textContent = err.message;
@@ -144,6 +159,7 @@
       full_name: fd.get("full_name"),
       phone: fd.get("phone") || null,
       avatar_key: fd.get("avatar_key"),
+      avatar_url: avatarUrl,   // null clears the uploaded photo (e.g. after picking a preset)
     };
 
     try {
@@ -151,8 +167,10 @@
       const stored = Auth.getUser();
       stored.full_name = user.full_name;
       stored.avatar_key = user.avatar_key;
+      stored.avatar_url = user.avatar_url || null;
       stored.phone = user.phone;
       Auth.setSession(Auth.getToken(), stored);
+      refreshAvatarEverywhere();
       okBox.textContent = "Profile updated.";
       okBox.classList.remove("hidden");
     } catch (err) {
@@ -193,14 +211,94 @@
     }
   });
 
+  // The custom photo URL (null = use the preset). Picking a preset clears it;
+  // it is saved with the "Save changes" button, like the other profile fields.
+  let avatarUrl = null;
+
   function setSelectedAvatar(key) {
     document.querySelector('[name="avatar_key"]').value = key;
+    avatarUrl = null;
+    renderAvatar();
+  }
+
+  // Redraw the preview and the highlighted preset from the current state.
+  function renderAvatar() {
+    const key = document.querySelector('[name="avatar_key"]').value || "Avery";
+    document.getElementById("avatarPreview").src = avatarUrl ? userAvatarSrc({ avatar_url: avatarUrl }, 160) : avatarImageUrl(key);
+    document.getElementById("removePhotoBtn").classList.toggle("hidden", !avatarUrl);
     document.querySelectorAll("[data-avatar]").forEach(choice => {
-      choice.classList.toggle("border-brand-500", choice.dataset.avatar === key);
-      choice.classList.toggle("ring-2", choice.dataset.avatar === key);
-      choice.classList.toggle("ring-brand-100", choice.dataset.avatar === key);
+      const on = !avatarUrl && choice.dataset.avatar === key;
+      choice.classList.toggle("border-brand-500", on);
+      choice.classList.toggle("ring-2", on);
+      choice.classList.toggle("ring-brand-100", on);
     });
   }
+
+  // Header (desktop + mobile menu) and the bottom-bar "Me" avatar read the stored user.
+  function refreshAvatarEverywhere() {
+    if (typeof renderAuthState === "function") renderAuthState();
+    if (typeof evRefreshBottomNavAvatar === "function") evRefreshBottomNavAvatar();
+  }
+
+  // ---- Upload your own photo: pick -> crop -> upload to Cloudinary -> save URL on the profile
+  async function uploadAvatarBlob(blob) {
+    if (!window.CLOUDINARY_CLOUD_NAME || !window.CLOUDINARY_UPLOAD_PRESET) {
+      throw new Error("Photo uploads aren't set up yet. Please try again later.");
+    }
+    const fd = new FormData();
+    fd.append("file", blob, "avatar.jpg");
+    fd.append("upload_preset", window.CLOUDINARY_UPLOAD_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CLOUD_NAME}/image/upload`, { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.secure_url) throw new Error((data.error && data.error.message) || "The photo could not be uploaded. Please try again.");
+    return data.secure_url;
+  }
+
+  async function saveAvatarUrl(url) {
+    const user = await apiFetch("/users/me", { method: "PUT", body: { avatar_url: url } });
+    const stored = Auth.getUser();
+    stored.avatar_key = user.avatar_key;
+    stored.avatar_url = user.avatar_url || null;
+    Auth.setSession(Auth.getToken(), stored);
+    avatarUrl = user.avatar_url || null;
+    renderAvatar();
+    refreshAvatarEverywhere();
+  }
+
+  const uploadBtn = document.getElementById("uploadPhotoBtn");
+  const photoInput = document.getElementById("photoInput");
+  uploadBtn.addEventListener("click", () => photoInput.click());
+  photoInput.addEventListener("change", async () => {
+    const file = photoInput.files && photoInput.files[0];
+    photoInput.value = "";   // so choosing the same file again still fires
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { showToast("Please choose a picture (JPG, PNG or WebP).", "error"); return; }
+    if (file.size > 10 * 1024 * 1024) { showToast("That picture is larger than 10 MB. Please choose a smaller one.", "error"); return; }
+
+    const blob = await openAvatarCropper(file);
+    if (!blob) return;   // cancelled
+
+    const label = uploadBtn.querySelector("span");
+    uploadBtn.disabled = true; label.textContent = "Uploading…";
+    try {
+      const url = await uploadAvatarBlob(blob);
+      await saveAvatarUrl(url);
+      showToast("Your profile photo has been updated.");
+    } catch (err) {
+      showToast(err.message || "The photo could not be saved.", "error");
+    } finally {
+      uploadBtn.disabled = false; label.textContent = "Upload your photo";
+    }
+  });
+
+  document.getElementById("removePhotoBtn").addEventListener("click", async () => {
+    try {
+      await saveAvatarUrl(null);
+      showToast("Your photo was removed. Your chosen avatar is showing again.");
+    } catch (err) {
+      showToast(err.message || "The photo could not be removed.", "error");
+    }
+  });
 
   document.getElementById("avatarChoices").innerHTML = AVATAR_CHOICES.map(key => `<button type="button" data-avatar="${key}" class="border border-slate-200 rounded-md p-1 hover:border-brand-500" aria-label="Choose ${key}"><img src="${avatarImageUrl(key)}" alt="" class="w-12 h-12 mx-auto"></button>`).join("");
   document.querySelectorAll("[data-avatar]").forEach(button => button.addEventListener("click", () => setSelectedAvatar(button.dataset.avatar)));

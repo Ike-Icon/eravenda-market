@@ -34,6 +34,17 @@ const Auth = {
 // account; the URL is derived here, so users never submit arbitrary image URLs.
 window.AVATAR_CHOICES = ["Avery", "Bailey", "Charlie", "Dakota", "Emery", "Finley", "Harper", "Jordan"];
 window.avatarImageUrl = (key) => `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(key)}`;
+// The picture to show for a user: their own uploaded photo when they have one,
+// otherwise the preset avatar. Photos live on Cloudinary, so ask it for a small
+// square, face-aware crop instead of the full-size file.
+window.userAvatarSrc = (user, size = 96) => {
+  const url = user && user.avatar_url;
+  if (url && url.includes("/image/upload/")) {
+    return url.replace("/image/upload/", `/image/upload/c_fill,g_face,w_${size},h_${size},f_auto,q_auto/`);
+  }
+  if (url) return url;
+  return avatarImageUrl((user && user.avatar_key) || "Avery");
+};
 
 // Ghana delivery locations used by checkout and store setup. The city select
 // is intentionally limited to common launch markets; a user can still type a
@@ -649,8 +660,8 @@ async function renderAuthState() {
     const avatarImg = document.getElementById("userAvatarImg");
     const avatarFallback = document.getElementById("userAvatarFallback");
     if (avatarImg && avatarFallback) {
-      if (user.avatar_key) {
-        avatarImg.src = avatarImageUrl(user.avatar_key);
+      if (user.avatar_key || user.avatar_url) {
+        avatarImg.src = userAvatarSrc(user);
         avatarImg.alt = user.full_name;
         avatarImg.classList.remove("hidden");
         avatarFallback.classList.add("hidden");
@@ -675,8 +686,8 @@ async function renderAuthState() {
     // set via inline style (which always wins) instead.
     if (mobileGuestIcon) mobileGuestIcon.style.display = "none";
     if (mobileAvatarImg && mobileAvatarFallback) {
-      if (user.avatar_key) {
-        mobileAvatarImg.src = avatarImageUrl(user.avatar_key);
+      if (user.avatar_key || user.avatar_url) {
+        mobileAvatarImg.src = userAvatarSrc(user);
         mobileAvatarImg.alt = user.full_name;
         mobileAvatarImg.classList.remove("hidden");
         mobileAvatarFallback.classList.add("hidden");

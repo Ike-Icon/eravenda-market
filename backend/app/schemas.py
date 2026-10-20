@@ -1,11 +1,37 @@
 from datetime import datetime
 from typing import Optional, List, Any, Literal
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator  # pyright: ignore[reportMissingImports]
+import os
+from urllib.parse import urlparse
+
 import bleach  # type: ignore[reportMissingImports]
 
 from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus, PaymentMethod, ServiceStatus, ServiceBookingStatus, DeliveryStatus
 
 AVATAR_KEYS = {"Avery", "Bailey", "Charlie", "Dakota", "Emery", "Finley", "Harper", "Jordan"}
+
+
+def clean_avatar_url(value: Optional[str]) -> Optional[str]:
+    """Accept only an image from OUR Cloudinary account (the browser uploads the
+    cropped photo there, then sends the URL). Anything else - another host, a
+    plain http link, a javascript: URL, an oversized string - is rejected, so a
+    profile can never point at an arbitrary third-party URL. None / empty clears
+    the photo and falls back to the preset avatar."""
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    cloud = os.getenv("CLOUDINARY_CLOUD_NAME") or "ni2pcrua"
+    parsed = urlparse(value)
+    if (
+        len(value) > 500
+        or parsed.scheme != "https"
+        or parsed.netloc != "res.cloudinary.com"
+        or not parsed.path.startswith(f"/{cloud}/image/upload/")
+    ):
+        raise ValueError("That profile photo could not be used. Please upload it again.")
+    return value
 
 
 # ---------- USERS ----------
@@ -37,6 +63,7 @@ class UserOut(BaseModel):
     role: UserRole
     is_active: bool
     avatar_key: str = "Avery"
+    avatar_url: Optional[str] = None
     region: Optional[str] = None
     city: Optional[str] = None
     sub_town: Optional[str] = None
@@ -52,6 +79,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     avatar_key: Optional[str] = None
+    avatar_url: Optional[str] = None
 
     @field_validator("avatar_key")
     @classmethod
@@ -59,6 +87,11 @@ class UserUpdate(BaseModel):
         if value is not None and value not in AVATAR_KEYS:
             raise ValueError("Choose an avatar from the available options")
         return value
+
+    @field_validator("avatar_url")
+    @classmethod
+    def avatar_url_must_be_ours(cls, value: Optional[str]) -> Optional[str]:
+        return clean_avatar_url(value)
 
 
 class LoginRequest(BaseModel):

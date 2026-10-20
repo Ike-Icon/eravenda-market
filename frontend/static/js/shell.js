@@ -38,6 +38,27 @@
       try { me.setAttribute("href", Auth.isLoggedIn() ? "/account" : "/login"); } catch (_) {}
     }
 
+    // Avatar on the "Me" tab: the user's own photo (or preset avatar) once signed in.
+    function paintMeAvatar() {
+      const img = document.getElementById("bottomNavMeAvatar");
+      const icon = document.getElementById("bottomNavMeIcon");
+      if (!img || !icon || typeof Auth === "undefined") return;
+      let user = null;
+      try { user = Auth.isLoggedIn() ? Auth.getUser() : null; } catch (_) {}
+      const has = !!(user && (user.avatar_url || user.avatar_key) && typeof userAvatarSrc === "function");
+      if (has) {
+        const src = userAvatarSrc(user, 64);
+        if (img.getAttribute("src") !== src) img.src = src;
+        img.alt = "";
+      }
+      img.classList.toggle("hidden", !has);
+      icon.style.display = has ? "none" : "";
+      if (me) me.setAttribute("aria-label", has ? `Me, signed in as ${user.full_name || "you"}` : "Me");
+    }
+    window.evRefreshBottomNavAvatar = paintMeAvatar; // called by the account page after the photo changes
+    paintMeAvatar();
+    window.addEventListener("storage", paintMeAvatar);
+
     // Category sheet
     const btn = document.getElementById("bottomNavCategoryBtn");
     const sheet = document.getElementById("bottomNavCategorySheet");

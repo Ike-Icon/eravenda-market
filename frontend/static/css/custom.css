@@ -1622,7 +1622,6 @@ html[data-theme="dark"] .ev-hero-hint, html[data-theme="dark"] .ev-hero-hint:hov
 .js [data-reveal] { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; transition-delay: calc(var(--i, 0) * 60ms); }
 .js [data-reveal].is-in { opacity: 1; transform: none; }
 .ev-cat-tile { transition: opacity .6s ease, transform .6s ease, box-shadow .25s ease, border-color .25s ease; }
-.ev-cat-tile.is-in:hover { transform: translateY(-4px); transition-delay: 0s; }
 .ev-card-in { animation: evCardIn .45s ease both; animation-delay: var(--d, 0ms); }
 @keyframes evCardIn { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
@@ -1630,3 +1629,44 @@ html[data-theme="dark"] .ev-hero-hint, html[data-theme="dark"] .ev-hero-hint:hov
   .ev-card-in { animation: none; }
 }
 .js .ev-cat-tile[data-reveal] { transition: opacity .6s ease, transform .6s ease, box-shadow .25s ease, border-color .25s ease; }
+
+/* Category circles (home): lift on hover, ring picks up the brand colour */
+.ev-cat-tile .ev-cat-circle { transition: box-shadow .3s ease, transform .3s ease; }
+.ev-cat-tile:hover .ev-cat-circle, .ev-cat-tile:focus-visible .ev-cat-circle { transform: translateY(-3px); }
+.ev-cat-tile:focus-visible .ev-cat-circle { box-shadow: 0 0 0 3px #1c6b4f; }
+html[data-theme="dark"] .ev-cat-tile .ev-cat-circle { box-shadow: 0 4px 12px rgba(0, 0, 0, .5); }
+
+/* "Me" tab avatar in the bottom bar */
+.ev-bn-avatar { display: block; width: 26px; height: 26px; border-radius: 9999px; object-fit: cover; background: #e2e8f0; border: 2px solid #cbd5e1; }
+.ev-bn-avatar.hidden { display: none; }
+.ev-bn-item.is-active .ev-bn-avatar { border-color: #1c6b4f; }
+html[data-theme="dark"] .ev-bn-avatar { border-color: #475569; background: #1e293b; }
+html[data-theme="dark"] .ev-bn-item.is-active .ev-bn-avatar { border-color: #5fa886; }
+
+/* ==========================================================================
+   AVATAR CROPPER (js/avatar-cropper.js)
+   ========================================================================== */
+.ev-crop { position: fixed; inset: 0; z-index: 110; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.ev-crop-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .7); }
+.ev-crop-panel {
+  position: relative; width: 100%; max-width: 400px; max-height: 100%; overflow-y: auto; padding: 18px 16px 16px;
+  background: #fff; color: #0f172a; border-radius: 18px; box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+}
+.ev-crop-title { font-weight: 700; font-size: 17px; text-align: center; }
+.ev-crop-hint { margin: 4px 0 12px; text-align: center; font-size: 12px; color: #64748b; }
+.ev-crop-stage { margin: 0 auto; border-radius: 14px; overflow: hidden; background: #111827; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ev-crop-stage canvas { display: block; cursor: grab; outline-offset: -3px; }
+.ev-crop-stage canvas.is-grabbing { cursor: grabbing; }
+.ev-crop-controls { display: flex; align-items: center; gap: 8px; margin: 14px 0 12px; }
+.ev-crop-controls input[type="range"] { flex: 1 1 auto; min-width: 0; accent-color: #1c6b4f; }
+.ev-crop-icon { flex: none; width: 38px; height: 38px; border-radius: 9999px; border: 1px solid #cbd5e1; background: #fff; color: #334155; font-size: 14px; cursor: pointer; }
+.ev-crop-icon:hover { background: #f1f5f9; }
+.ev-crop-actions { display: flex; gap: 8px; }
+.ev-crop-btn { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; font-weight: 600; font-size: 14px; cursor: pointer; }
+.ev-crop-btn:hover { background: #f1f5f9; }
+.ev-crop-primary { flex: 1.6; border-color: #1c6b4f; background: #1c6b4f; color: #fff; }
+.ev-crop-primary:hover { background: #155a41; }
+html[data-theme="dark"] .ev-crop-panel { background: #0f172a; color: #e2e8f0; }
+html[data-theme="dark"] .ev-crop-hint { color: #94a3b8; }
+html[data-theme="dark"] .ev-crop-icon, html[data-theme="dark"] .ev-crop-btn { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+html[data-theme="dark"] .ev-crop-primary { background: #1c6b4f; border-color: #1c6b4f; color: #fff; }

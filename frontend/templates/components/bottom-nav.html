@@ -27,7 +27,8 @@
     <span class="ev-bn-label">Wishlist</span>
   </a>
   <a href="/login" id="bottomNavMe" class="ev-bn-item{% if _bn_path in ['/account', '/settings', '/orders.html', '/login', '/register'] %} is-active{% endif %}">
-    <span class="ev-bn-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
+    {# Shows the signed-in user's avatar (shell.js fills it in); guests see the person icon. #}
+    <span class="ev-bn-icon"><i id="bottomNavMeIcon" class="fas fa-user" aria-hidden="true"></i><img id="bottomNavMeAvatar" class="ev-bn-avatar hidden" alt="" width="26" height="26"></span>
     <span class="ev-bn-label">Me</span>
   </a>
 </nav>
