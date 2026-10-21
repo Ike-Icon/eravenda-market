@@ -103,6 +103,14 @@
     sheet.querySelectorAll("[data-sheet-close]").forEach((el) => el.addEventListener("click", closeSheet));
     sheet.addEventListener("click", (e) => { if (e.target.closest("a")) closeSheet(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && sheet.classList.contains("is-open")) closeSheet(); });
+    // Restored from the back/forward cache mid-close: come back with the sheet shut.
+    window.addEventListener("pageshow", (e) => {
+      if (!e.persisted) return;
+      sheet.classList.remove("is-open");
+      sheet.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("overflow-hidden");
+    });
     // Leaving the mobile layout (rotate/resize) must not leave the page locked.
     window.matchMedia("(min-width: 1024px)").addEventListener?.("change", (m) => { if (m.matches && sheet.classList.contains("is-open")) closeSheet(); });
   }

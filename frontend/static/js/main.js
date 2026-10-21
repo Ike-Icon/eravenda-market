@@ -682,6 +682,20 @@ function initMobileMenu() {
   window.addEventListener("resize", () => {
     if (window.innerWidth >= 1024 && open) setOpen(false);
   });
+
+  // Back/forward can restore this page from the browser's cache exactly as it was
+  // mid-close; make sure it comes back with the menu fully closed and scrolling free.
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+    clearTimeout(closeTimer);
+    open = false;
+    drawer.classList.remove("is-open");
+    drawer.classList.add("hidden");
+    backdrop?.classList.remove("is-open");
+    backdrop?.classList.add("hidden");
+    document.body.classList.remove("overflow-hidden");
+    btn.setAttribute("aria-expanded", "false");
+  });
 }
 
 // ------------------------------------------------------------------

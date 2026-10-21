@@ -1751,3 +1751,9 @@ html[data-theme="dark"] .ev-dr-logout, html[data-theme="dark"] .ev-dr-logout > s
 html[data-theme="dark"] #siteHeader .ev-wordmark,
 html[data-theme="dark"] #mobileDrawer .ev-wordmark { fill: #8fd9b6; }
 .ev-wordmark { paint-order: stroke; }
+
+
+/* Closed overlays never intercept taps. Without this, leaving the page while the menu/sheet is mid-close and
+   coming back (Back button / bfcache) could leave an invisible full-screen layer over the page. */
+.ev-drawer-backdrop:not(.is-open) { pointer-events: none; }
+.ev-sheet:not(.is-open) { pointer-events: none; }

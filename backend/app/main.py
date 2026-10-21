@@ -186,6 +186,22 @@ def _category_and_child_ids(db: Session, category_id: str) -> list:
     return [category_id] + child_ids
 
 
+def _asset_version() -> str:
+    """Newest modification time of the site's own CSS/JS, used as ?v=... on their URLs.
+
+    Without it a browser can keep running an old main.js/custom.css after a
+    deploy (static files carry no version in their URL), so fixes appear not to
+    have shipped. The value changes whenever any of those files changes.
+    """
+    newest = 0
+    for sub in ("css", "js"):
+        folder = FRONTEND_DIR / "static" / sub
+        if folder.is_dir():
+            for f in folder.glob("*.*"):
+                newest = max(newest, int(f.stat().st_mtime))
+    return str(newest or 1)
+
+
 def page_context(request: Request, db: Session, **extra) -> dict:
     """
     Shared context every page template needs.
@@ -212,6 +228,7 @@ def page_context(request: Request, db: Session, **extra) -> dict:
         "category_tree": category_tree,
         "current_year": datetime.utcnow().year,
         "site_url": SITE_URL,
+        "asset_v": _asset_version(),
         # Self-referencing canonical for every page. `page` is dropped because
         # our list pages paginate client-side (history.replaceState, no
         # server reload) — every ?page=N is the same document as far as a
