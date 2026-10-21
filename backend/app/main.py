@@ -331,27 +331,12 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
-    # Photos for the Retail and Wholesale hero slides (a few random listings
-    # that actually have a picture, so the slides always show real stock).
-    def _hero_photos(sales_type: str) -> list[str]:
-        picks = _visible(sales_type).order_by(func.random()).limit(24).all()
-        urls = []
-        for prod in picks:
-            img = next((i for i in prod.images if i.is_primary), None) or (prod.images[0] if prod.images else None)
-            if img and img.image_url:
-                urls.append(img.image_url)
-            if len(urls) == 4:
-                break
-        return urls
-
     return templates.TemplateResponse(
         "index.html",
         page_context(
             request,
             db,
             hot_arrivals=hot_arrivals,
-            hero_retail_photos=_hero_photos("retail"),
-            hero_wholesale_photos=_hero_photos("wholesale"),
             products=products_list,
             flash_deals=flash_deals,
             featured_stores=featured_stores,

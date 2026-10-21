@@ -17,29 +17,60 @@
 {% block content %}
 {% from "components/promo-card.html" import promo_card %}
 
-{# Optional: paste an image URL here to use your own artwork as the background of
-   the Retail or Wholesale slide. Leave empty to show photos of live listings. #}
-{% set hero_retail_image = '' %}
-{% set hero_wholesale_image = '' %}
-
 <!-- ============================================================
-     1. HERO SLIDESHOW — Handyman Hub, Retail marketplace, Wholesale.
-     Crossfade + zoom, staggered text, product photos pop in. Autoplays
-     (pauses on hover/focus/touch and when the tab is hidden; no autoplay for
-     people who prefer reduced motion). Behaviour: script at the bottom of
-     this file; styles: "HERO SLIDESHOW" in custom.css.
+     1. HERO SLIDESHOW — three clickable banners (3:1), arrows on both edges, dots, swipe.
+        1) Handyman Hub          -> /services
+        2) EraVenda marketplace  -> /products   (Wholesale & Retail, all in one place)
+        3) EraTrends store       -> /store/41ee2f52-3c2e-4143-849e-437e7dc1ace4
+     The active banner slowly zooms in and out, a light streak sweeps across and the frame glows, so it reads as
+     clickable. Autoplays (pauses on hover/focus/touch and in a hidden tab; no autoplay with reduced motion).
+     Images: static/img/hero/. Behaviour: script at the bottom of this file. Styles: "HERO SLIDESHOW" in custom.css.
+     To add a slide: copy one <a data-slide> block, add a matching dot, and raise the "n of 3" labels.
      ============================================================ -->
-<section class="bg-white dark:bg-slate-950 pt-4 sm:pt-6" >
+<section class="bg-white dark:bg-slate-950 pt-4 sm:pt-6">
   <div class="max-w-7xl mx-auto px-4">
     <h1 class="sr-only">EraVenda — Ghana's Marketplace for Products & Handyman Services</h1>
-    <a href="/services" aria-label="Explore the Handyman Hub"
-      class="ev-hero-single group relative block w-full overflow-hidden rounded-2xl sm:rounded-3xl shadow-xl bg-slate-950">
-      <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789761496/eravenda-handyman-hero.jpg"
-        alt="Explore EraVenda Handyman Hub" fetchpriority="high"
-        class="ev-hero-single-img w-full h-auto block">
-      <span class="ev-hero-shine" aria-hidden="true"></span>
-      <span class="ev-hero-hint" aria-hidden="true">Explore now <i class="fas fa-arrow-right"></i></span>
-    </a>
+    <div id="heroSlider" class="ev-hero" role="region" aria-roledescription="carousel" aria-label="Featured on EraVenda">
+      <div class="ev-hero-track">
+
+        <!-- Slide 1: Handyman Hub -->
+        <a href="/services" class="ev-slide is-active" data-slide aria-roledescription="slide" aria-label="1 of 3: Handyman Hub">
+          <img src="https://res.cloudinary.com/ni2pcrua/image/upload/v1789761496/eravenda-handyman-hero.jpg"
+            alt="Explore EraVenda Handyman Hub" fetchpriority="high" class="ev-slide-img">
+          <span class="ev-hero-shine" aria-hidden="true"></span>
+          <span class="ev-hero-hint" aria-hidden="true">Explore now <i class="fas fa-arrow-right"></i></span>
+        </a>
+
+        <!-- Slide 2: EraVenda marketplace (Wholesale & Retail) -->
+        <a href="/products" class="ev-slide" data-slide aria-roledescription="slide" aria-label="2 of 3: EraVenda marketplace, wholesale and retail" aria-hidden="true" tabindex="-1">
+          <img src="/static/img/hero/eravenda-wholesale-retail-1800.webp"
+            srcset="/static/img/hero/eravenda-wholesale-retail-900.webp 900w, /static/img/hero/eravenda-wholesale-retail-1800.webp 1800w"
+            sizes="(min-width: 1280px) 1216px, calc(100vw - 32px)" width="1800" height="600"
+            alt="EraVenda: Wholesale and Retail, all in one place. Shop the marketplace" class="ev-slide-img">
+          <span class="ev-hero-shine" aria-hidden="true"></span>
+          <span class="ev-hero-hint" aria-hidden="true">Shop now <i class="fas fa-arrow-right"></i></span>
+        </a>
+
+        <!-- Slide 3: EraTrends store -->
+        <a href="/store/41ee2f52-3c2e-4143-849e-437e7dc1ace4" class="ev-slide" data-slide aria-roledescription="slide" aria-label="3 of 3: EraTrends store" aria-hidden="true" tabindex="-1">
+          <img src="/static/img/hero/eratrends-1800.webp"
+            srcset="/static/img/hero/eratrends-900.webp 900w, /static/img/hero/eratrends-1800.webp 1800w"
+            sizes="(min-width: 1280px) 1216px, calc(100vw - 32px)" width="1800" height="600"
+            alt="EraTrends: Trendy products, better living. Visit the EraTrends store" class="ev-slide-img">
+          <span class="ev-hero-shine" aria-hidden="true"></span>
+          <span class="ev-hero-hint" aria-hidden="true">Visit store <i class="fas fa-arrow-right"></i></span>
+        </a>
+      </div>
+
+      <button type="button" class="ev-hero-arrow ev-hero-prev" data-hero-prev aria-label="Previous slide"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" class="ev-hero-arrow ev-hero-next" data-hero-next aria-label="Next slide"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+      <div class="ev-hero-dots" role="tablist" aria-label="Choose slide">
+        <button type="button" role="tab" class="ev-dot is-active" data-hero-dot="0" aria-label="Slide 1: Handyman Hub" aria-selected="true"></button>
+        <button type="button" role="tab" class="ev-dot" data-hero-dot="1" aria-label="Slide 2: EraVenda marketplace" aria-selected="false"></button>
+        <button type="button" role="tab" class="ev-dot" data-hero-dot="2" aria-label="Slide 3: EraTrends store" aria-selected="false"></button>
+      </div>
+      <span class="ev-hero-progress" aria-hidden="true"></span>
+    </div>
   </div>
 </section>
 
