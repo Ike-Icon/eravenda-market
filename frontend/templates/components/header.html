@@ -14,7 +14,7 @@
 
   <div class="max-w-7xl mx-auto w-full px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 lg:gap-4">
 
-    {# Phones/tablets: the nav bar is just the menu icon + the logo mark. Everything else (account, orders, cart,
+    {# Phones/tablets: the nav bar is just the menu icon + the logo. Everything else (account, orders, cart,
        wishlist, categories, help) is in the menu panel below. #}
     <button id="mobileMenuBtn" type="button" class="lg:hidden shrink-0 -ml-1 p-2 rounded-lg text-slate-800 hover:bg-slate-100 active:bg-slate-200"
       aria-label="Open menu" aria-expanded="false" aria-controls="mobileDrawer">
@@ -25,7 +25,7 @@
 
     <!-- Logo  -->
     <a href="/" class="group inline-flex items-center shrink-0 transition-transform duration-300 ease-in-out hover:scale-[1.02]">
-  <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="EraVenda Logo" class="hidden lg:block w-[180px] sm:w-[210px] lg:w-[240px] h-auto overflow-visible ev-logo-svg">
+  <svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="EraVenda Logo" class="block w-[180px] sm:w-[210px] lg:w-[240px] h-auto overflow-visible ev-logo-svg">
     <defs>
       <!-- Brand Gradients -->
       <linearGradient id="ev-green-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -52,25 +52,8 @@
 
     <!-- Logo Wordmark Text -->
     <g transform="translate(62, 38)">
-      <!-- Era -->
-      <text font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="28" fill="#0A5C36" letter-spacing="-0.5">Era</text>
-      <!-- Venda -->
-      <text x="41" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="28" fill="url(#ev-gold-grad)" letter-spacing="-0.5">Venda</text>
-      <!-- Accent Period (Pulse and color shift on hover) -->
-      <circle cx="137" cy="-5" r="4" class="fill-[#0A5C36] group-hover:fill-[#F59E0B] transition-all duration-300 ease-in-out transform origin-center group-hover:scale-125" />
-    </g>
-  </svg>
-  {# Phones/tablets: just the green logo mark, no wordmark (the full logo above shows from lg up).
-     Own gradient ids because the full logo's <defs> sit in an SVG that is display:none on mobile. #}
-  <svg width="44" height="44" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EraVenda" class="lg:hidden w-11 h-11 shrink-0 ev-logo-mark">
-    <defs>
-      <linearGradient id="ev-green-grad-m" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0F766E" /><stop offset="100%" stop-color="#0A5C36" /></linearGradient>
-      <linearGradient id="ev-gold-grad-m" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F59E0B" /><stop offset="100%" stop-color="#D97706" /></linearGradient>
-    </defs>
-    <g transform="translate(4, 4)">
-      <rect x="0" y="0" width="48" height="48" rx="14" fill="url(#ev-green-grad-m)" />
-      <path d="M18 16 C18 11.5, 30 11.5, 30 16" stroke="url(#ev-gold-grad-m)" stroke-width="3.5" stroke-linecap="round" fill="none" />
-      <path d="M16 22 H32 M16 28 H27 M16 34 H32" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" />
+      <!-- Wordmark: fun italic rounded type, "EraVenda." with an accent period -->
+      <text class="ev-wordmark" font-family="'Nunito', 'Baloo 2', ui-rounded, 'Arial Rounded MT Bold', system-ui, sans-serif" font-style="italic" font-weight="900" font-size="30" letter-spacing="-0.3" fill="#0A5C36">Era<tspan fill="#F59E0B">Venda</tspan><tspan class="transition-colors duration-300 group-hover:fill-[#F59E0B]">.</tspan></text>
     </g>
   </svg>
 </a>
@@ -279,7 +262,7 @@
       <i data-lucide="x" class="w-6 h-6"></i>
     </button>
     <a href="/" class="inline-flex items-center" aria-label="EraVenda home">
-      <svg width="150" height="35" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EraVenda">
+      <svg width="150" height="35" viewBox="0 0 240 56" overflow="visible" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EraVenda">
         <defs>
           <linearGradient id="ev-green-grad-d" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0F766E" /><stop offset="100%" stop-color="#0A5C36" /></linearGradient>
           <linearGradient id="ev-gold-grad-d" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F59E0B" /><stop offset="100%" stop-color="#D97706" /></linearGradient>
@@ -290,10 +273,9 @@
           <path d="M16 22 H32 M16 28 H27 M16 34 H32" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" />
         </g>
         <g transform="translate(62, 38)">
-          <text font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="28" fill="#0A5C36" letter-spacing="-0.5">Era</text>
-          <text x="41" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="28" fill="url(#ev-gold-grad-d)" letter-spacing="-0.5">Venda</text>
-          <circle cx="137" cy="-5" r="4" fill="#0A5C36" />
-        </g>
+      <!-- Wordmark: fun italic rounded type, "EraVenda." with an accent period -->
+      <text class="ev-wordmark" font-family="'Nunito', 'Baloo 2', ui-rounded, 'Arial Rounded MT Bold', system-ui, sans-serif" font-style="italic" font-weight="900" font-size="30" letter-spacing="-0.3" fill="#0A5C36">Era<tspan fill="#F59E0B">Venda</tspan><tspan >.</tspan></text>
+    </g>
       </svg>
     </a>
   </div>

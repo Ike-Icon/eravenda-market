@@ -1745,3 +1745,9 @@ html[data-theme="dark"] .ev-dr-logout, html[data-theme="dark"] .ev-dr-logout > s
 /* Bottom "Me" tab: initial-letter fallback when the signed-in user has no picture */
 .ev-bn-initial { display: flex; align-items: center; justify-content: center; background: #1c6b4f; border-color: #1c6b4f; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; }
 .ev-bn-initial.hidden { display: none; }
+
+
+/* Logo wordmark ("EraVenda." in italic Nunito Black): lighten the dark-green "Era" on dark backgrounds. */
+html[data-theme="dark"] #siteHeader .ev-wordmark,
+html[data-theme="dark"] #mobileDrawer .ev-wordmark { fill: #8fd9b6; }
+.ev-wordmark { paint-order: stroke; }
