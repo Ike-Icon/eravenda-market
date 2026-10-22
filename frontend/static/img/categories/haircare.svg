@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4EAFF"/><stop offset="1" stop-color="#DEC8FA"/></linearGradient></defs><rect width="240" height="240" fill="url(#g)"/><circle cx="195" cy="45" r="46" fill="#fff" opacity=".35"/><circle cx="40" cy="205" r="52" fill="#fff" opacity=".25"/><ellipse cx="120" cy="190" rx="62" ry="7" fill="#000" opacity=".12"/>
+<rect x="64" y="94" width="62" height="92" rx="18" fill="#EC4899"/>
+<rect x="84" y="80" width="22" height="16" rx="4" fill="#BE185D"/>
+<path d="M95 80 V60 H122" stroke="#BE185D" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="74" y="118" width="42" height="44" rx="8" fill="#fff" opacity=".92"/>
+<path d="M82 150 Q95 126 108 150" stroke="#EC4899" stroke-width="5" fill="none" stroke-linecap="round"/>
+<g transform="rotate(-18 165 140)"><rect x="140" y="124" width="60" height="22" rx="7" fill="#7C3AED"/><g stroke="#7C3AED" stroke-width="3.5" stroke-linecap="round"><path d="M148 146 v16 M158 146 v16 M168 146 v16 M178 146 v16 M188 146 v16"/></g></g></svg>

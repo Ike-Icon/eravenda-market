@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FDEAF1"/><stop offset="1" stop-color="#F8C6D8"/></linearGradient></defs><rect width="240" height="240" fill="url(#g)"/><circle cx="195" cy="45" r="46" fill="#fff" opacity=".35"/><circle cx="40" cy="205" r="52" fill="#fff" opacity=".25"/><ellipse cx="120" cy="190" rx="62" ry="7" fill="#000" opacity=".12"/>
+<path d="M82 62 L103 52 L120 72 L137 52 L158 62 L192 94 L172 114 L160 102 V178 H80 V102 L68 114 L48 94Z" fill="#2563EB"/>
+<path d="M103 52 L120 72 L112 84 L92 62Z" fill="#fff"/><path d="M137 52 L120 72 L128 84 L148 62Z" fill="#fff"/>
+<path d="M120 72 V178" stroke="#1D4ED8" stroke-width="3"/>
+<circle cx="120" cy="96" r="2.8" fill="#fff"/><circle cx="120" cy="120" r="2.8" fill="#fff"/><circle cx="120" cy="144" r="2.8" fill="#fff"/><circle cx="120" cy="166" r="2.8" fill="#fff"/>
+<rect x="136" y="104" width="16" height="18" rx="3" fill="#1D4ED8"/>
+<path d="M113 82 h14 l-3 10 4 40 -8 10 -8-10 4-40z" fill="#BE123C"/></svg>

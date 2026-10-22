@@ -227,7 +227,7 @@
               {% for child in c.children %}
               <a href="/products?category_id={{ child.id }}"
                  class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 hover:text-brand-600 whitespace-nowrap">
-                <i data-lucide="{{ child.icon_url or 'shopping-bag' }}" class="w-3.5 h-3.5 text-slate-400"></i>
+                <i data-lucide="{{ child.icon_url if (child.icon_url and not child.icon_url.startswith('http') and not child.icon_url.startswith('/')) else 'shopping-bag' }}" class="w-3.5 h-3.5 text-slate-400"></i>
                 {{ child.name }}
               </a>
               {% endfor %}
