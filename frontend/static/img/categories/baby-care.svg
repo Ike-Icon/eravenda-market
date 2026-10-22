@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF7CF"/><stop offset="1" stop-color="#FFE585"/></linearGradient></defs><rect width="240" height="240" fill="url(#g)"/><circle cx="195" cy="45" r="46" fill="#fff" opacity=".35"/><circle cx="40" cy="205" r="52" fill="#fff" opacity=".25"/><ellipse cx="120" cy="190" rx="62" ry="7" fill="#000" opacity=".12"/>
-<rect x="58" y="96" width="64" height="88" rx="16" fill="#fff" opacity=".92"/>
-<rect x="58" y="128" width="64" height="56" rx="16" fill="#FDE2E8"/>
-<rect x="58" y="96" width="64" height="14" rx="5" fill="#F472B6"/>
-<g stroke="#F472B6" stroke-width="3" stroke-linecap="round"><path d="M70 122 h14 M70 138 h14 M70 154 h14 M70 170 h14"/></g>
-<path d="M78 96 V84 Q90 66 102 84 V96Z" fill="#FBBF24"/><path d="M90 66 V58" stroke="#F59E0B" stroke-width="5" stroke-linecap="round"/>
-<circle cx="168" cy="146" r="26" fill="none" stroke="#38BDF8" stroke-width="9"/>
-<path d="M148 122 Q168 106 188 122 Q182 140 168 140 Q154 140 148 122Z" fill="#7DD3FC"/>
-<circle cx="168" cy="125" r="6" fill="#fff"/><circle cx="168" cy="178" r="0" fill="none"/></svg>
