@@ -1797,3 +1797,16 @@ html[data-theme="dark"] #mobileDrawer .ev-wordmark { fill: #8fd9b6; }
   #heroSlider { animation: none; }
   #heroSlider .ev-slide.is-active > .ev-slide-img { animation: none; }
 }
+
+
+/* ==========================================================================
+   CATEGORY GRID (home, under the hero): round pictures, names underneath.
+   Phones show the first 12 tiles, tablets/desktop the first 24; the "Show all" button reveals the rest.
+   ========================================================================== */
+.ev-cat-grid > .ev-cat-r2 { display: none; }
+.ev-cat-grid > .ev-cat-r3 { display: none; }
+@media (min-width: 640px) { .ev-cat-grid > .ev-cat-r2 { display: flex; } }
+.ev-cat-grid.is-expanded > .ev-cat-r2, .ev-cat-grid.is-expanded > .ev-cat-r3 { display: flex; }
+.ev-cat-cover { mix-blend-mode: multiply; }
+html[data-theme="dark"] .ev-cat-circle-cover { background: #fff; }
+html[data-theme="dark"] .ev-cat-cover { mix-blend-mode: normal; }

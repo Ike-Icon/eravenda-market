@@ -76,102 +76,89 @@
 
 
 <!-- ============================================================
-     1B. DUAL-INTENT SEARCH CONSOLE — sits below the hero banner
+     1B. CATEGORY GRID — sits right under the hero (replaces the old search console).
+     Round pictures with the name underneath. First the main categories (one full row on desktop),
+     then their sub-categories. Pictures:
+       main category  -> an image URL in its "Icon" field (admin) > the stock photo below
+       sub-category   -> an image URL in its "Icon" field > a real product photo from that category > icon
+     Free-to-use stock photos from Unsplash (https://unsplash.com/license), delivered as PNG.
      ============================================================ -->
-<section class="bg-white dark:bg-slate-950 pt-4 pb-6 sm:pt-6 sm:pb-8">
+{% if category_tree|default([]) %}
+{% set category_photo_ids = [
+  ('electronic', 'photo-1515940175183-6798529cb860'), ('gadget', 'photo-1515940175183-6798529cb860'),
+  ('fashion', 'photo-1441984904996-e0b6ba687e04'), ('apparel', 'photo-1441984904996-e0b6ba687e04'), ('cloth', 'photo-1441984904996-e0b6ba687e04'),
+  ('beauty', 'photo-1620917669809-1af0497965de'), ('health', 'photo-1620917669809-1af0497965de'), ('personal-care', 'photo-1620917669809-1af0497965de'),
+  ('home', 'photo-1616047006789-b7af5afb8c20'), ('kitchen', 'photo-1616047006789-b7af5afb8c20'), ('living', 'photo-1616047006789-b7af5afb8c20'), ('furniture', 'photo-1616047006789-b7af5afb8c20'),
+  ('grocer', 'photo-1759344114577-b6c32e4d68c8'), ('food', 'photo-1759344114577-b6c32e4d68c8'), ('essential', 'photo-1759344114577-b6c32e4d68c8'),
+  ('sport', 'photo-1728486145245-d4cb0c9c3470'), ('fitness', 'photo-1728486145245-d4cb0c9c3470'), ('outdoor', 'photo-1728486145245-d4cb0c9c3470'),
+  ('toy', 'photo-1575364289437-fb1479d52732'), ('kid', 'photo-1575364289437-fb1479d52732'), ('baby', 'photo-1575364289437-fb1479d52732'),
+  ('automotive', 'photo-1637640125496-31852f042a60'), ('tool', 'photo-1637640125496-31852f042a60'), ('auto', 'photo-1637640125496-31852f042a60'),
+] %}
+{% set covers = category_covers|default({}) %}
+{# Build one flat list: main categories first, then every sub-category. #}
+{% set grid = namespace(tiles=[]) %}
+{% for c in category_tree %}
+  {% set k = namespace(photo='') %}
+  {% if c.icon_url and (c.icon_url.startswith('http') or c.icon_url.startswith('/')) %}
+    {% set k.photo = c.icon_url %}
+  {% else %}
+    {% set key = ((c.slug or '') ~ ' ' ~ (c.name or ''))|lower|replace(' ', '-') %}
+    {% for word, pid in category_photo_ids %}
+      {% if not k.photo and word in key %}{% set k.photo = 'https://images.unsplash.com/' ~ pid ~ '?fm=png&fit=crop&w=240&h=240&q=80' %}{% endif %}
+    {% endfor %}
+  {% endif %}
+  {% set grid.tiles = grid.tiles + [{'id': c.id, 'name': c.name, 'photo': k.photo, 'cover': '', 'icon': c.icon_url, 'subs': (c.children|length)}] %}
+{% endfor %}
+{% for c in category_tree %}
+  {% for child in c.children %}
+    {% set photo = child.icon_url if (child.icon_url and (child.icon_url.startswith('http') or child.icon_url.startswith('/'))) else '' %}
+    {% set grid.tiles = grid.tiles + [{'id': child.id, 'name': child.name, 'photo': photo, 'cover': covers.get(child.id|string, ''), 'icon': child.icon_url, 'subs': 0}] %}
+  {% endfor %}
+{% endfor %}
+
+<section id="categoriesSection" class="bg-white dark:bg-slate-950 pt-4 pb-6 sm:pt-6 sm:pb-8" aria-label="Shop by category">
   <div class="max-w-7xl mx-auto px-4">
-    <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-lg text-slate-900 dark:text-white max-w-4xl mx-auto">
-      <!-- Mode Switcher Tabs -->
-      <div class="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-fit mb-4">
-        <button type="button" data-hero-mode="products" aria-pressed="true"
-          class="hero-mode-btn active flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
-          <i class="fas fa-cart-shopping text-brand-600 dark:text-brand-400"></i>
-          <span>Shop Marketplace</span>
-        </button>
-        <button type="button" data-hero-mode="handyman" aria-pressed="false"
-          class="hero-mode-btn flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
-          <i class="fas fa-screwdriver-wrench text-teal-600 dark:text-teal-400"></i>
-          <span>Handyman Hub</span>
-          <span class="text-[10px] whitespace-nowrap bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded-full uppercase font-bold">On Demand</span>
-        </button>
-      </div>
-
-      <!-- Panel 1: Products Quick Search & Category Chips -->
-      <div id="heroProductsPanel" class="space-y-3">
-        <form action="/products" method="get" class="flex flex-col sm:flex-row gap-2">
-          <div class="relative flex-1">
-            <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-            <input type="search" name="q" placeholder="Search 1,000s of products, phones, fashion, electronics…"
-              class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-          </div>
-          <button type="submit"
-            class="bg-brand-500 hover:bg-brand-600 text-white font-bold px-6 py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shrink-0">
-            <span>Find Products</span>
-            <i class="fas fa-arrow-right text-xs"></i>
-          </button>
-        </form>
-
-        <!-- Quick category tags -->
-        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 text-xs text-slate-600 dark:text-slate-300">
-          <span class="font-semibold text-slate-400 shrink-0">Popular:</span>
-          {% for cat in category_tree|default([]) %}
-          {% if loop.index <= 6 %}
-          <a href="/products?category_id={{ cat.id }}"
-            class="shrink-0 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-brand-50 hover:text-brand-700 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
-            {{ cat.name }}
-          </a>
+    <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 sm:p-6">
+      <div id="catGrid" class="ev-cat-grid grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-x-2 gap-y-5 sm:gap-x-3 sm:gap-y-6">
+        {% for t in grid.tiles %}
+        {% set icon_name = t.icon if (t.icon and not t.icon.startswith('http') and not t.icon.startswith('/')) else 'shopping-bag' %}
+        <a href="/products?category_id={{ t.id }}" data-reveal style="--i: {{ (loop.index0 % 8) }}"
+          class="ev-cat-item{% if loop.index0 >= 24 %} ev-cat-r3{% elif loop.index0 >= 12 %} ev-cat-r2{% endif %} ev-cat-tile group flex flex-col items-center text-center focus:outline-none"
+          aria-label="{{ t.name }}{% if t.subs %}, {{ t.subs }} sub-categories{% endif %}">
+          <span class="ev-cat-circle{% if t.cover and not t.photo %} ev-cat-circle-cover{% endif %} relative block w-full max-w-[84px] sm:max-w-[112px] lg:max-w-[128px] aspect-square rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 group-hover:shadow-md transition-shadow">
+            {% if t.photo %}
+            <img src="{{ t.photo }}" alt="" loading="lazy" decoding="async" width="240" height="240"
+              class="w-full h-full object-cover rounded-full transition-transform duration-500 ease-out group-hover:scale-110" onerror="this.remove()">
+            {% elif t.cover %}
+            <img src="{{ t.cover }}" alt="" loading="lazy" decoding="async" width="240" height="240"
+              class="ev-cat-cover absolute inset-0 w-full h-full object-contain p-2 sm:p-3 transition-transform duration-500 ease-out group-hover:scale-110" onerror="this.remove()">
+            {% else %}
+            <span class="absolute inset-0 flex items-center justify-center text-brand-600 dark:text-brand-400" aria-hidden="true">
+              <i data-lucide="{{ icon_name }}" class="w-7 h-7 sm:w-9 sm:h-9 group-hover:scale-110 transition-transform"></i>
+            </span>
+            {% endif %}
+          </span>
+          <span class="mt-2 block w-full text-[12px] sm:text-sm font-semibold leading-snug text-slate-800 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 line-clamp-2 transition-colors">{{ t.name }}</span>
+          {% if t.subs %}
+          <span class="mt-0.5 block text-[10px] sm:text-[11px] leading-tight text-slate-400 dark:text-slate-500"><span class="sm:hidden">{{ t.subs }} items</span><span class="hidden sm:inline">{{ t.subs }} sub-categories</span></span>
           {% endif %}
-          {% endfor %}
-          <a href="/products?sort=price_asc" class="shrink-0 font-semibold text-amber-600 dark:text-amber-400 hover:underline ml-1">
-            ⚡ Flash Deals
-          </a>
-        </div>
+        </a>
+        {% endfor %}
       </div>
 
-      <!-- Panel 2: Handyman Hub Quick Search & Popular Trades -->
-      <div id="heroHandymanPanel" class="hidden space-y-3">
-        <form action="/services" method="get" class="flex flex-col sm:flex-row gap-2">
-          <div class="relative flex-1">
-            <i class="fas fa-wrench absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-            <input type="search" name="q" placeholder="Search for Electricians, Plumbers, AC Repair, Carpenters, Masons…"
-              class="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-          </div>
-          <button type="submit"
-            class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shrink-0">
-            <span>Find Verified Pro</span>
-            <i class="fas fa-arrow-right text-xs"></i>
-          </button>
-        </form>
-
-        <!-- 1-Click Popular Trade Pills -->
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 text-xs">
-          <span class="font-semibold text-slate-400 shrink-0">Trades:</span>
-          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
-            ⚡ Electrician
-          </a>
-          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
-            🚰 Plumber
-          </a>
-          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
-            ❄️ AC Technician
-          </a>
-          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
-            🔨 Carpenter
-          </a>
-          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
-            🎨 Painter
-          </a>
-          <a href="/services" class="shrink-0 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-200 font-medium transition-colors">
-            🧱 Mason
-          </a>
-          <a href="/services/register" class="shrink-0 font-semibold text-teal-600 dark:text-teal-400 hover:underline ml-1">
-            + Join as a Pro
-          </a>
-        </div>
+      {% if grid.tiles|length > 12 %}
+      <div class="text-center mt-5{% if grid.tiles|length <= 24 %} sm:hidden{% endif %}">
+        <button type="button" id="catShowAll" aria-expanded="false" aria-controls="catGrid"
+          class="inline-flex items-center gap-2 text-sm font-bold text-brand-700 dark:text-brand-400 border border-brand-200 dark:border-slate-700 hover:bg-brand-50 dark:hover:bg-slate-800 rounded-full px-5 py-2 transition-colors">
+          <span id="catShowAllLabel">Show all {{ grid.tiles|length }} categories</span>
+          <i class="fas fa-chevron-down text-[10px]" id="catShowAllIcon" aria-hidden="true"></i>
+        </button>
       </div>
+      {% endif %}
     </div>
   </div>
 </section>
+{% endif %}
 
 
 <!-- ============================================================
@@ -455,74 +442,6 @@
   </div>
 </section>
 {% endif %}
-
-<!-- ============================================================
-     3. VISUAL DEPARTMENTS & CATEGORIES CAROUSEL
-     ============================================================ -->
-{% if category_tree|default([]) %}
-<section class="max-w-7xl mx-auto px-4 py-8" data-reveal>
-  <div class="flex items-end justify-between mb-4">
-    <div>
-      <span class="text-xs font-bold tracking-[0.18em] text-brand-600 uppercase">Departments</span>
-      <h2 class="font-head text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Shop by Category</h2>
-    </div>
-    <a href="/products" class="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1 group">
-      <span>All Categories</span>
-      <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
-    </a>
-  </div>
-
-  {# Category photos (Unsplash, free to use under the Unsplash License: https://unsplash.com/license).
-     Chosen by category slug/name keywords. To use your own picture for a category, put a full image
-     URL (https://...) in that category's "Icon" field in the admin dashboard; it wins over these.
-     A category with no match keeps the icon design. #}
-  {% set category_photo_ids = [
-    ('electronic', 'photo-1515940175183-6798529cb860'), ('gadget', 'photo-1515940175183-6798529cb860'),
-    ('fashion', 'photo-1441984904996-e0b6ba687e04'), ('apparel', 'photo-1441984904996-e0b6ba687e04'), ('cloth', 'photo-1441984904996-e0b6ba687e04'),
-    ('beauty', 'photo-1620917669809-1af0497965de'), ('health', 'photo-1620917669809-1af0497965de'), ('personal-care', 'photo-1620917669809-1af0497965de'),
-    ('home', 'photo-1616047006789-b7af5afb8c20'), ('kitchen', 'photo-1616047006789-b7af5afb8c20'), ('living', 'photo-1616047006789-b7af5afb8c20'), ('furniture', 'photo-1616047006789-b7af5afb8c20'),
-    ('grocer', 'photo-1759344114577-b6c32e4d68c8'), ('food', 'photo-1759344114577-b6c32e4d68c8'), ('essential', 'photo-1759344114577-b6c32e4d68c8'),
-    ('sport', 'photo-1728486145245-d4cb0c9c3470'), ('fitness', 'photo-1728486145245-d4cb0c9c3470'), ('outdoor', 'photo-1728486145245-d4cb0c9c3470'),
-    ('toy', 'photo-1575364289437-fb1479d52732'), ('kid', 'photo-1575364289437-fb1479d52732'), ('baby', 'photo-1575364289437-fb1479d52732'),
-    ('automotive', 'photo-1637640125496-31852f042a60'), ('tool', 'photo-1637640125496-31852f042a60'), ('auto', 'photo-1637640125496-31852f042a60'),
-  ] %}
-  <div class="grid grid-cols-4 lg:grid-cols-8 gap-x-2 gap-y-5 sm:gap-x-4">
-    {% for c in category_tree %}
-    {% set ns = namespace(photo='') %}
-    {% if c.icon_url and (c.icon_url.startswith('http') or c.icon_url.startswith('/')) %}
-      {% set ns.photo = c.icon_url %}
-    {% else %}
-      {% set key = ((c.slug or '') ~ ' ' ~ (c.name or ''))|lower|replace(' ', '-') %}
-      {% for word, pid in category_photo_ids %}
-        {# fm=png: delivered as PNG, cropped square (the circle is done in CSS) #}
-        {% if not ns.photo and word in key %}{% set ns.photo = 'https://images.unsplash.com/' ~ pid ~ '?fm=png&fit=crop&w=240&h=240&q=80' %}{% endif %}
-      {% endfor %}
-    {% endif %}
-    <a href="/products?category_id={{ c.id }}" data-reveal style="--i: {{ loop.index0 }}"
-      aria-label="{{ c.name }}{% if c.children %}, {{ c.children|length }} sub-categories{% endif %}"
-      class="ev-cat-tile group flex flex-col items-center text-center focus:outline-none">
-      <span class="ev-cat-circle relative block w-full max-w-[84px] sm:max-w-[104px] lg:max-w-[112px] aspect-square rounded-full overflow-hidden bg-brand-50 dark:bg-slate-800 ring-2 ring-white dark:ring-slate-900 shadow-md group-hover:shadow-xl group-focus-visible:ring-brand-500 transition-all duration-300">
-        {% if ns.photo %}
-        <img src="{{ ns.photo }}" alt="" loading="lazy" decoding="async" width="240" height="240"
-          class="w-full h-full object-cover rounded-full transition-transform duration-500 ease-out group-hover:scale-110"
-          onerror="this.remove()">
-        {% else %}
-        <span class="absolute inset-0 flex items-center justify-center text-brand-600 dark:text-brand-400" aria-hidden="true">
-          <i data-lucide="{{ c.icon_url if (c.icon_url and not c.icon_url.startswith('http') and not c.icon_url.startswith('/')) else 'shopping-bag' }}" class="w-8 h-8 group-hover:scale-110 transition-transform"></i>
-        </span>
-        {% endif %}
-      </span>
-      <span class="mt-2 block w-full text-[11px] sm:text-xs font-semibold leading-tight text-slate-800 dark:text-slate-100 group-hover:text-brand-600 dark:group-hover:text-brand-400 line-clamp-2 transition-colors">{{ c.name }}</span>
-      {# Item count under the name: short "N items" on phones, "N sub-categories" from sm up. #}
-      <span class="mt-0.5 block text-[10px] leading-tight text-slate-400 dark:text-slate-500">
-        {% if c.children %}<span class="sm:hidden">{{ c.children|length }} items</span><span class="hidden sm:inline">{{ c.children|length }} sub-categories</span>{% else %}Browse{% endif %}
-      </span>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
 
 <!-- ============================================================
      5B. PROMOTED PRODUCTS — paid placements only, horizontal rail
@@ -1398,6 +1317,25 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+// ---- Category grid: "Show all categories" ------------------------------------
+(function () {
+  const btn = document.getElementById("catShowAll");
+  const grid = document.getElementById("catGrid");
+  if (!btn || !grid) return;
+  const label = document.getElementById("catShowAllLabel");
+  const icon = document.getElementById("catShowAllIcon");
+  const total = grid.querySelectorAll(".ev-cat-item").length;
+  btn.addEventListener("click", () => {
+    const open = grid.classList.toggle("is-expanded");
+    btn.setAttribute("aria-expanded", String(open));
+    if (label) label.textContent = open ? "Show fewer categories" : `Show all ${total} categories`;
+    if (icon) icon.style.transform = open ? "rotate(180deg)" : "";
+    // tiles that were hidden have not been "revealed" by the scroll observer yet
+    grid.querySelectorAll("[data-reveal]").forEach(el => el.classList.add("is-in"));
+  });
+})();
+</script>
 <script>
 // ---- Hero slideshow ----------------------------------------------------
 // The progress bar's CSS animation is the autoplay clock: when it ends, go to

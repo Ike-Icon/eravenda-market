@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 
 import os
+import time
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -248,6 +249,53 @@ def _canonical_url(request: Request) -> str:
     return f"{SITE_URL}{path}" + (f"?{query}" if query else "")
 
 
+# Cover photo per category for the home page category grid: the newest approved
+# product's primary image in that category. Cached briefly so the home page
+# does not run this query on every visit.
+_COVER_CACHE: dict = {"at": 0.0, "data": {}}
+_COVER_TTL_SECONDS = 600
+
+
+def category_cover_images(db: Session) -> dict:
+    now = time.monotonic()
+    if _COVER_CACHE["data"] and now - _COVER_CACHE["at"] < _COVER_TTL_SECONDS:
+        return _COVER_CACHE["data"]
+    rows = (
+        db.query(models.Product.category_id, models.ProductImage.image_url)
+        .join(models.ProductImage, models.ProductImage.product_id == models.Product.id)
+        .join(models.Store, models.Store.id == models.Product.store_id)
+        .filter(
+            models.Product.status == models.ProductStatus.approved,
+            models.Store.status == models.StoreStatus.approved,
+            models.Product.category_id.isnot(None),
+            models.ProductImage.is_primary.is_(True),
+        )
+        .order_by(models.Product.created_at.desc())
+        .limit(800)
+        .all()
+    )
+    covers: dict = {}
+    for category_id, image_url in rows:
+        if image_url:
+            covers.setdefault(str(category_id), image_url)
+    _COVER_CACHE.update(at=now, data=covers)
+    return covers
+
+
+def time_ago_label(moment: datetime) -> str:
+    """'today', '5 days ago', '3 months ago', '2 years ago' for the store's join date."""
+    days = max(0, (datetime.utcnow() - moment).days)
+    if days < 1:
+        return "today"
+    if days < 30:
+        return f"{days} day{'s' if days != 1 else ''} ago"
+    if days < 365:
+        months = days // 30
+        return f"{months} month{'s' if months != 1 else ''} ago"
+    years = days // 365
+    return f"{years} year{'s' if years != 1 else ''} ago"
+
+
 @app.get("/", response_class=HTMLResponse)
 def home_page(request: Request, db: Session = Depends(get_db)):
     # Paid promotions get their own section; the rails below are fair-share
@@ -337,6 +385,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
             request,
             db,
             hot_arrivals=hot_arrivals,
+            category_covers=category_cover_images(db),
             products=products_list,
             flash_deals=flash_deals,
             featured_stores=featured_stores,
@@ -548,9 +597,30 @@ def store_page(store_id: str, request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
+    # Reviews left on any of this seller's products (all of them count, not just
+    # the approved ones still on sale), so the total matches the seller's history.
+    review_count, avg_rating = (
+        db.query(func.count(models.Review.id), func.avg(models.Review.rating))
+        .join(models.Product, models.Product.id == models.Review.product_id)
+        .filter(models.Product.store_id == store_id)
+        .one()
+    )
+    joined_label = store.created_at.strftime("%B %Y") if store.created_at else None
+    joined_ago = time_ago_label(store.created_at) if store.created_at else None
+
     return templates.TemplateResponse(
         "store.html",
-        page_context(request, db, store=store, products=products_list, page_size=PRODUCTS_PAGE_SIZE),
+        page_context(
+            request,
+            db,
+            store=store,
+            products=products_list,
+            page_size=PRODUCTS_PAGE_SIZE,
+            store_review_count=int(review_count or 0),
+            store_avg_rating=float(avg_rating or 0),
+            store_joined_label=joined_label,
+            store_joined_ago=joined_ago,
+        ),
     )
 
 

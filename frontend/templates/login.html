@@ -8,7 +8,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto px-4 py-16">
+<div class="max-w-md mx-auto px-4 py-12 sm:py-16">
+  {% include "components/auth-logo.html" %}
   <div class="border border-slate-200 rounded-md p-8">
     <h1 class="font-head text-xl font-semibold mb-4">Welcome back</h1>
     <div id="loginError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3 mb-4"></div>
