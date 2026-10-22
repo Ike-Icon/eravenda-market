@@ -1130,7 +1130,7 @@ function initSocialAuth({ errorBoxId, redirectTo = "/" }) {
         client_id: window.GOOGLE_CLIENT_ID,
         callback: (response) => finishLogin("/auth/google", { id_token: response.credential }),
       });
-      google.accounts.id.renderButton(googleContainer, { theme: "outline", size: "large", width: 336 });
+      google.accounts.id.renderButton(googleContainer, { theme: "outline", size: "large", width: Math.max(200, Math.min(400, googleContainer.parentElement.clientWidth || 336)) });
     } else {
       googleContainer.classList.add("hidden");
     }

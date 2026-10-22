@@ -1,0 +1,27 @@
+{# Shared look for /login and /register: soft tinted page, one centred card, tall inputs, gradient primary button. #}
+<style>
+  .ev-auth-bg{background:radial-gradient(900px 420px at 15% -10%,#dff0e8 0%,transparent 60%),radial-gradient(800px 420px at 100% 5%,#fdf0d6 0%,transparent 55%),#f8faf9}
+  .ev-auth-card{background:#fff;border:1px solid #e2e8f0;border-radius:20px;box-shadow:0 22px 48px -24px rgba(15,23,42,.28),0 3px 10px rgba(15,23,42,.05)}
+  .ev-auth-title{font-family:"Space Grotesk",Inter,sans-serif;font-weight:700;font-size:26px;line-height:1.2;text-align:center;color:#0f172a;margin:0 0 28px}
+  .ev-auth-label{display:block;font-size:15px;font-weight:500;color:#1e293b;margin-bottom:8px}
+  .ev-auth-input{width:100%;height:48px;padding:0 14px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;color:#0f172a;background:#fff;transition:border-color .15s,box-shadow .15s}
+  .ev-auth-input::placeholder{color:#64748b}
+  .ev-auth-input:focus{outline:none;border-color:#1c6b4f;box-shadow:0 0 0 3px rgba(28,107,79,.18)}
+  .ev-auth-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:filter .15s,background-color .15s}
+  .ev-auth-primary{border:0;color:#fff;background:linear-gradient(110deg,#17573f 0%,#1c6b4f 30%,#12503a 65%,#1c6b4f 100%)}
+  .ev-auth-primary:hover{filter:brightness(1.08)}
+  .ev-auth-outline{border:1px solid #cbd5e1;background:#fff;color:#0f172a}
+  .ev-auth-outline:hover{background:#f8fafc}
+  .ev-auth-or{display:flex;align-items:center;gap:16px;margin:26px 0;font-size:15px;color:#0f172a}
+  .ev-auth-or:before,.ev-auth-or:after{content:"";flex:1;height:1px;background:#e2e8f0}
+  .ev-auth-legal{margin:24px 8px 0;text-align:center;font-size:13px;line-height:1.5;color:#64748b}
+  .ev-auth-legal a{color:#334155;text-decoration:underline;text-underline-offset:3px}
+  [data-theme="dark"] .ev-auth-bg{background:#0b1210}
+  [data-theme="dark"] .ev-auth-card{background:#111c18;border-color:#1f2f29;box-shadow:none}
+  [data-theme="dark"] .ev-auth-title,[data-theme="dark"] .ev-auth-label,[data-theme="dark"] .ev-auth-or{color:#f1f5f9}
+  [data-theme="dark"] .ev-auth-input{background:#0b1210;border-color:#2b3d36;color:#f1f5f9}
+  [data-theme="dark"] .ev-auth-outline{background:transparent;border-color:#2b3d36;color:#f1f5f9}
+  [data-theme="dark"] .ev-auth-outline:hover{background:#16241f}
+  [data-theme="dark"] .ev-auth-or:before,[data-theme="dark"] .ev-auth-or:after{background:#2b3d36}
+  [data-theme="dark"] .ev-auth-legal a{color:#cbd5e1}
+</style>

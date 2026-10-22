@@ -8,38 +8,33 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto px-4 py-12 sm:py-16">
-  {% include "components/auth-logo.html" %}
-  <div class="border border-slate-200 rounded-md p-8">
-    <h1 class="font-head text-xl font-semibold mb-4">Welcome back</h1>
-    <div id="loginError" class="hidden text-sm text-red-600 bg-red-50 rounded-md p-3 mb-4"></div>
+{% include "components/auth-card-style.html" %}
+<div class="ev-auth-bg px-4 py-10 sm:py-16">
+  <div class="max-w-[440px] mx-auto">
+    <div class="ev-auth-card p-7 sm:p-10">
+      {% include "components/auth-logo.html" %}
+      <h1 class="ev-auth-title">Continue to Eravenda</h1>
+      <div id="loginError" class="hidden text-sm text-red-600 bg-red-50 rounded-lg p-3 mb-5"></div>
 
-    <div class="space-y-2 mb-2">
-      <div id="googleSignInDiv" class="flex justify-center"></div>
-      <button id="appleSignInBtn" type="button" class="w-full flex items-center justify-center gap-2 border border-slate-300 rounded-md py-2 font-semibold text-sm hover:bg-slate-50 transition-colors">
-        <i class="fa-brands fa-apple text-base"></i>
-        Continue with Apple
-      </button>
-    </div>
-    <div class="flex items-center gap-3 my-4">
-      <div class="flex-1 h-px bg-slate-200"></div>
-      <span class="text-xs text-slate-400 uppercase tracking-wide">or</span>
-      <div class="flex-1 h-px bg-slate-200"></div>
-    </div>
+      <form id="loginForm" class="space-y-5">
+        <div>
+          <label class="ev-auth-label" for="loginEmail">Email address</label>
+          <input id="loginEmail" type="email" name="email" required autocomplete="email" placeholder="your@email.com" class="ev-auth-input">
+        </div>
+        <div>
+          <label class="ev-auth-label" for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" name="password" required autocomplete="current-password" placeholder="Your password" class="ev-auth-input">
+          <a href="/forgot-password" class="text-sm text-brand-600 hover:underline mt-2 inline-block">Forgot your password?</a>
+        </div>
+        <div class="space-y-3 pt-1">
+          <button type="submit" class="ev-auth-btn ev-auth-primary">Login</button>
+          <a href="/register" class="ev-auth-btn ev-auth-outline">Sign up</a>
+        </div>
+      </form>
 
-    <form id="loginForm" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-1">Email</label>
-        <input type="email" name="email" required class="w-full border border-slate-300 rounded-md px-3 py-2">
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1">Password</label>
-        <input type="password" name="password" required class="w-full border border-slate-300 rounded-md px-3 py-2">
-        <a href="/forgot-password" class="text-xs text-brand-600 hover:underline mt-1 inline-block">Forgot your password?</a>
-      </div>
-      <button type="submit" class="w-full bg-brand-500 hover:bg-brand-600 text-white font-semibold py-2 rounded-md transition-colors">Log in</button>
-    </form>
-    <p class="text-sm text-center text-slate-500 mt-4">New to Eravenda Market? <a href="/register" class="text-brand-600 font-semibold">Create an account</a></p>
+      {% include "components/auth-social.html" %}
+    </div>
+    <p class="ev-auth-legal">By continuing you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
   </div>
 </div>
 {% endblock %}
