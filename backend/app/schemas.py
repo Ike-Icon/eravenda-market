@@ -699,7 +699,15 @@ class HandymanOut(BaseModel):
     review_count: int
     badge_keys: Optional[List[str]] = None
     safety_rating: float = 0
+    follower_count: int = 0
     portfolio: List[ServicePortfolioOut] = []
+    created_at: datetime
+
+
+class HandymanFollowOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    handyman: HandymanOut
     created_at: datetime
 
 

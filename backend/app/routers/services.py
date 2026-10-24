@@ -351,6 +351,73 @@ def worker_detail(handyman_id: str, db: Session = Depends(get_db)):
     return worker
 
 
+# ---------- following handymen ----------
+# "/following" is a fixed path, so it can never be mistaken for a handyman id.
+
+def _sync_handyman_follower_count(db: Session, worker: models.HandymanProfile) -> None:
+    worker.follower_count = db.query(models.HandymanFollow).filter(models.HandymanFollow.handyman_id == worker.id).count()
+
+
+def _approved_worker_or_404(db: Session, handyman_id: str) -> models.HandymanProfile:
+    worker = (db.query(models.HandymanProfile)
+              .filter(models.HandymanProfile.id == handyman_id, models.HandymanProfile.status == models.ServiceStatus.approved)
+              .first())
+    if not worker:
+        raise HTTPException(status_code=404, detail="Service professional not found")
+    return worker
+
+
+@router.get("/following", response_model=list[schemas.HandymanFollowOut])
+def list_followed_handymen(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return (db.query(models.HandymanFollow)
+            .options(selectinload(models.HandymanFollow.handyman).selectinload(models.HandymanProfile.portfolio))
+            .join(models.HandymanProfile, models.HandymanProfile.id == models.HandymanFollow.handyman_id)
+            .filter(models.HandymanFollow.user_id == current_user.id,
+                    models.HandymanProfile.status == models.ServiceStatus.approved)
+            .order_by(models.HandymanFollow.created_at.desc()).all())
+
+
+@router.get("/workers/{handyman_id}/follow-status")
+def handyman_follow_status(handyman_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    following = (db.query(models.HandymanFollow)
+                 .filter(models.HandymanFollow.user_id == current_user.id, models.HandymanFollow.handyman_id == handyman_id)
+                 .first() is not None)
+    return {"is_following": following}
+
+
+@router.post("/workers/{handyman_id}/follow", response_model=schemas.HandymanFollowOut, status_code=201)
+def follow_handyman(handyman_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    worker = _approved_worker_or_404(db, handyman_id)
+    if worker.user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You can't follow your own profile")
+    existing = (db.query(models.HandymanFollow)
+                .filter(models.HandymanFollow.user_id == current_user.id, models.HandymanFollow.handyman_id == handyman_id)
+                .first())
+    if existing:
+        return existing
+    follow = models.HandymanFollow(user_id=current_user.id, handyman_id=handyman_id)
+    db.add(follow)
+    db.flush()
+    _sync_handyman_follower_count(db, worker)
+    db.commit()
+    db.refresh(follow)
+    return follow
+
+
+@router.delete("/workers/{handyman_id}/follow", status_code=204)
+def unfollow_handyman(handyman_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    follow = (db.query(models.HandymanFollow)
+              .filter(models.HandymanFollow.user_id == current_user.id, models.HandymanFollow.handyman_id == handyman_id)
+              .first())
+    if not follow:
+        raise HTTPException(status_code=404, detail="You're not following this professional")
+    worker = follow.handyman
+    db.delete(follow)
+    db.flush()
+    _sync_handyman_follower_count(db, worker)
+    db.commit()
+
+
 @router.get("/workers/{handyman_id}/ratings", response_model=list[schemas.ServiceReviewOut])
 def worker_ratings(handyman_id: str, db: Session = Depends(get_db)):
     return db.query(models.ServiceReview).filter(models.ServiceReview.handyman_id == handyman_id).order_by(models.ServiceReview.created_at.desc()).all()

@@ -682,7 +682,17 @@ def service_professional_page(handyman_id: str, request: Request, db: Session = 
     worker = db.query(models.HandymanProfile).options(selectinload(models.HandymanProfile.portfolio)).filter(models.HandymanProfile.id == handyman_id, models.HandymanProfile.status == models.ServiceStatus.approved).first()
     if not worker:
         raise HTTPException(status_code=404, detail="Service professional not found")
-    return templates.TemplateResponse("services-professional.html", page_context(request, db, worker=worker))
+    joined = worker.created_at
+    return templates.TemplateResponse(
+        "services-professional.html",
+        page_context(
+            request,
+            db,
+            worker=worker,
+            worker_joined_label=joined.strftime("%B %Y") if joined else None,
+            worker_joined_ago=time_ago_label(joined) if joined else None,
+        ),
+    )
 
 
 @app.get("/services/request/{handyman_id}", response_class=HTMLResponse)
