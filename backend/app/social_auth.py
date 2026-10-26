@@ -7,9 +7,8 @@ takes the returned claims and decides whether to log in or create a user.
 
 Both providers sign their tokens with RS256 and rotate keys, so instead of
 hardcoding a public key we fetch their published JWKS (JSON Web Key Set)
-and cache it for an hour. python-jose can verify a token directly against
-a raw JWK dict, so no extra dependency is needed beyond what's already in
-requirements.txt.
+and cache it for an hour. PyJWT turns a raw JWK dict into a key, so no extra
+dependency is needed.
 """
 
 import os
@@ -17,7 +16,7 @@ import time
 import logging
 
 import httpx  # type: ignore[reportMissingImports]
-from jose import jwt, JWTError  # type: ignore[reportMissingImports]
+import jwt  # PyJWT  # type: ignore[reportMissingImports]
 
 logger = logging.getLogger("eravenda.social_auth")
 
@@ -63,16 +62,26 @@ def _verify(token: str, jwks_url: str, valid_issuers: set, audience: str, provid
 
     try:
         header = jwt.get_unverified_header(token)
+        # Both providers sign with RS256. The algorithm is pinned here rather
+        # than read from the token, so a forged header cannot pick a weaker one.
+        if header.get("alg") != "RS256":
+            raise TokenVerificationError(f"Unexpected signing algorithm on {provider} token")
         kid = header.get("kid")
         keys = _get_jwks(jwks_url)
         key = next((k for k in keys if k.get("kid") == kid), None)
         if key is None:
             raise TokenVerificationError(f"No matching {provider} signing key for this token")
 
-        claims = jwt.decode(token, key, algorithms=[header.get("alg", "RS256")], audience=audience)
+        claims = jwt.decode(
+            token,
+            jwt.PyJWK(key).key,
+            algorithms=["RS256"],
+            audience=audience,
+            options={"require": ["exp", "iss", "aud", "sub"]},
+        )
     except TokenVerificationError:
         raise
-    except JWTError as exc:
+    except (jwt.PyJWTError, ValueError, KeyError) as exc:
         raise TokenVerificationError(f"{provider} token failed verification") from exc
 
     if claims.get("iss") not in valid_issuers:

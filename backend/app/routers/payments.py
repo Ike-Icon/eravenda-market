@@ -8,7 +8,7 @@ import httpx  # type: ignore[reportMissingImports]
 from fastapi import APIRouter, Depends, HTTPException, Request  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
-from .. import models, schemas, auth, receipts
+from .. import models, schemas, auth, security, receipts
 from ..database import get_db
 from ..email_utils import ADMIN_NOTIFICATION_EMAIL, SUPPORT_EMAIL, send_email, SITE_URL
 from ..service_pricing import service_commission_for
@@ -170,9 +170,11 @@ def _notify_product_payment(db: Session, payment: models.Payment, order: models.
 @router.post("/initialize", response_model=schemas.PaymentInitOut)
 def initialize_payment(
     payload: schemas.PaymentInitRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
+    security.enforce_rate_limit(request, "pay-init", 30, 600, key=current_user.id)
     order = db.query(models.Order).filter(models.Order.id == payload.order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")

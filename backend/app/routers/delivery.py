@@ -64,6 +64,7 @@ def register_delivery_person(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
+    auth.require_verified_email(current_user)
     if not payload.terms_accepted:
         raise HTTPException(status_code=400, detail="Please accept the delivery partner terms before submitting")
     existing = db.query(models.DeliveryProfile).filter(models.DeliveryProfile.user_id == current_user.id).first()

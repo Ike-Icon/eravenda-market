@@ -21,7 +21,7 @@
 {% block scripts %}
 <script>
 if(!Auth.isLoggedIn()) location.href='/login?next=/delivery/dashboard';
-const esc=s=>{const d=document.createElement('div');d.textContent=s??'';return d.innerHTML;};
+const esc = s => String(s ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
 const money=n=>`GHS ${Number(n||0).toFixed(2)}`;
 const label=s=>String(s||'').replaceAll('_',' ');
 const date=v=>v?new Date(v).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'Not updated';

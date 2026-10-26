@@ -1,3 +1,33 @@
+// ---- Output safety helpers (used by every page that builds HTML) ----
+// Turns text into something that is safe inside HTML text AND inside a quoted
+// attribute. Quotes matter: without them a name like  x" onmouseover="...
+// would break out of an attribute.
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"'`]/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "`": "&#96;",
+  }[c]));
+}
+
+// Only lets through links that are safe to put in src= or href=: https links,
+// site paths such as /product/1, and in-browser image previews. Everything else
+// (javascript:, data:text/html, //other-site) becomes an empty string.
+function safeUrl(value) {
+  const url = String(value ?? "").trim();
+  if (/^https:\/\//i.test(url)) return url;
+  if (/^\/(?![\/\\])/.test(url)) return url;
+  if (/^blob:/i.test(url)) return url;
+  if (/^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+\/=]+$/i.test(url)) return url;
+  return "";
+}
+
+// A same-site path to send people to after login, or the fallback. Blocks
+// //evil.com, /\evil.com and javascript: so ?next= cannot send someone away.
+function safeNextPath(value, fallback = "/") {
+  const path = String(value ?? "");
+  if (path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\") && !/[\u0000-\u001f]/.test(path)) return path;
+  return fallback;
+}
+
 /**
  * main.js
  * Small, dependency-free client-side behavior for Eravenda Market.
@@ -9,9 +39,13 @@
 // Reads the JWT + user object the login/register pages store in
 // localStorage, and exposes small helpers the other modules use.
 // ------------------------------------------------------------------
+// The login token lives in an HttpOnly cookie that the server sets. Scripts
+// cannot read it, so a script injected into a page cannot steal the login. What
+// is kept here is only the public profile (name, role, avatar) so the page knows
+// who is signed in and what to show. It is not a credential.
 const Auth = {
   getToken() {
-    return localStorage.getItem("token");
+    return null; // kept so older callers do not crash; there is no token to read
   },
   getUser() {
     const raw = localStorage.getItem("user");
@@ -24,18 +58,24 @@ const Auth = {
       return null;
     }
   },
-  setSession(token, user) {
-    localStorage.setItem("token", token);
+  setSession(_token, user) {
+    // The first argument is ignored. The server already set the cookie.
     localStorage.setItem("user", JSON.stringify(user));
   },
   clearSession() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    // Only the server can remove an HttpOnly cookie.
+    try {
+      fetch(`${API_BASE}/auth/logout`, { method: "POST", keepalive: true }).catch(() => {});
+    } catch (_) { /* leaving the page is already underway */ }
   },
   isLoggedIn() {
-    return Boolean(this.getToken());
+    return Boolean(this.getUser());
   },
 };
+// Remove a login token that an earlier version of the site left in this browser.
+try { localStorage.removeItem("token"); } catch (_) { /* storage blocked */ }
 
 // Curated, deterministic cartoon avatars. Only the key is stored with the
 // account; the URL is derived here, so users never submit arbitrary image URLs.
@@ -102,16 +142,16 @@ function initLocationSelects(root = document) {
 // ------------------------------------------------------------------
 async function apiFetch(path, { method = "GET", body, auth = true } = {}) {
   const headers = { "Content-Type": "application/json" };
-  const sentAuthHeader = auth && Boolean(Auth.getToken());
-  if (sentAuthHeader) {
-    headers["Authorization"] = `Bearer ${Auth.getToken()}`;
-  }
+  // The session cookie goes along automatically for same-site requests.
+  const wasSignedIn = auth && Auth.isLoggedIn();
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
+    credentials: "same-origin",
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (res.status === 401 && sentAuthHeader) {
+  const isCredentialCheck = /^\/auth\/(login|register|google|apple|forgot-password|reset-password|verify-email)/.test(path);
+  if (res.status === 401 && wasSignedIn && !isCredentialCheck) {
     // The token we sent was rejected (expired/invalid) — every other widget on the
     // page would otherwise fail silently forever. Send the user back to log in
     // instead of leaving a half-loaded, permanently-stuck dashboard.
@@ -148,9 +188,7 @@ function receiptPath(orderId, admin) {
 }
 
 async function downloadReceipt(orderId, { admin = false } = {}) {
-  const res = await fetch(`${API_BASE}${receiptPath(orderId, admin)}`, {
-    headers: { Authorization: `Bearer ${Auth.getToken()}` },
-  });
+  const res = await fetch(`${API_BASE}${receiptPath(orderId, admin)}`, { credentials: "same-origin" });
   if (res.status === 401) {
     Auth.clearSession();
     window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}&reason=session_expired`;
@@ -918,7 +956,7 @@ async function syncUserFromServer() {
     stored.avatar_key = fresh.avatar_key;
     stored.avatar_url = fresh.avatar_url || null;
     stored.full_name = fresh.full_name || stored.full_name;
-    Auth.setSession(Auth.getToken(), stored);
+    Auth.setSession(null, stored);
     if (typeof renderAuthState === "function") renderAuthState();
     if (typeof evRefreshBottomNavAvatar === "function") evRefreshBottomNavAvatar();
   } catch (_) { /* offline or not signed in anymore: keep what we have */ }
@@ -1913,11 +1951,11 @@ function initQuickViewModal() {
       if (qvStore) {
         qvStore.textContent = currentProductData.store ? `Store: ${currentProductData.store}` : "Verified Seller";
         if (qvStore.tagName === "A" && currentProductData.storeUrl) {
-          qvStore.href = currentProductData.storeUrl;
+          qvStore.href = safeUrl(currentProductData.storeUrl) || "#";
         }
       }
       if (qvRating) {
-        qvRating.innerHTML = `★ ${parseFloat(currentProductData.rating).toFixed(1)} <span class="text-slate-400 font-normal">(${currentProductData.reviews} reviews)</span>`;
+        qvRating.innerHTML = `★ ${parseFloat(currentProductData.rating).toFixed(1)} <span class="text-slate-400 font-normal">(${Number(currentProductData.reviews) || 0} reviews)</span>`;
       }
       if (qvDesc) {
         qvDesc.textContent = currentProductData.description || "High quality product from verified marketplace sellers with fast nationwide delivery.";

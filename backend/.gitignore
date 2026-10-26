@@ -5,3 +5,9 @@ __pycache__/
 *.db
 .DS_Store
 docs/
+
+uploads/
+.env.*
+!.env.example
+*.pem
+*.key

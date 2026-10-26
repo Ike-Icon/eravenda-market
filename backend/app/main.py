@@ -3,8 +3,10 @@
 import os
 import time
 import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlparse, quote
 
 from dotenv import load_dotenv
 
@@ -12,15 +14,18 @@ load_dotenv()
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, FileResponse, HTMLResponse
+from fastapi.responses import Response, FileResponse, HTMLResponse, RedirectResponse, JSONResponse
+from sqlalchemy.exc import DataError
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text, func, case
 from sqlalchemy.orm import Session, selectinload
 
 from .database import Base, engine, get_db
+from .utils import escape_like
 from .migrate import run_migrations
-from . import models  # noqa: F401 - registers models on Base before create_all
+from . import models, security  # noqa: F401 - registers models on Base before create_all
+from . import auth as auth_core
 from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products, monetization, analytics, broadcasts
 from .platform_settings import get_settings, pinned_product_ids
 from .home_feed import fair_random_products, live_promoted_products
@@ -29,22 +34,92 @@ from . import email_utils
 from .email_utils import SITE_URL
 
 logger = logging.getLogger("eravenda.main")
+security.install_log_redaction()
 
-app = FastAPI(title="Eravenda API", version="1.0.0")
 
-allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",") if origin.strip()]
-if not allowed_origins:
-    allowed_origins = ["*"]
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    on_startup()
+    yield
+
+
+# The interactive API docs list every endpoint and its fields. That is useful
+# while developing and a free map for an attacker in production, so they are
+# only served locally.
+_docs_kwargs = (
+    {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    if security.IS_PRODUCTION
+    else {}
+)
+app = FastAPI(title="Eravenda API", version="1.0.0", lifespan=lifespan, **_docs_kwargs)
+
+
+def _resolve_cors_origins() -> list[str]:
+    """Browsers only need CORS when a page on another origin calls this API.
+    The site's own pages call it from the same origin, so by default only the
+    site's own address is listed. Set ALLOWED_ORIGINS to add more (comma
+    separated, full origins such as https://eravenda.com)."""
+    configured = [o.strip().rstrip("/") for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    if "*" in configured:
+        logger.warning("ALLOWED_ORIGINS contains '*'. Ignoring it: list the real origins instead.")
+        configured = [o for o in configured if o != "*"]
+    origins = set(configured)
+    parsed = urlparse(SITE_URL)
+    if parsed.scheme and parsed.netloc:
+        origins.add(f"{parsed.scheme}://{parsed.netloc}")
+        host = parsed.netloc
+        other = host[4:] if host.startswith("www.") else f"www.{host}"
+        if "localhost" not in host and not host.replace(".", "").isdigit():
+            origins.add(f"{parsed.scheme}://{other}")
+    return sorted(origins)
+
+
+allowed_origins = _resolve_cors_origins()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    # The frontend uses bearer tokens, not cookies. Keeping credentials off
-    # makes wildcard origins valid and avoids accidental credential leakage.
+    # Login uses an HttpOnly cookie that only same-origin pages send. Other
+    # origins never get credentials.
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
+    max_age=600,
 )
+
+@app.exception_handler(DataError)
+async def malformed_value_handler(request: Request, exc: DataError):
+    """A value the database cannot accept (for example /product/not-a-uuid)
+    is a bad request from the visitor, not a server fault. Answering 404 keeps
+    stack traces out of the response and the logs."""
+    logger.warning("Rejected malformed value on %s %s", request.method, request.url.path)
+    return JSONResponse({"detail": "Not found"}, status_code=404)
+
+
+MAX_BODY_BYTES = int(os.getenv("MAX_BODY_BYTES", str(12 * 1024 * 1024)))
+# Paystack and the weekly cron call from servers, not browsers, and must never
+# be throttled by the visitor limit.
+_RATE_LIMIT_EXEMPT = ("/api/payments/webhook", "/api/newsletter/cron")
+
+
+@app.middleware("http")
+async def request_guards(request: Request, call_next):
+    path = request.url.path
+    declared = request.headers.get("content-length", "")
+    if declared.isdigit() and int(declared) > MAX_BODY_BYTES:
+        return Response(content='{"detail":"Request body too large"}', status_code=413, media_type="application/json")
+    if path.startswith("/api") and not path.startswith(_RATE_LIMIT_EXEMPT):
+        try:
+            # Generous on purpose: many mobile users share one public address.
+            security.enforce_rate_limit(request, "api", 600, 60)
+        except HTTPException as exc:
+            return Response(
+                content='{"detail":"Too many requests. Please slow down."}',
+                status_code=exc.status_code,
+                media_type="application/json",
+                headers=exc.headers or {},
+            )
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -54,6 +129,14 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if security.IS_PRODUCTION:
+        # Tells browsers to use https only for the next year. No
+        # includeSubDomains, so other subdomains are not affected.
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+    csp = security.csp_header()
+    content_type = response.headers.get("content-type", "")
+    if csp and content_type.startswith("text/html"):
+        response.headers.setdefault(csp[0], csp[1])
     path = request.url.path
     if path.startswith("/api"):
         response.headers.setdefault("Cache-Control", "no-store")
@@ -68,7 +151,6 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-@app.on_event("startup")
 def on_startup():
     # Create any missing tables first, then run the migrations. The order
     # matters on a brand-new database: most migrations ALTER core tables
@@ -162,6 +244,15 @@ templates = Jinja2Templates(directory=str(FRONTEND_DIR / "templates"))
 # Keeps optional structured-data fields (aggregateRating, brand, ...) out of the
 # JSON entirely when there's nothing to say, instead of shipping "field": null,
 # which trips validators like Google's Rich Results Test.
+def _clean_html_filter(value):
+    """Descriptions are sanitized when saved, but older rows may predate that.
+    Cleaning again on the way out means an old row can never run a script."""
+    from markupsafe import Markup
+    from .schemas import _sanitize_description_html
+    return Markup(_sanitize_description_html(value or "") or "")
+
+
+templates.env.filters["clean_html"] = _clean_html_filter
 templates.env.filters["compact"] = lambda d: {k: v for k, v in d.items() if v is not None}
 
 # New Tailwind-based assets (main.js, config.js, custom.css) for the
@@ -379,8 +470,7 @@ def home_page(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
-    return templates.TemplateResponse(
-        "index.html",
+    return templates.TemplateResponse(request, "index.html",
         page_context(
             request,
             db,
@@ -417,8 +507,8 @@ def products_page(
     )
 
     if q:
-        like = f"%{q}%"
-        query = query.filter(models.Product.name.ilike(like))
+        like = f"%{escape_like(q)}%"
+        query = query.filter(models.Product.name.ilike(like, escape="\\"))
     if category_id:
         query = query.filter(models.Product.category_id.in_(_category_and_child_ids(db, category_id)))
     cod_only = cod in ("1", "true", "yes")
@@ -493,8 +583,7 @@ def products_page(
     )
     promoted_strip = [p for p in promoted_strip if (p.sales_type or "retail") == sales_type]
 
-    return templates.TemplateResponse(
-        "products.html",
+    return templates.TemplateResponse(request, "products.html",
         page_context(
             request, db,
             promoted_strip=promoted_strip,
@@ -528,8 +617,7 @@ def promoted_page(request: Request, category_id: str = "", db: Session = Depends
         promoted = [p for p in all_promoted if p.category_id in wanted]
     else:
         promoted = all_promoted
-    return templates.TemplateResponse(
-        "promoted.html",
+    return templates.TemplateResponse(request, "promoted.html",
         page_context(
             request, db,
             promoted_products=promoted,
@@ -572,8 +660,7 @@ def product_page(product_id: str, request: Request, db: Session = Depends(get_db
         .limit(6).all()
     )
 
-    return templates.TemplateResponse(
-        "product.html",
+    return templates.TemplateResponse(request, "product.html",
         page_context(
             request, db, product=product, store=store, more_from_store=more_from_store,
             related_products=related_products, reviews=reviews,
@@ -608,8 +695,7 @@ def store_page(store_id: str, request: Request, db: Session = Depends(get_db)):
     joined_label = store.created_at.strftime("%B %Y") if store.created_at else None
     joined_ago = time_ago_label(store.created_at) if store.created_at else None
 
-    return templates.TemplateResponse(
-        "store.html",
+    return templates.TemplateResponse(request, "store.html",
         page_context(
             request,
             db,
@@ -629,52 +715,52 @@ def cart_page(request: Request, db: Session = Depends(get_db)):
     # Cart contents are fetched client-side (see cart.html's script block),
     # since the cart is tied to the JWT sitting in localStorage, not a
     # server-side session this route could read.
-    return templates.TemplateResponse("cart.html", page_context(request, db))
+    return templates.TemplateResponse(request, "cart.html", page_context(request, db))
 
 
 @app.get("/checkout", response_class=HTMLResponse)
 def checkout_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("checkout.html", page_context(request, db))
+    return templates.TemplateResponse(request, "checkout.html", page_context(request, db))
 
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("login.html", page_context(request, db))
+    return templates.TemplateResponse(request, "login.html", page_context(request, db))
 
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("register.html", page_context(request, db))
+    return templates.TemplateResponse(request, "register.html", page_context(request, db))
 
 
 @app.get("/wishlist", response_class=HTMLResponse)
 def wishlist_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("wishlist.html", page_context(request, db))
+    return templates.TemplateResponse(request, "wishlist.html", page_context(request, db))
 
 
 @app.get("/services", response_class=HTMLResponse)
 def services_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("services.html", page_context(request, db))
+    return templates.TemplateResponse(request, "services.html", page_context(request, db))
 
 
 @app.get("/services/register", response_class=HTMLResponse)
 def services_register_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("services-register.html", page_context(request, db))
+    return templates.TemplateResponse(request, "services-register.html", page_context(request, db))
 
 
 @app.get("/delivery/register", response_class=HTMLResponse)
 def delivery_register_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("delivery-register.html", page_context(request, db))
+    return templates.TemplateResponse(request, "delivery-register.html", page_context(request, db))
 
 
 @app.get("/delivery/dashboard", response_class=HTMLResponse)
 def delivery_dashboard_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("delivery-dashboard.html", page_context(request, db))
+    return templates.TemplateResponse(request, "delivery-dashboard.html", page_context(request, db))
 
 
 @app.get("/professional/dashboard.html", response_class=HTMLResponse)
 def professional_dashboard_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("professional/dashboard.html", page_context(request, db))
+    return templates.TemplateResponse(request, "professional/dashboard.html", page_context(request, db))
 
 
 @app.get("/services/professional/{handyman_id}", response_class=HTMLResponse)
@@ -682,17 +768,7 @@ def service_professional_page(handyman_id: str, request: Request, db: Session = 
     worker = db.query(models.HandymanProfile).options(selectinload(models.HandymanProfile.portfolio)).filter(models.HandymanProfile.id == handyman_id, models.HandymanProfile.status == models.ServiceStatus.approved).first()
     if not worker:
         raise HTTPException(status_code=404, detail="Service professional not found")
-    joined = worker.created_at
-    return templates.TemplateResponse(
-        "services-professional.html",
-        page_context(
-            request,
-            db,
-            worker=worker,
-            worker_joined_label=joined.strftime("%B %Y") if joined else None,
-            worker_joined_ago=time_ago_label(joined) if joined else None,
-        ),
-    )
+    return templates.TemplateResponse(request, "services-professional.html", page_context(request, db, worker=worker))
 
 
 @app.get("/services/request/{handyman_id}", response_class=HTMLResponse)
@@ -703,7 +779,7 @@ def service_request_page(handyman_id: str, request: Request, db: Session = Depen
     ).first()
     if not worker:
         raise HTTPException(status_code=404, detail="Service professional not found")
-    return templates.TemplateResponse("service-request.html", page_context(request, db, worker=worker))
+    return templates.TemplateResponse(request, "service-request.html", page_context(request, db, worker=worker))
 
 
 # ============================================================
@@ -714,7 +790,7 @@ def service_request_page(handyman_id: str, request: Request, db: Session = Depen
 # ============================================================
 @app.get("/services/bookings", response_class=HTMLResponse)
 def my_bookings_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("my-bookings.html", page_context(request, db))
+    return templates.TemplateResponse(request, "my-bookings.html", page_context(request, db))
 
 
 @app.get("/services/bookings/{booking_id}", response_class=HTMLResponse)
@@ -722,27 +798,32 @@ def booking_tracker_page(booking_id: str, request: Request, db: Session = Depend
     # The booking itself is fetched client-side (with the viewer's JWT) so
     # the API can enforce who's allowed to see it. This route just needs a
     # valid-looking id to hand off to the template.
-    return templates.TemplateResponse("booking-tracker.html", page_context(request, db, booking_id=booking_id))
+    return templates.TemplateResponse(request, "booking-tracker.html", page_context(request, db, booking_id=booking_id))
 
 
 @app.get("/forgot-password", response_class=HTMLResponse)
 def forgot_password_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("forgot-password.html", page_context(request, db))
+    return templates.TemplateResponse(request, "forgot-password.html", page_context(request, db))
+
+
+@app.get("/verify-email", response_class=HTMLResponse)
+def verify_email_page(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse(request, "verify-email.html", page_context(request, db))
 
 
 @app.get("/reset-password", response_class=HTMLResponse)
 def reset_password_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("reset-password.html", page_context(request, db))
+    return templates.TemplateResponse(request, "reset-password.html", page_context(request, db))
 
 
 @app.get("/account", response_class=HTMLResponse)
 def account_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("account.html", page_context(request, db))
+    return templates.TemplateResponse(request, "account.html", page_context(request, db))
 
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("settings.html", page_context(request, db))
+    return templates.TemplateResponse(request, "settings.html", page_context(request, db))
 
 
 # ============================================================
@@ -750,32 +831,32 @@ def settings_page(request: Request, db: Session = Depends(get_db)):
 # ============================================================
 @app.get("/about", response_class=HTMLResponse)
 def about_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("about.html", page_context(request, db))
+    return templates.TemplateResponse(request, "about.html", page_context(request, db))
 
 
 @app.get("/contact", response_class=HTMLResponse)
 def contact_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("contact.html", page_context(request, db))
+    return templates.TemplateResponse(request, "contact.html", page_context(request, db))
 
 
 @app.get("/terms", response_class=HTMLResponse)
 def terms_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("terms.html", page_context(request, db))
+    return templates.TemplateResponse(request, "terms.html", page_context(request, db))
 
 
 @app.get("/delivery/terms", response_class=HTMLResponse)
 def delivery_terms_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("delivery-terms.html", page_context(request, db))
+    return templates.TemplateResponse(request, "delivery-terms.html", page_context(request, db))
 
 
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("privacy.html", page_context(request, db))
+    return templates.TemplateResponse(request, "privacy.html", page_context(request, db))
 
 
 @app.get("/faq", response_class=HTMLResponse)
 def faq_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("faq.html", page_context(request, db))
+    return templates.TemplateResponse(request, "faq.html", page_context(request, db))
 
 
 # ============================================================
@@ -785,7 +866,7 @@ def faq_page(request: Request, db: Session = Depends(get_db)):
 # ============================================================
 @app.get("/payments/callback", response_class=HTMLResponse)
 def payment_callback_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("payments/callback.html", page_context(request, db))
+    return templates.TemplateResponse(request, "payments/callback.html", page_context(request, db))
 
 
 # ============================================================
@@ -794,17 +875,17 @@ def payment_callback_page(request: Request, db: Session = Depends(get_db)):
 # ============================================================
 @app.get("/seller/dashboard.html", response_class=HTMLResponse)
 def seller_dashboard_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("seller/dashboard.html", page_context(request, db))
+    return templates.TemplateResponse(request, "seller/dashboard.html", page_context(request, db))
 
 
 @app.get("/seller/products.html", response_class=HTMLResponse)
 def seller_products_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("seller/products.html", page_context(request, db))
+    return templates.TemplateResponse(request, "seller/products.html", page_context(request, db))
 
 
 @app.get("/seller/add-product.html", response_class=HTMLResponse)
 def seller_add_product_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("seller/add-product.html", page_context(request, db))
+    return templates.TemplateResponse(request, "seller/add-product.html", page_context(request, db))
 
 
 @app.get("/seller/edit-product.html", response_class=HTMLResponse)
@@ -812,41 +893,62 @@ def seller_edit_product_page(request: Request, db: Session = Depends(get_db)):
     # product_id comes from a ?id= query param, read client-side (see the
     # template's script block) — same reasoning as add-product: this page
     # needs the seller's own JWT to fetch and authorize the edit.
-    return templates.TemplateResponse("seller/edit-product.html", page_context(request, db))
+    return templates.TemplateResponse(request, "seller/edit-product.html", page_context(request, db))
 
 
 @app.get("/seller/growth.html", response_class=HTMLResponse)
 def seller_growth_page(request: Request, db: Session = Depends(get_db)):
     # Subscription plan + promoted listings; data is fetched client-side with
     # the seller's JWT, same as the other seller pages.
-    return templates.TemplateResponse("seller/growth.html", page_context(request, db))
+    return templates.TemplateResponse(request, "seller/growth.html", page_context(request, db))
 
 
 @app.get("/seller/orders.html", response_class=HTMLResponse)
 def seller_orders_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("seller/orders.html", page_context(request, db))
+    return templates.TemplateResponse(request, "seller/orders.html", page_context(request, db))
 
 
 # ============================================================
 # Admin dashboard — same client-side auth-gating approach as the
 # seller pages above, plus a role check in the template's script.
 # ============================================================
+def _admin_page_gate(request: Request, db: Session):
+    """The admin pages hold no data themselves (every call they make is checked
+    by the API), but there is no reason to hand the admin interface to
+    strangers. Signed-out visitors go to the login page; signed-in people who
+    are not admins get a 404."""
+    header = request.headers.get("authorization", "")
+    bearer = header[7:].strip() if header.lower().startswith("bearer ") else None
+    user = auth_core.get_optional_user(request, bearer or None, db)
+    if user is None:
+        return RedirectResponse(url=f"/login?next={quote(request.url.path, safe='/')}", status_code=302)
+    if user.role != models.UserRole.admin:
+        raise HTTPException(status_code=404, detail="Not found")
+    return None
+
+
 @app.get("/admin/dashboard.html", response_class=HTMLResponse)
 def admin_dashboard_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("admin/dashboard.html", page_context(request, db))
+    if (blocked := _admin_page_gate(request, db)) is not None:
+        return blocked
+    return templates.TemplateResponse(request, "admin/dashboard.html", page_context(request, db))
 
 
 @app.get("/admin/stats.html", response_class=HTMLResponse)
 def admin_stats_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("admin/stats.html", page_context(request, db))
+    if (blocked := _admin_page_gate(request, db)) is not None:
+        return blocked
+    return templates.TemplateResponse(request, "admin/stats.html", page_context(request, db))
 
 
 @app.get("/admin/edit-product.html", response_class=HTMLResponse)
 def admin_edit_product_page(request: Request, db: Session = Depends(get_db)):
     # Same client-side auth-gating as the seller edit page: product_id comes
     # from a ?id= query param, read in the template's script, using the
-    # signed-in admin's own JWT so /admin/products/{id} authorizes correctly.
-    return templates.TemplateResponse("admin/edit-product.html", page_context(request, db))
+    # signed-in admin's own session so /admin/products/{id} authorizes correctly.
+    if (blocked := _admin_page_gate(request, db)) is not None:
+        return blocked
+    return templates.TemplateResponse(request, "admin/edit-product.html", page_context(request, db))
 
 
 # ============================================================
@@ -855,7 +957,7 @@ def admin_edit_product_page(request: Request, db: Session = Depends(get_db)):
 # ============================================================
 @app.get("/pay-order", response_class=HTMLResponse)
 def pay_order_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("pay-order.html", page_context(request, db))
+    return templates.TemplateResponse(request, "pay-order.html", page_context(request, db))
 
 
 @app.get("/orders.html", response_class=HTMLResponse)
@@ -863,17 +965,17 @@ def orders_page(request: Request, db: Session = Depends(get_db)):
     # Order contents are fetched client-side (see orders.html's script
     # block), since orders belong to whoever's JWT is in localStorage,
     # not a server-side session this route could read directly.
-    return templates.TemplateResponse("orders.html", page_context(request, db))
+    return templates.TemplateResponse(request, "orders.html", page_context(request, db))
 
 
 @app.get("/orders/review", response_class=HTMLResponse)
 def order_review_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("order-review.html", page_context(request, db))
+    return templates.TemplateResponse(request, "order-review.html", page_context(request, db))
 
 
 @app.get("/orders/track", response_class=HTMLResponse)
 def order_tracking_page(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("order-tracking.html", page_context(request, db))
+    return templates.TemplateResponse(request, "order-tracking.html", page_context(request, db))
 
 
 @app.get("/healthz")

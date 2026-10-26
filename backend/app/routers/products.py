@@ -7,7 +7,7 @@ from sqlalchemy import or_, func
 
 from .. import models, schemas, auth
 from ..database import get_db
-from ..utils import slugify, random_suffix
+from ..utils import slugify, random_suffix, escape_like
 from ..product_pricing import launch_policy_summary
 from .. import wholesale
 
@@ -61,8 +61,8 @@ def list_products(
     query = db.query(models.Product).filter(models.Product.status == models.ProductStatus.approved)
 
     if q:
-        like = f"%{q}%"
-        query = query.filter(or_(models.Product.name.ilike(like), models.Product.brand.ilike(like)))
+        like = f"%{escape_like(q)}%"
+        query = query.filter(or_(models.Product.name.ilike(like, escape="\\"), models.Product.brand.ilike(like, escape="\\")))
     if category_id:
         child_ids = [
             row[0] for row in db.query(models.Category.id).filter(models.Category.parent_id == category_id).all()
@@ -73,7 +73,7 @@ def list_products(
     if max_price is not None:
         query = query.filter(models.Product.price <= max_price)
     if brand:
-        query = query.filter(models.Product.brand.ilike(f"%{brand}%"))
+        query = query.filter(models.Product.brand.ilike(f"%{escape_like(brand)}%", escape="\\"))
     if cod_eligible is not None:
         query = query.filter(models.Product.cod_eligible == cod_eligible)
     if sales_type:
@@ -215,6 +215,12 @@ def add_product_image(
 
     next_order = (db.query(func.max(models.ProductImage.sort_order))
                   .filter(models.ProductImage.product_id == product_id).scalar() or 0) + 1
+    try:
+        image_url = schemas.clean_public_url(image_url)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Image link must be a full https:// URL")
+    if not image_url:
+        raise HTTPException(status_code=400, detail="Image link is required")
     image = models.ProductImage(product_id=product_id, image_url=image_url, is_primary=is_primary, sort_order=next_order)
     db.add(image)
     db.commit()

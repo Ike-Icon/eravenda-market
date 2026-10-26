@@ -20,7 +20,7 @@
   }
 
   const money = n => `₵${Number(n || 0).toFixed(2)}`;
-  const esc = s => { const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; };
+  const esc = s => String(s ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
   const fmtDate = iso => iso ? new Date(iso + "Z").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
   const STATE_STYLES = {
     live: "bg-brand-50 text-brand-700", scheduled: "bg-amber-50 text-amber-700",

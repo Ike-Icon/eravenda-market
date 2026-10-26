@@ -33,6 +33,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from .. import models, auth
+from ..schemas import _sanitize_description_html, _normalize_product_colors, clean_public_url
 from ..database import get_db
 from ..utils import slugify, random_suffix
 
@@ -161,6 +162,28 @@ def _build_template_xlsx() -> bytes:
     return buf.read()
 
 
+MAX_IMPORT_BYTES = 5 * 1024 * 1024
+MAX_IMPORT_ROWS = 500
+
+
+def _reject_zip_bomb(file_bytes: bytes) -> None:
+    """An .xlsx is a zip file. Refuse one whose contents expand far beyond its size."""
+    import zipfile
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:
+            if sum(info.file_size for info in archive.infolist()) > 100 * 1024 * 1024:
+                raise HTTPException(status_code=422, detail="That spreadsheet is too large to import.")
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=422, detail="That is not a valid .xlsx file.")
+
+
+def _read_upload(file: UploadFile) -> bytes:
+    data = file.file.read(MAX_IMPORT_BYTES + 1)
+    if len(data) > MAX_IMPORT_BYTES:
+        raise HTTPException(status_code=413, detail="The spreadsheet must be 5 MB or smaller.")
+    return data
+
+
 def _load_workbook_rows(file_bytes: bytes, filename: str) -> list:
     """
     Parse an .xlsx or .xls file and return a list of dicts (one per data row).
@@ -173,17 +196,32 @@ def _load_workbook_rows(file_bytes: bytes, filename: str) -> list:
             import openpyxl
         except ImportError:
             raise HTTPException(status_code=500, detail="openpyxl not installed")
-        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
-        ws = wb.active
-        all_rows = list(ws.iter_rows(values_only=True))
+        _reject_zip_bomb(file_bytes)
+        try:
+            wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True, read_only=True)
+            ws = wb.active
+            all_rows = []
+            for raw_row in ws.iter_rows(values_only=True):
+                all_rows.append(raw_row)
+                if len(all_rows) > MAX_IMPORT_ROWS + 2:
+                    raise HTTPException(status_code=422, detail=f"Import at most {MAX_IMPORT_ROWS} products at a time.")
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=422, detail="That file could not be read. Save it as .xlsx and try again.")
 
     elif fname_lower.endswith(".xls"):
         try:
             import xlrd
         except ImportError:
             raise HTTPException(status_code=500, detail="xlrd not installed")
-        book = xlrd.open_workbook(file_contents=file_bytes)
-        sheet = book.sheet_by_index(0)
+        try:
+            book = xlrd.open_workbook(file_contents=file_bytes)
+            sheet = book.sheet_by_index(0)
+        except Exception:
+            raise HTTPException(status_code=422, detail="That file could not be read. Save it as .xlsx and try again.")
+        if sheet.nrows > MAX_IMPORT_ROWS + 2:
+            raise HTTPException(status_code=422, detail=f"Import at most {MAX_IMPORT_ROWS} products at a time.")
         all_rows = [
             tuple(sheet.cell_value(r, c) for c in range(sheet.ncols))
             for r in range(sheet.nrows)
@@ -241,6 +279,9 @@ def _parse_and_import(rows: list, store: models.Store, db: Session) -> dict:
         if not name:
             errors.append({"row": row_num, "reason": "Missing required field: name"})
             continue
+        if len(name) > 200:
+            errors.append({"row": row_num, "reason": "name is too long (200 characters at most)"})
+            continue
 
         category_id = row.get("category_id", "").strip()
         if not category_id:
@@ -253,7 +294,7 @@ def _parse_and_import(rows: list, store: models.Store, db: Session) -> dict:
             continue
         try:
             price = float(price_raw)
-            if price < 0:
+            if not (0 < price <= 100_000_000):
                 raise ValueError
         except ValueError:
             errors.append({"row": row_num, "reason": f"Invalid price value: '{price_raw}'"})
@@ -265,7 +306,7 @@ def _parse_and_import(rows: list, store: models.Store, db: Session) -> dict:
             continue
         try:
             stock_quantity = int(float(stock_raw))
-            if stock_quantity < 0:
+            if not (0 <= stock_quantity <= 10_000_000):
                 raise ValueError
         except ValueError:
             errors.append({"row": row_num, "reason": f"Invalid stock_quantity value: '{stock_raw}'"})
@@ -280,9 +321,14 @@ def _parse_and_import(rows: list, store: models.Store, db: Session) -> dict:
             category_cache[category_id] = cat
 
         # --- Optional fields ---
-        description = row.get("description", "").strip() or None
-        brand       = row.get("brand", "").strip() or None
-        sku         = row.get("sku", "").strip() or None
+        # Same cleaning the add-product form gets: only a few formatting tags
+        # survive in the description, so a spreadsheet cannot carry a script.
+        description = _sanitize_description_html((row.get("description", "").strip() or None))
+        brand       = (row.get("brand", "").strip() or None)
+        sku         = (row.get("sku", "").strip() or None)
+        if (brand and len(brand) > 100) or (sku and len(sku) > 100) or (description and len(description) > 20000):
+            errors.append({"row": row_num, "reason": "brand, sku or description is too long"})
+            continue
 
         condition_raw = row.get("condition", "new").strip().lower() or "new"
         if condition_raw not in VALID_CONDITIONS:
@@ -306,20 +352,27 @@ def _parse_and_import(rows: list, store: models.Store, db: Session) -> dict:
         specifications = None
         specs_raw = row.get("specifications", "").strip()
         if specs_raw:
-            specifications = [s.strip() for s in specs_raw.split("|") if s.strip()]
+            specifications = [s.strip()[:200] for s in specs_raw.split("|") if s.strip()][:50]
 
         # colors — pipe-separated → list of {"name": ..., "hex": ""}
         colors = None
         colors_raw = row.get("colors", "").strip()
         if colors_raw:
-            colors = [{"name": c.strip(), "hex": ""} for c in colors_raw.split("|") if c.strip()]
+            colors = _normalize_product_colors([c.strip() for c in colors_raw.split("|") if c.strip()][:50])
 
         # Image URLs — optional; up to 3
         image_urls = []
         for key in ("image_url_1", "image_url_2", "image_url_3"):
             url = row.get(key, "").strip()
             if url:
-                image_urls.append(url)
+                try:
+                    image_urls.append(clean_public_url(url))
+                except ValueError:
+                    image_urls = None
+                    errors.append({"row": row_num, "reason": f"{key} must be a full https:// link"})
+                    break
+        if image_urls is None:
+            continue
 
         # --- Slug ---
         slug = _unique_slug(slugify(name), store.id, db)
@@ -413,7 +466,7 @@ def seller_import_products(
     if store.status != models.StoreStatus.approved:
         raise HTTPException(status_code=403, detail="Your store must be approved before you can import products")
 
-    file_bytes = file.file.read()
+    file_bytes = _read_upload(file)
     rows = _load_workbook_rows(file_bytes, file.filename or "upload.xlsx")
     return _parse_and_import(rows, store, db)
 
@@ -438,6 +491,6 @@ def admin_import_products(
     if store.status != models.StoreStatus.approved:
         raise HTTPException(status_code=403, detail="Target store is not approved")
 
-    file_bytes = file.file.read()
+    file_bytes = _read_upload(file)
     rows = _load_workbook_rows(file_bytes, file.filename or "upload.xlsx")
     return _parse_and_import(rows, store, db)

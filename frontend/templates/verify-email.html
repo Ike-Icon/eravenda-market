@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Confirm your email — Eravenda Market{% endblock %}
+{% block robots_meta %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16">
+  <div class="border border-slate-200 rounded-md p-8">
+    <h1 class="font-head text-xl font-semibold mb-4">Confirm your email</h1>
+    <p id="verifyStatus" class="text-sm text-slate-600">Checking your link…</p>
+    <a id="verifyNext" href="/" class="hidden mt-4 inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-4 py-2 rounded-md transition-colors">Continue shopping</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (async () => {
+    const status = document.getElementById("verifyStatus");
+    const token = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("token");
+    history.replaceState(null, "", window.location.pathname);
+    if (!token) {
+      status.textContent = "This link is missing its token. Open the newest email we sent you, or request a new link from your account page.";
+      return;
+    }
+    try {
+      const data = await apiFetch("/auth/verify-email", { method: "POST", body: { token }, auth: false });
+      status.textContent = data.message;
+      document.getElementById("verifyNext").classList.remove("hidden");
+      // Keep the cached profile in step so the "unverified" notice disappears.
+      const user = Auth.getUser();
+      if (user) { user.is_verified = true; Auth.setSession(null, user); }
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  })();
+</script>
+{% endblock %}

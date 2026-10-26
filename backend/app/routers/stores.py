@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException  # pyright: ignore[reportMissingImports]
+from fastapi import APIRouter, Depends, HTTPException, Request  # pyright: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # pyright: ignore[reportMissingImports]
 import logging
 
-from .. import models, schemas, auth
+from .. import models, schemas, auth, security
 from ..database import get_db
 from ..utils import slugify, random_suffix
 from ..email_utils import send_role_welcome_email
@@ -14,9 +14,12 @@ logger = logging.getLogger("eravenda.stores")
 @router.post("", response_model=schemas.StoreOut, status_code=201)
 def create_store(
     payload: schemas.StoreCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
+    security.enforce_rate_limit(request, "create-store", 5, 3600, key=current_user.id)
+    auth.require_verified_email(current_user)
     if current_user.store is not None:
         raise HTTPException(status_code=400, detail="You already have a store")
 

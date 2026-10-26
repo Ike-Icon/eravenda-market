@@ -35,11 +35,7 @@
 
   function money(n) { return `₵${Number(n).toFixed(2)}`; }
 
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str ?? "";
-    return div.innerHTML;
-  }
+  function escapeHtml(str) { return String(str ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c])); }
 
   const STATUS_STYLES = {
     pending: "bg-amber-50 text-amber-700",

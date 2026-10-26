@@ -331,11 +331,11 @@ def test_store_and_other_pages_render(client, pages, world):
     s = pages.get(f"/store/{store_id}")
     assert s.status_code == 200 and "View &amp; order" in s.text
     for path in ("/cart", "/checkout", "/orders.html", "/seller/products.html", "/seller/add-product.html",
-                 "/seller/orders.html", "/seller/dashboard.html", "/admin/dashboard.html"):
+                 "/seller/orders.html", "/seller/dashboard.html"):
         assert pages.get(path).status_code == 200, path
     add = pages.get("/seller/add-product.html").text
     assert "Minimum Wholesale Quantity" in add and 'value="wholesale"' in add
-    assert "Wholesale management" in pages.get("/admin/dashboard.html").text
+    assert "Wholesale management" in pages.get("/admin/dashboard.html", headers=world["admin"]).text
 
 
 # ---------- Email center: "One user" audience ----------

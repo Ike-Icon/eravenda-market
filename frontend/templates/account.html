@@ -5,6 +5,10 @@
 {% block content %}
 <div class="max-w-lg mx-auto px-4 py-8">
   <h1 class="font-head text-2xl font-semibold mb-6">Your account</h1>
+  <div id="verifyBanner" class="hidden mb-6 border border-amber-200 bg-amber-50 text-amber-900 rounded-md p-4 text-sm flex flex-wrap items-center justify-between gap-3" role="status">
+    <span>Please confirm your email address. We sent you a link when you signed up.</span>
+    <button id="resendVerify" type="button" class="font-semibold underline">Send a new link</button>
+  </div>
 
   <div class="border border-slate-200 rounded-md p-6 mb-6">
     <h3 class="font-semibold mb-4">Profile details</h3>
@@ -82,10 +86,6 @@
     <nav id="followingPagination" class="hidden mt-5 flex-wrap items-center justify-center gap-1.5" aria-label="Followed store pages"></nav>
     <p id="followingPageSummary" class="mt-2 text-center text-xs text-slate-500"></p>
   </div>
-  <div class="border border-slate-200 rounded-md p-6 mt-6">
-    <h3 class="font-semibold mb-4">Handymen you follow</h3>
-    <div id="followingWorkersGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"><p class="text-slate-500 text-sm col-span-full">Loading…</p></div>
-  </div>
   <div id="seller-application" class="border border-slate-200 rounded-md p-6 mt-6">
     <h3 class="font-semibold">Sell on Eravenda</h3>
     <p class="text-sm text-slate-500 mt-1">Apply with your store details. An admin will review your store before your account becomes a seller account.</p>
@@ -129,6 +129,31 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+  // Ask the server whether this address is confirmed. The saved copy of the
+  // profile can be out of date, so it is refreshed here.
+  (async () => {
+    const banner = document.getElementById("verifyBanner");
+    try {
+      const me = await apiFetch("/auth/me");
+      const stored = Auth.getUser();
+      if (stored) { stored.is_verified = me.is_verified; Auth.setSession(null, stored); }
+      if (!me.is_verified) banner.classList.remove("hidden");
+    } catch (_) { /* the page's own loaders report connection problems */ }
+    document.getElementById("resendVerify").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        const result = await apiFetch("/auth/resend-verification", { method: "POST" });
+        showToast(result.message, "success");
+      } catch (err) {
+        showToast(err.message, "error");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  })();
+</script>
 <script src="/static/js/avatar-cropper.js?v={{ asset_v|default(1) }}"></script>
 <script>
   if (!Auth.isLoggedIn()) {
@@ -340,15 +365,11 @@
       el.querySelectorAll(".default-address-btn").forEach(btn => btn.addEventListener("click", () => setDefaultAddress(btn.dataset.id)));
       el.querySelectorAll(".delete-address-btn").forEach(btn => btn.addEventListener("click", () => deleteAddress(btn.dataset.id)));
     } catch (err) {
-      el.innerHTML = `<p class="text-red-600 text-sm">${err.message}</p>`;
+      el.innerHTML = `<p class="text-red-600 text-sm">${escapeHtml(err.message)}</p>`;
     }
   }
 
-  function escapeHtmlAddr(str) {
-    const div = document.createElement("div");
-    div.textContent = str ?? "";
-    return div.innerHTML;
-  }
+  function escapeHtmlAddr(str) { return String(str ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c])); }
 
   // ---- Address popup (add / edit) — this is the "manage from account"
   // flow; it never navigates to /checkout. ----
@@ -488,52 +509,12 @@
       followedStores = await apiFetch("/stores/following");
       followingPager.render(followedStores.length);
     } catch (err) {
-      document.getElementById("followingGrid").innerHTML = `<p class="text-red-600 text-sm col-span-full">${err.message}</p>`;
-    }
-  }
-
-  // ---- Handymen you follow ----
-  async function loadFollowingWorkers() {
-    const el = document.getElementById("followingWorkersGrid");
-    if (!el) return;
-    try {
-      const list = await apiFetch("/services/following");
-      if (!list.length) {
-        el.innerHTML = `<p class="text-slate-500 text-sm col-span-full">You're not following any handymen yet. Open a professional's profile in the <a href="/services" class="text-brand-700 font-semibold underline">Handyman Hub</a> and tap Follow.</p>`;
-        return;
-      }
-      el.innerHTML = list.map(({ handyman: h }) => {
-        const name = h.professional_name || h.job_title || "Professional";
-        const photo = h.portfolio && h.portfolio.length ? h.portfolio[0].image_url : "";
-        const fc = h.follower_count || 0;
-        return `
-        <a href="/services/professional/${h.id}" class="block border border-slate-200 rounded-md p-3 hover:border-brand-500 transition-colors">
-          ${photo
-            ? `<img src="${escapeHtmlAddr(photo)}" alt="" class="w-10 h-10 rounded-full object-cover border border-slate-200 mb-2">`
-            : `<div class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-head font-bold mb-2">${escapeHtmlAddr(name[0].toUpperCase())}</div>`}
-          <p class="text-sm font-semibold truncate">${escapeHtmlAddr(name)}</p>
-          <p class="text-xs text-slate-500 truncate">${escapeHtmlAddr(h.custom_job_title || h.job_title || "")}</p>
-          <p class="text-xs text-slate-500 mt-0.5">${fc} follower${fc === 1 ? "" : "s"}</p>
-          <button type="button" data-unfollow-worker="${h.id}" class="mt-2 text-xs text-red-600 font-semibold hover:underline">Unfollow</button>
-        </a>`;
-      }).join("");
-      el.querySelectorAll("[data-unfollow-worker]").forEach(btn => btn.addEventListener("click", async (e) => {
-        e.preventDefault();
-        try {
-          await apiFetch(`/services/workers/${btn.dataset.unfollowWorker}/follow`, { method: "DELETE" });
-          loadFollowingWorkers();
-        } catch (err) {
-          showToast(err.message, "error");
-        }
-      }));
-    } catch (err) {
-      el.innerHTML = `<p class="text-red-600 text-sm col-span-full">${escapeHtmlAddr(err.message)}</p>`;
+      document.getElementById("followingGrid").innerHTML = `<p class="text-red-600 text-sm col-span-full">${escapeHtml(err.message)}</p>`;
     }
   }
 
   loadProfile();
   loadAddresses();
   loadFollowing();
-  loadFollowingWorkers();
 </script>
 {% endblock %}

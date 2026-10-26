@@ -37,7 +37,20 @@ services:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "1440"
       - key: ALLOWED_ORIGINS
+        # Optional. The site's own address (SITE_URL, with and without www) is
+        # always allowed. Add other origins here, comma separated. A "*" is ignored.
         sync: false
+      - key: REQUIRE_VERIFIED_EMAIL
+        # "true" holds checkout, store creation and partner sign-up until the
+        # person has opened the confirmation link we email them. Switch it to
+        # "true" only after you have signed up with a test account and received
+        # the email. If email sending is not working, true would block purchases.
+        value: "false"
+      - key: CSP_MODE
+        # "report-only" logs problems in the browser console without blocking
+        # anything. After browsing the whole site with the console open and
+        # seeing no violations, change to "enforce".
+        value: report-only
       - key: SITE_URL
         # Public address of the site (no trailing slash). Used for Paystack
         # payment callbacks, email links and the sitemap.

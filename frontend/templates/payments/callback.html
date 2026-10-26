@@ -97,7 +97,7 @@
       }
     } catch (err) {
       const backHref = isSellerCharge ? "/seller/growth.html" : (isServicePayment ? "/services/bookings" : "/orders.html");
-      box.innerHTML = `<p class="text-red-600">${err.message}</p><a href="${backHref}" class="text-brand-600 font-semibold hover:underline mt-3 inline-block">Go back</a>`;
+      box.innerHTML = `<p class="text-red-600">${escapeHtml(err.message)}</p><a href="${backHref}" class="text-brand-600 font-semibold hover:underline mt-3 inline-block">Go back</a>`;
     }
   }
 

@@ -10,7 +10,7 @@ from sqlalchemy import func  # type: ignore[reportMissingImports]
 from sqlalchemy.exc import IntegrityError  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
-from .. import models, schemas, auth, email_utils
+from .. import models, schemas, auth, email_utils, security
 from ..database import get_db
 from ..newsletter_service import NewsletterSendError, send_weekly_digest
 
@@ -23,7 +23,7 @@ logger = logging.getLogger("eravenda.newsletter")
 CRON_SECRET = os.getenv("NEWSLETTER_CRON_SECRET")
 
 
-@router.post("/subscribe", status_code=status.HTTP_201_CREATED)
+@router.post("/subscribe", status_code=status.HTTP_201_CREATED, dependencies=[Depends(security.rate_limit("newsletter-subscribe", 10, 3600))])
 def subscribe(payload: schemas.NewsletterSubscribeCreate, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
     existing = db.query(models.NewsletterSubscriber).filter(models.NewsletterSubscriber.email == email).first()

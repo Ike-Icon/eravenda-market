@@ -150,7 +150,7 @@
 if(!Auth.isLoggedIn())location.href='/login?next=/admin/stats.html';
 const _u=Auth.getUser();if(!_u||_u.role!=='admin')location.href='/';
 
-const esc = s => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
+const esc = s => String(s ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
 
 async function loadStats() {
   const rangeSel = document.getElementById('incomeRangeSelect');

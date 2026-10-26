@@ -1,9 +1,9 @@
 from collections import defaultdict
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Response  # type: ignore[reportMissingImports]
+from fastapi import APIRouter, Depends, HTTPException, Request, Response  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
-from .. import models, schemas, auth, delivery_fees, wholesale, receipts
+from .. import models, schemas, auth, security, delivery_fees, wholesale, receipts
 from ..database import get_db
 from ..utils import generate_order_number
 from ..product_pricing import product_commission_rate
@@ -147,9 +147,12 @@ def _unit_price_for(item) -> float:
 @router.post("/checkout", response_model=list[schemas.OrderOut], status_code=201)
 def checkout(
     payload: schemas.CheckoutRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
+    security.enforce_rate_limit(request, "checkout", 20, 600, key=current_user.id)
+    auth.require_verified_email(current_user)
     address = db.query(models.Address).filter(
         models.Address.id == payload.address_id, models.Address.user_id == current_user.id
     ).first()
@@ -455,6 +458,14 @@ def email_my_receipt(
     return {"sent_to": sent_to}
 
 
+SELLER_SETTABLE_STATUSES = {
+    models.OrderStatus.processing,
+    models.OrderStatus.shipped,
+    models.OrderStatus.delivered,
+    models.OrderStatus.cancelled,
+}
+
+
 @router.put("/{order_id}/status", response_model=schemas.OrderOut)
 def update_order_status(
     order_id: str,
@@ -469,6 +480,11 @@ def update_order_status(
         raise HTTPException(status_code=404, detail="Order not found")
     if order.status != models.OrderStatus.pending and payload.status == models.OrderStatus.pending:
         raise HTTPException(status_code=400, detail="An order cannot be moved back to pending once processing has started")
+    # Sellers move an order through fulfilment. "paid" and "refunded" describe
+    # money and are only ever set by a verified payment or an admin, so a seller
+    # cannot mark their own order as paid.
+    if payload.status != order.status and payload.status not in SELLER_SETTABLE_STATUSES:
+        raise HTTPException(status_code=403, detail="Sellers can set processing, shipped, delivered or cancelled")
 
     order.status = payload.status
     if payload.seller_note is not None:

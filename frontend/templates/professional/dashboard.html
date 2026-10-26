@@ -25,12 +25,6 @@
           <h2 id="professionalName" class="font-head text-2xl font-bold mt-2">Loading profile...</h2>
           <p id="profession" class="text-brand-700 font-semibold mt-1"></p>
           <p id="company" class="text-slate-500 text-sm mt-1"></p>
-          <p id="profileMeta" class="text-slate-500 text-xs mt-2"></p>
-          <div id="profileShareWrap" data-share-wrap class="relative hidden mt-3 w-fit">
-            <button type="button" id="shareMyProfile" data-share-trigger class="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg border border-brand-500 text-brand-700 hover:bg-brand-50 transition-colors">
-              <i class="fas fa-share-nodes" aria-hidden="true"></i>Share my profile
-            </button>
-          </div>
         </div>
         <span id="profileStatus" class="inline-flex w-fit px-3 py-1 rounded-full text-xs font-bold capitalize bg-slate-100 text-slate-600">Loading</span>
       </div>
@@ -72,7 +66,7 @@
 (async function(){
   if(!Auth.isLoggedIn()){ location.href='/login?next=/professional/dashboard.html'; return; }
   const status=document.getElementById('dashboardStatus');
-  const esc=s=>{const d=document.createElement('div');d.textContent=s??'';return d.innerHTML;};
+  const esc = s => String(s ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
   try{
     const p=await apiFetch('/services/me');
     document.getElementById('professionalName').textContent=p.professional_name||'Professional profile';
@@ -81,18 +75,6 @@
     document.getElementById('experience').textContent=p.work_experience||'Not provided';
     document.getElementById('qualifications').textContent=p.qualifications||'Not provided';
     document.getElementById('education').textContent=p.education||'Not provided';
-    // Joined date + followers, and a way to share the public profile once it is approved.
-    const joined=p.created_at?new Date(p.created_at).toLocaleDateString('en-GB',{month:'long',year:'numeric'}):'';
-    const fc=p.follower_count||0;
-    document.getElementById('profileMeta').textContent=`${joined?`Joined ${joined} · `:''}${fc} follower${fc===1?'':'s'}`;
-    if(p.status==='approved'){
-      document.getElementById('profileShareWrap').classList.remove('hidden');
-      document.getElementById('shareMyProfile').onclick=e=>shareLink(e.currentTarget,{
-        url:`${window.location.origin}/services/professional/${p.id}`,
-        title:`${p.professional_name||p.job_title} on EraVenda Handyman Hub`,
-        text:`Hire ${p.professional_name||p.job_title} on EraVenda Handyman Hub`,
-      });
-    }
     document.getElementById('portfolioCount').textContent=`${(p.portfolio||[]).length} work sample${(p.portfolio||[]).length===1?'':'s'}`;
     const badge=document.getElementById('profileStatus');
     badge.textContent=p.status||'pending';
@@ -118,7 +100,7 @@ function statusPillClass(s){
 function payoutPillClass(s){
   return { pending:'bg-amber-50 text-amber-700', processing:'bg-blue-50 text-blue-700', paid:'bg-brand-50 text-brand-700', failed:'bg-red-50 text-red-700' }[s] || 'bg-slate-100 text-slate-600';
 }
-const esc2=s=>{const d=document.createElement('div');d.textContent=s??'';return d.innerHTML;};
+const esc2 = s => String(s ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
 
 function jobActionsHtml(job){
   if (job.status==='requested' || job.status==='assigned') {

@@ -17,3 +17,9 @@ def random_suffix(length: int = 5) -> str:
 def generate_order_number() -> str:
     today = datetime.utcnow().strftime("%Y%m%d")
     return f"ORD-{today}-{random_suffix(6).upper()}"
+
+
+def escape_like(value: str) -> str:
+    """Make user text safe inside a LIKE pattern. Without this a search for
+    "%" or "_" matches everything. Use with ilike(pattern, escape="\\")."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

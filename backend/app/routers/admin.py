@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError  # pyright: ignore[reportMissingImport
 
 from .. import models, schemas, auth, delivery_fees
 from ..database import get_db
+from ..utils import escape_like
 from ..service_pricing import service_charge_for, service_commission_for
 from ..email_utils import send_email, SITE_URL, SUPPORT_EMAIL
 from .products import _sync_stock_from_variants
@@ -590,6 +591,12 @@ def admin_add_product_image(product_id: str, image_url: str, is_primary: bool = 
 
     next_order = (db.query(func.max(models.ProductImage.sort_order))
                   .filter(models.ProductImage.product_id == product_id).scalar() or 0) + 1
+    try:
+        image_url = schemas.clean_public_url(image_url)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Image link must be a full https:// URL")
+    if not image_url:
+        raise HTTPException(status_code=400, detail="Image link is required")
     image = models.ProductImage(product_id=product_id, image_url=image_url, is_primary=is_primary, sort_order=next_order)
     db.add(image)
     db.commit()
@@ -747,7 +754,7 @@ def wholesale_products(
     if seller_id:
         query = query.filter(models.Store.owner_id == seller_id)
     if q:
-        query = query.filter(models.Product.name.ilike(f"%{q.strip()}%"))
+        query = query.filter(models.Product.name.ilike(f"%{escape_like(q.strip())}%", escape="\\"))
     rows = query.order_by(models.Product.updated_at.desc()).limit(500).all()
     return [{
         "id": p.id, "name": p.name, "sku": p.sku, "status": p.status.value,
@@ -801,8 +808,8 @@ def wholesale_orders(
         query = query.filter(models.Order.id.in_(
             db.query(models.OrderItem.order_id).filter(models.OrderItem.product_id == product_id)))
     if q:
-        like = f"%{q.strip()}%"
-        query = query.filter(or_(models.Order.order_number.ilike(like), models.User.full_name.ilike(like), models.User.email.ilike(like)))
+        like = f"%{escape_like(q.strip())}%"
+        query = query.filter(or_(models.Order.order_number.ilike(like, escape="\\"), models.User.full_name.ilike(like, escape="\\"), models.User.email.ilike(like, escape="\\")))
     try:
         if date_from:
             query = query.filter(models.Order.created_at >= datetime.strptime(date_from, "%Y-%m-%d"))

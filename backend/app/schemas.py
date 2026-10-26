@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional, List, Any, Literal
+import re
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator  # pyright: ignore[reportMissingImports]
 import os
 from urllib.parse import urlparse
@@ -7,6 +8,50 @@ from urllib.parse import urlparse
 import bleach  # type: ignore[reportMissingImports]
 
 from .models import UserRole, StoreStatus, ProductStatus, OrderStatus, PayoutStatus, ProductCondition, PaymentStatus, PaymentMethod, ServiceStatus, ServiceBookingStatus, DeliveryStatus
+
+# bcrypt only reads the first 72 bytes of a password and (in older versions)
+# ignores the rest silently, so longer passwords are refused up front.
+MAX_PASSWORD_BYTES = 72
+_HEX_COLOR = re.compile(r"^#?[0-9A-F]{3,8}$")
+
+
+def _check_password(value: str) -> str:
+    if len(value.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        raise ValueError("Password is too long (72 bytes at most)")
+    if not value.strip():
+        raise ValueError("Password can't be blank")
+    return value
+
+
+def clean_public_url(value: Optional[str], max_len: int = 2000) -> Optional[str]:
+    """Image or link URLs must be plain https. This rejects javascript:, data:,
+    http:, protocol-relative links, and anything with spaces, quotes or angle
+    brackets that could break out of an HTML attribute."""
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    parsed = urlparse(value)
+    if (
+        len(value) > max_len
+        or parsed.scheme != "https"
+        or not parsed.netloc
+        or re.search(r"[\s\"'<>`\\]", value)
+    ):
+        raise ValueError("Use a full https:// link")
+    return value
+
+
+def clean_site_asset(value: Optional[str], max_len: int = 2000) -> Optional[str]:
+    """Like clean_public_url, but a path under /static/ is also fine (category icons)."""
+    if value is None:
+        return None
+    stripped = value.strip()
+    if stripped.startswith("/static/") and not re.search(r"[\s\"'<>`\\]|\.\.", stripped) and len(stripped) <= max_len:
+        return stripped
+    return clean_public_url(value, max_len)
+
 
 AVATAR_KEYS = {"Avery", "Bailey", "Charlie", "Dakota", "Emery", "Finley", "Harper", "Jordan"}
 
@@ -37,14 +82,27 @@ def clean_avatar_url(value: Optional[str]) -> Optional[str]:
 # ---------- USERS ----------
 
 class UserCreate(BaseModel):
-    full_name: str
+    full_name: str = Field(min_length=1, max_length=120)
     email: EmailStr
-    phone: Optional[str] = None
-    password: str = Field(min_length=8)
+    phone: Optional[str] = Field(default=None, max_length=30)
+    password: str = Field(min_length=8, max_length=128)
     avatar_key: str = "Avery"
-    region: Optional[str] = None
-    city: Optional[str] = None
-    sub_town: Optional[str] = None
+    region: Optional[str] = Field(default=None, max_length=100)
+    city: Optional[str] = Field(default=None, max_length=100)
+    sub_town: Optional[str] = Field(default=None, max_length=100)
+
+    @field_validator("full_name")
+    @classmethod
+    def _name_not_blank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Name can't be blank")
+        return value
+
+    @field_validator("password")
+    @classmethod
+    def _password_ok(cls, value: str) -> str:
+        return _check_password(value)
 
     @field_validator("avatar_key")
     @classmethod
@@ -62,6 +120,7 @@ class UserOut(BaseModel):
     phone: Optional[str]
     role: UserRole
     is_active: bool
+    is_verified: bool = False
     avatar_key: str = "Avery"
     avatar_url: Optional[str] = None
     region: Optional[str] = None
@@ -122,26 +181,40 @@ class ForgotPasswordRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str = Field(min_length=8)
+    token: str = Field(min_length=10, max_length=2000)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def _password_ok(cls, value: str) -> str:
+        return _check_password(value)
 
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str = Field(min_length=8)
+    current_password: str = Field(max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def _password_ok(cls, value: str) -> str:
+        return _check_password(value)
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(min_length=10, max_length=2000)
 
 
 # ---------- ADDRESSES ----------
 
 class AddressCreate(BaseModel):
-    label: Optional[str] = None
-    recipient_name: str
-    phone: str
-    region: str
-    city: str
-    area: Optional[str] = None
-    sub_town: Optional[str] = None
-    landmark: Optional[str] = None
+    label: Optional[str] = Field(default=None, max_length=60)
+    recipient_name: str = Field(min_length=1, max_length=120)
+    phone: str = Field(min_length=3, max_length=30)
+    region: str = Field(min_length=1, max_length=100)
+    city: str = Field(min_length=1, max_length=100)
+    area: Optional[str] = Field(default=None, max_length=100)
+    sub_town: Optional[str] = Field(default=None, max_length=100)
+    landmark: Optional[str] = Field(default=None, max_length=200)
     is_default: bool = False
 
 
@@ -151,37 +224,42 @@ class AddressOut(AddressCreate):
 
 
 class AddressUpdate(BaseModel):
-    label: Optional[str] = None
-    recipient_name: Optional[str] = None
-    phone: Optional[str] = None
-    region: Optional[str] = None
-    city: Optional[str] = None
-    area: Optional[str] = None
-    sub_town: Optional[str] = None
-    landmark: Optional[str] = None
+    label: Optional[str] = Field(default=None, max_length=60)
+    recipient_name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    phone: Optional[str] = Field(default=None, min_length=3, max_length=30)
+    region: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    city: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    area: Optional[str] = Field(default=None, max_length=100)
+    sub_town: Optional[str] = Field(default=None, max_length=100)
+    landmark: Optional[str] = Field(default=None, max_length=200)
     is_default: Optional[bool] = None
 
 
 # ---------- STORES ----------
 
 class StoreCreate(BaseModel):
-    store_name: str
-    description: Optional[str] = None
-    region: Optional[str] = None
-    city: Optional[str] = None
-    sub_town: Optional[str] = None
-    business_registration_number: Optional[str] = None
+    store_name: str = Field(min_length=2, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=3000)
+    region: Optional[str] = Field(default=None, max_length=100)
+    city: Optional[str] = Field(default=None, max_length=100)
+    sub_town: Optional[str] = Field(default=None, max_length=100)
+    business_registration_number: Optional[str] = Field(default=None, max_length=60)
 
 
 class StoreUpdate(BaseModel):
-    store_name: Optional[str] = None
-    description: Optional[str] = None
+    store_name: Optional[str] = Field(default=None, min_length=2, max_length=120)
+    description: Optional[str] = Field(default=None, max_length=3000)
     logo_url: Optional[str] = None
     banner_url: Optional[str] = None
-    region: Optional[str] = None
-    city: Optional[str] = None
-    sub_town: Optional[str] = None
-    business_registration_number: Optional[str] = None
+    region: Optional[str] = Field(default=None, max_length=100)
+    city: Optional[str] = Field(default=None, max_length=100)
+    sub_town: Optional[str] = Field(default=None, max_length=100)
+    business_registration_number: Optional[str] = Field(default=None, max_length=60)
+
+    @field_validator("logo_url", "banner_url")
+    @classmethod
+    def _https_only(cls, value):
+        return clean_public_url(value)
 
 
 class StoreOut(BaseModel):
@@ -225,9 +303,14 @@ class StoreFollowOut(BaseModel):
 # ---------- CATEGORIES ----------
 
 class CategoryCreate(BaseModel):
-    name: str
-    parent_id: Optional[str] = None
+    name: str = Field(min_length=1, max_length=120)
+    parent_id: Optional[str] = Field(default=None, max_length=64)
     icon_url: Optional[str] = None
+
+    @field_validator("icon_url")
+    @classmethod
+    def _safe_icon(cls, value):
+        return clean_site_asset(value)
 
 
 class CategoryOut(BaseModel):
@@ -259,12 +342,14 @@ def _normalize_product_colors(value):
     normalized = []
     for item in value:
         if isinstance(item, str):
-            name = item.strip()
+            name = item.strip()[:60]
             if name:
                 normalized.append({"name": name, "hex": ""})
         elif isinstance(item, dict):
-            name = str(item.get("name", "")).strip()
-            hex_value = str(item.get("hex", "")).strip().upper()
+            name = str(item.get("name", "")).strip()[:60]
+            hex_value = str(item.get("hex", "")).strip().upper()[:9]
+            if hex_value and not _HEX_COLOR.match(hex_value):
+                hex_value = ""
             try:
                 stock = max(0, int(item.get("stock", 0)))
             except (TypeError, ValueError):
@@ -282,7 +367,7 @@ def _normalize_product_options(value):
     for item in value:
         if not isinstance(item, dict):
             continue
-        label = str(item.get("label", "")).strip()
+        label = str(item.get("label", "")).strip()[:80]
         if not label:
             continue
         try:
@@ -320,7 +405,7 @@ def _normalize_product_sizes(value):
     for item in value:
         if not isinstance(item, dict):
             continue
-        label = str(item.get("label", "")).strip()
+        label = str(item.get("label", "")).strip()[:80]
         if not label:
             continue
         try:
@@ -355,19 +440,19 @@ def _sanitize_description_html(value):
 
 
 class ProductCreate(BaseModel):
-    name: str
-    category_id: str
-    description: Optional[str] = None
-    brand: Optional[str] = None
+    name: str = Field(min_length=2, max_length=200)
+    category_id: str = Field(max_length=64)
+    description: Optional[str] = Field(default=None, max_length=20000)
+    brand: Optional[str] = Field(default=None, max_length=100)
     condition: ProductCondition = ProductCondition.new
-    sku: Optional[str] = None
-    specifications: Optional[List[str]] = None
-    price: float
-    discount_price: Optional[float] = None
-    stock_quantity: int = 0
-    colors: Optional[List[Any]] = None
-    options: Optional[List[Any]] = None
-    sizes: Optional[List[Any]] = None
+    sku: Optional[str] = Field(default=None, max_length=100)
+    specifications: Optional[List[str]] = Field(default=None, max_length=50)
+    price: float = Field(gt=0, le=100_000_000)
+    discount_price: Optional[float] = Field(default=None, ge=0, le=100_000_000)
+    stock_quantity: int = Field(default=0, ge=0, le=10_000_000)
+    colors: Optional[List[Any]] = Field(default=None, max_length=50)
+    options: Optional[List[Any]] = Field(default=None, max_length=50)
+    sizes: Optional[List[Any]] = Field(default=None, max_length=100)
     cod_eligible: bool = True
     weight_kg: Optional[float] = Field(default=None, gt=0, le=1000)
     # Wholesale: price above is the per-unit wholesale price. The minimum is
@@ -397,19 +482,19 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
-    name: Optional[str] = None
-    category_id: Optional[str] = None
-    description: Optional[str] = None
-    brand: Optional[str] = None
+    name: Optional[str] = Field(default=None, min_length=2, max_length=200)
+    category_id: Optional[str] = Field(default=None, max_length=64)
+    description: Optional[str] = Field(default=None, max_length=20000)
+    brand: Optional[str] = Field(default=None, max_length=100)
     condition: Optional[ProductCondition] = None
-    sku: Optional[str] = None
-    specifications: Optional[List[str]] = None
-    price: Optional[float] = None
-    discount_price: Optional[float] = None
-    stock_quantity: Optional[int] = None
-    colors: Optional[List[Any]] = None
-    options: Optional[List[Any]] = None
-    sizes: Optional[List[Any]] = None
+    sku: Optional[str] = Field(default=None, max_length=100)
+    specifications: Optional[List[str]] = Field(default=None, max_length=50)
+    price: Optional[float] = Field(default=None, gt=0, le=100_000_000)
+    discount_price: Optional[float] = Field(default=None, ge=0, le=100_000_000)
+    stock_quantity: Optional[int] = Field(default=None, ge=0, le=10_000_000)
+    colors: Optional[List[Any]] = Field(default=None, max_length=50)
+    options: Optional[List[Any]] = Field(default=None, max_length=50)
+    sizes: Optional[List[Any]] = Field(default=None, max_length=100)
     cod_eligible: Optional[bool] = None
     weight_kg: Optional[float] = Field(default=None, gt=0, le=1000)
     sales_type: Optional[Literal["retail", "wholesale"]] = None
@@ -478,11 +563,11 @@ class ProductListOut(BaseModel):
 # ---------- CART ----------
 
 class CartItemIn(BaseModel):
-    product_id: str
-    quantity: int = Field(gt=0)
-    color: Optional[str] = None
-    option: Optional[str] = None
-    size: Optional[str] = None
+    product_id: str = Field(max_length=64)
+    quantity: int = Field(gt=0, le=100_000)
+    color: Optional[str] = Field(default=None, max_length=80)
+    option: Optional[str] = Field(default=None, max_length=80)
+    size: Optional[str] = Field(default=None, max_length=80)
 
 
 class CartItemOut(BaseModel):
@@ -673,6 +758,14 @@ class ServicePortfolioCreate(BaseModel):
     image_url: str = Field(min_length=1, max_length=2000)
     caption: Optional[str] = Field(default=None, max_length=200)
 
+    @field_validator("image_url")
+    @classmethod
+    def _https_image(cls, value):
+        cleaned = clean_public_url(value)
+        if not cleaned:
+            raise ValueError("Image link is required")
+        return cleaned
+
 
 class ServicePortfolioOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -699,15 +792,7 @@ class HandymanOut(BaseModel):
     review_count: int
     badge_keys: Optional[List[str]] = None
     safety_rating: float = 0
-    follower_count: int = 0
     portfolio: List[ServicePortfolioOut] = []
-    created_at: datetime
-
-
-class HandymanFollowOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: str
-    handyman: HandymanOut
     created_at: datetime
 
 
@@ -733,6 +818,14 @@ class ServiceJobPhotoOut(BaseModel):
 class ServiceJobPhotoCreate(BaseModel):
     image_url: str = Field(min_length=1, max_length=2000)
     caption: Optional[str] = Field(default=None, max_length=200)
+
+    @field_validator("image_url")
+    @classmethod
+    def _https_image(cls, value):
+        cleaned = clean_public_url(value)
+        if not cleaned:
+            raise ValueError("Image link is required")
+        return cleaned
 
 
 class ServiceReviewOut(BaseModel):
@@ -873,7 +966,7 @@ class ReviewCreate(BaseModel):
     product_id: str
     order_item_id: Optional[str] = None
     rating: int = Field(ge=1, le=5)
-    comment: Optional[str] = None
+    comment: Optional[str] = Field(default=None, max_length=3000)
 
 
 class ReviewOut(BaseModel):
@@ -984,7 +1077,7 @@ class EmailTemplateSave(BaseModel):
 
 
 class ContactMessageCreate(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=120)
     email: EmailStr
-    subject: Optional[str] = None
-    message: str = Field(min_length=5)
+    subject: Optional[str] = Field(default=None, max_length=200)
+    message: str = Field(min_length=5, max_length=5000)

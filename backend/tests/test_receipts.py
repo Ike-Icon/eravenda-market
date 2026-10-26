@@ -33,7 +33,7 @@ def client():
 
 
 def _register(client, name):
-    email = f"{name}-{uuid.uuid4().hex[:6]}@example.com"
+    email = f"{name.replace(' ', '')}-{uuid.uuid4().hex[:6]}@example.com".lower()
     r = client.post("/auth/register", json={"full_name": name, "email": email, "password": PWD})
     assert r.status_code in (200, 201), r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}, r.json()["user"]["id"], email
@@ -153,6 +153,7 @@ def test_payment_email_still_sends_if_the_receipt_cannot_be_built(client, world,
 def test_receipt_requires_login(client, world):
     order = _place_order(client, world)
     _mark_paid(order)
+    client.cookies.clear()  # the test client keeps the session cookie from earlier logins, like a browser would
     assert client.get(f"/orders/{order['id']}/receipt").status_code == 401
     assert client.post(f"/orders/{order['id']}/receipt/email").status_code == 401
 
@@ -179,6 +180,7 @@ def test_admin_can_download_any_receipt_and_others_cannot(client, world):
     assert r.status_code == 200 and r.content.startswith(b"%PDF")
     assert client.get(f"/admin/orders/{order['id']}/receipt", headers=world["buyer"]).status_code == 403
     assert client.get(f"/admin/orders/{order['id']}/receipt", headers=world["seller"]).status_code == 403
+    client.cookies.clear()
     assert client.get(f"/admin/orders/{order['id']}/receipt").status_code == 401
     assert client.post(f"/admin/orders/{order['id']}/receipt/email", headers=world["buyer"]).status_code == 403
 

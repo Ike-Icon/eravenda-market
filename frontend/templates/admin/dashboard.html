@@ -619,7 +619,7 @@
 if(!Auth.isLoggedIn())location.href='/login?next=/admin/dashboard.html';
 const _u=Auth.getUser();if(!_u||_u.role!=='admin')location.href='/';
 
-const esc = s => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
+const esc = s => String(s ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
 const statusLabel = s => String(s || '').replaceAll('_', ' ');
 const statusPillClass = s => ({
   approved: 'bg-brand-50 text-brand-700', active: 'bg-brand-50 text-brand-700', paid: 'bg-brand-50 text-brand-700',
@@ -1854,7 +1854,7 @@ async function loadPending() {
   el.innerHTML = workers.length ? workers.map(w => `<article class="border border-slate-200 rounded-xl p-4"><div class="flex flex-col sm:flex-row justify-between gap-4"><div><h3 class="font-semibold text-lg">${esc(w.professional_name || w.job_title)}</h3><p class="text-brand-700 text-sm font-semibold">${esc(w.custom_job_title || w.job_title)}${w.company_name ? ' · ' + esc(w.company_name) : ''}</p><p class="text-sm text-slate-600 mt-3"><strong>Experience:</strong> ${esc(w.work_experience || 'Not provided')}</p><p class="text-sm text-slate-600 mt-1"><strong>Education:</strong> ${esc(w.education || 'Not provided')}</p><p class="text-sm text-slate-600 mt-1"><strong>Qualifications:</strong> ${esc(w.qualifications)}</p>${w.portfolio?.length ? `<p class="text-xs text-slate-500 mt-2">${w.portfolio.length} portfolio image${w.portfolio.length === 1 ? '' : 's'}</p>` : ''}</div><div class="flex sm:flex-col gap-2 sm:min-w-36"><label class="text-xs"><input type="checkbox" data-pro="${w.id}" class="mr-1"> Verified Pro</label><label class="text-xs"><input type="checkbox" data-bg="${w.id}" class="mr-1"> Background checked</label><button data-approve="${w.id}" class="bg-brand-500 text-white px-3 py-2 rounded-lg text-sm font-semibold">Approve</button><button data-reject="${w.id}" class="bg-red-50 text-red-700 px-3 py-2 rounded-lg text-sm font-semibold">Reject</button>${w.resume_path ? `<button data-resume="${w.id}" class="border border-slate-300 px-3 py-2 rounded-lg text-sm font-semibold">View resume</button>` : ''}</div></div></article>`).join('') : '<p class="text-sm text-slate-500">No professional applications are waiting for approval.</p>';
   el.querySelectorAll('[data-approve]').forEach(b => b.onclick = async () => { const id = b.dataset.approve; await apiFetch(`/admin/services/${id}/approve?verified_pro=${el.querySelector(`[data-pro="${id}"]`).checked}&background_checked=${el.querySelector(`[data-bg="${id}"]`).checked}`, { method: 'PUT' }); await refresh(); });
   el.querySelectorAll('[data-reject]').forEach(b => b.onclick = async () => { if (!confirm('Reject this professional application?')) return; await apiFetch(`/admin/services/${b.dataset.reject}/reject`, { method: 'PUT' }); await refresh(); });
-  el.querySelectorAll('[data-resume]').forEach(b => b.onclick = async () => { const r = await fetch(`${API_BASE}/admin/services/${b.dataset.resume}/resume`, { headers: { Authorization: `Bearer ${Auth.getToken()}` } }); if (r.ok) window.open(URL.createObjectURL(await r.blob()), '_blank'); });
+  el.querySelectorAll('[data-resume]').forEach(b => b.onclick = async () => { const r = await fetch(`${API_BASE}/admin/services/${b.dataset.resume}/resume`, { credentials: 'same-origin' }); if (r.ok) window.open(URL.createObjectURL(await r.blob()), '_blank'); });
 }
 async function loadWorkers() {
   const el = document.getElementById('allWorkers');

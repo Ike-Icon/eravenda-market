@@ -125,7 +125,6 @@ class User(Base):
     store = relationship("Store", back_populates="owner", uselist=False, cascade="all, delete-orphan")
     wishlist_items = relationship("Wishlist", back_populates="user", cascade="all, delete-orphan")
     store_follows = relationship("StoreFollow", back_populates="user", cascade="all, delete-orphan")
-    handyman_follows = relationship("HandymanFollow", back_populates="user", cascade="all, delete-orphan")
 
 
 class Address(Base):
@@ -562,28 +561,10 @@ class HandymanProfile(Base):
     review_count = Column(Integer, nullable=False, default=0)
     badge_keys = Column(JSON, nullable=True)
     safety_rating = Column(Numeric(3, 2), nullable=False, default=0)
-    # Denormalized from handyman_follows (same pattern as stores.follower_count):
-    # recomputed after every follow/unfollow so pages can show it without a COUNT.
-    follower_count = Column(Integer, nullable=False, default=0)
     terms_accepted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User")
     portfolio = relationship("ServicePortfolio", back_populates="profile", cascade="all, delete-orphan")
-    followers = relationship("HandymanFollow", back_populates="handyman", cascade="all, delete-orphan")
-
-
-class HandymanFollow(Base):
-    """A signed-in user following a handyman (service professional)."""
-    __tablename__ = "handyman_follows"
-    __table_args__ = (UniqueConstraint("user_id", "handyman_id", name="uq_handyman_follow_user_handyman"),)
-
-    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    handyman_id = Column(UUID(as_uuid=False), ForeignKey("handyman_profiles.id", ondelete="CASCADE"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    user = relationship("User", back_populates="handyman_follows")
-    handyman = relationship("HandymanProfile", back_populates="followers")
 
 
 class ServicePortfolio(Base):

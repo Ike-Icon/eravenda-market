@@ -20,6 +20,8 @@ from html import escape
 
 import httpx  # type: ignore[reportMissingImports]
 
+from . import security
+
 logger = logging.getLogger("eravenda.email")
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
@@ -181,7 +183,13 @@ def send_email(
         logger.info("=== EMAIL (console fallback, RESEND_API_KEY not set) ===")
         logger.info("To: %s", to)
         logger.info("Subject: %s", subject)
-        logger.info("Body:\n%s", body)
+        if security.IS_PRODUCTION:
+            # Bodies carry reset and verification links. Anyone who can read
+            # production logs could use them, so only local development
+            # prints the body.
+            logger.info("Body: (not logged in production)")
+        else:
+            logger.info("Body:\n%s", body)
         for att in attachments or []:
             logger.info("Attachment: %s (%d bytes)", att.get("filename"), len(att.get("content") or b""))
         logger.info("=== END EMAIL ===")

@@ -23,7 +23,7 @@
   const orderEl = document.getElementById("reviewOrder");
   const errorEl = document.getElementById("reviewError");
   const noticeEl = document.getElementById("reviewNotice");
-  const esc = value => { const div = document.createElement("div"); div.textContent = value ?? ""; return div.innerHTML; };
+  const esc = value => String(value ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
   const money = value => `₵${Number(value || 0).toFixed(2)}`;
 
   function ratingStars(item) {

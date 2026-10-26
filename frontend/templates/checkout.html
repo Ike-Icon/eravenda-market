@@ -69,9 +69,9 @@
       return;
     }
     list.innerHTML = addresses.map(a => `
-      <div class="address-option border border-slate-200 rounded-md p-3 mb-2 cursor-pointer" data-id="${a.id}">
-        <strong>${a.recipient_name}</strong> · ${a.phone}<br>
-        <span class="text-sm text-slate-500">${a.sub_town || a.area || ""}, ${a.city}, ${a.region}</span>
+      <div class="address-option border border-slate-200 rounded-md p-3 mb-2 cursor-pointer" data-id="${escapeHtml(a.id)}">
+        <strong>${escapeHtml(a.recipient_name)}</strong> · ${escapeHtml(a.phone)}<br>
+        <span class="text-sm text-slate-500">${escapeHtml(a.sub_town || a.area || "")}, ${escapeHtml(a.city)}, ${escapeHtml(a.region)}</span>
       </div>`).join("");
 
     list.querySelectorAll(".address-option").forEach(el => {
@@ -133,7 +133,7 @@
       <div class="flex justify-between"><span>${cart.items.length} item(s), ${storeCount} seller(s)</span></div>
       <div class="flex justify-between"><span>Subtotal</span><span>${money(cart.subtotal)}</span></div>
       <div class="flex justify-between"><span>${isPickup ? "Pickup" : "Delivery"}</span><span>${money(delivery)}</span></div>
-      <p class="text-xs text-slate-500">${deliveryNote}</p>
+      <p class="text-xs text-slate-500">${escapeHtml(deliveryNote)}</p>
       <div class="flex justify-between font-semibold border-t border-slate-200 pt-2 mt-2"><span>Total</span><span>${money(cart.subtotal + delivery)}</span></div>
     `;
   }

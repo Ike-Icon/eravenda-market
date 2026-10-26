@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, status  # type: ignore[reportMissingImports]
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 
-from .. import models, schemas
+from .. import models, schemas, security
 from ..database import get_db
 from ..email_utils import SUPPORT_EMAIL, send_email
 
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/contact", tags=["contact"])
 logger = logging.getLogger("eravenda.contact")
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(security.rate_limit("contact", 5, 3600))])
 def submit_contact_message(payload: schemas.ContactMessageCreate, db: Session = Depends(get_db)):
     message = models.ContactMessage(**payload.model_dump())
     db.add(message)
@@ -21,7 +21,7 @@ def submit_contact_message(payload: schemas.ContactMessageCreate, db: Session = 
     try:
         send_email(
             to=SUPPORT_EMAIL,
-            subject=f"[Eravenda Support] {payload.subject or 'New customer message'}",
+            subject=f"[Eravenda Support] {' '.join((payload.subject or 'New customer message').split())}",
             body=(f"From: {payload.name} <{payload.email}>\n\n{payload.message}"),
             reply_to=str(payload.email),
         )

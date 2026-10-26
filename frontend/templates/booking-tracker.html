@@ -66,7 +66,7 @@
 if (!Auth.isLoggedIn()) window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
 
 const BOOKING_ID = "{{ booking_id }}";
-function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+function esc(s) { return String(s ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c])); }
 function money(v) { return `₵${Number(v || 0).toFixed(2)}`; }
 
 const MILESTONES = [

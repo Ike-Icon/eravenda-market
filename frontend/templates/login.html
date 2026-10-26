@@ -41,7 +41,8 @@
 
 {% block scripts %}
 <script>
-  const loginNext = new URLSearchParams(window.location.search).get("next") || "/";
+  // Only same-site paths. A link such as /login?next=//evil.com must not send people away after login.
+  const loginNext = safeNextPath(new URLSearchParams(window.location.search).get("next"), "/");
   initSocialAuth({ errorBoxId: "loginError", redirectTo: loginNext });
 
   if (new URLSearchParams(window.location.search).get("reason") === "session_expired") {

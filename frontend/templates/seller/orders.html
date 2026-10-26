@@ -20,14 +20,12 @@
     window.location.href = "/login?next=/seller/orders.html";
   }
 
-  const STATUS_OPTIONS = ["pending", "paid", "processing", "shipped", "delivered", "cancelled", "refunded"];
+  // Sellers move an order through fulfilment. "paid" and "refunded" describe money and are
+  // set by a verified payment or an admin, so they are not offered here (the server also refuses them).
+  const SELLER_STATUS_OPTIONS = ["processing", "shipped", "delivered", "cancelled"];
 
   function money(n) { return `₵${Number(n).toFixed(2)}`; }
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = str ?? "";
-    return div.innerHTML;
-  }
+  function escapeHtml(str) { return String(str ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c])); }
 
   let typeFilter = "all"; // all | retail | wholesale
 
@@ -74,7 +72,7 @@
               ${o.order_type === "wholesale" ? `<span class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-brand-800 bg-brand-50 border border-brand-200 rounded-full px-2 py-0.5"><i class="fas fa-boxes-stacked text-[10px]" aria-hidden="true"></i> Wholesale</span><span class="ml-1 text-xs text-slate-600">${o.total_quantity} units</span>${minimumStatus(o) ? `<span class="ml-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">Met minimum</span>` : `<span class="ml-1 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">Below minimum</span>`}` : ""}
             </div>
             <select data-order="${o.id}" class="status-select border border-slate-300 rounded-md px-2 py-1 text-sm">
-              ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}
+              ${[...new Set([o.status, ...SELLER_STATUS_OPTIONS])].map(s => `<option value="${escapeHtml(s)}" ${s === o.status ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}
             </select>
           </div>
           <details class="border border-slate-200 rounded-lg p-3 mb-4 bg-slate-50">

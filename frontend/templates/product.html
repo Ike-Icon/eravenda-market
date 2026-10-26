@@ -229,7 +229,7 @@
         <p id="saveLine" class="text-sm font-semibold text-red-600 mt-1.5 {% if not has_discount or has_options %}hidden{% endif %}">{% if has_discount and not has_options %}You save ₵{{ "%.2f"|format(product.price - product.discount_price) }} on this order!{% endif %}</p>
       </div>
 
-      <div class="mt-4 text-slate-600 rich-text-content">{{ (product.description or "No description provided for this product yet.") | safe }}</div>
+      <div class="mt-4 text-slate-600 rich-text-content">{{ product.description | clean_html or "No description provided for this product yet." }}</div>
 
       {% if product.specifications %}
       <ul class="lg:hidden mt-3 space-y-1 text-sm text-slate-600 list-disc list-inside">
@@ -400,7 +400,7 @@
       <button type="button" data-product-tab="shipping" class="product-tab px-5 py-3 text-sm font-semibold text-slate-500">Shipping</button>
       <button type="button" data-product-tab="returns" class="product-tab px-5 py-3 text-sm font-semibold text-slate-500">Returns</button>
     </div>
-    <div data-product-panel="details" class="p-5 text-sm text-slate-600"><div class="rich-text-content">{{ (product.description or 'No additional product details provided.') | safe }}</div>{% if product.specifications %}<ul class="lg:hidden list-disc list-inside mt-3 space-y-1">{% for spec in product.specifications %}<li>{{ spec }}</li>{% endfor %}</ul>{% endif %}</div>
+    <div data-product-panel="details" class="p-5 text-sm text-slate-600"><div class="rich-text-content">{{ product.description | clean_html or 'No additional product details provided.' }}</div>{% if product.specifications %}<ul class="lg:hidden list-disc list-inside mt-3 space-y-1">{% for spec in product.specifications %}<li>{{ spec }}</li>{% endfor %}</ul>{% endif %}</div>
     <div data-product-panel="shipping" class="hidden p-5 text-sm text-slate-600">Shipping fees and delivery times are calculated at checkout based on your delivery location and the store's location.</div>
     <div data-product-panel="returns" class="hidden p-5 text-sm text-slate-600">For return or exchange requests, contact the seller through Eravenda support with your order details. Eligibility depends on the item's condition and the seller's applicable return terms.</div>
   </div>

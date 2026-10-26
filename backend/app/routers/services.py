@@ -1,6 +1,8 @@
 from pathlib import Path
 from datetime import datetime
+import io
 import uuid
+import zipfile
 import logging
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -40,10 +42,40 @@ async def _save_resume(resume: UploadFile | None):
         raise HTTPException(status_code=400, detail="Resume must be a PDF, DOC, or DOCX file")
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Resume must be 5 MB or smaller")
+    # The extension is chosen by the sender, so also check what the bytes are.
+    if not _looks_like(suffix, content):
+        raise HTTPException(status_code=400, detail="That file doesn't look like a real PDF, DOC or DOCX")
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     destination = UPLOAD_DIR / f"{uuid.uuid4()}{suffix}"
     destination.write_bytes(content)
     return str(destination)
+
+
+def _looks_like(suffix: str, content: bytes) -> bool:
+    """Match the file's first bytes (and for DOCX its zip contents) to its extension."""
+    if suffix == ".pdf":
+        return content[:5] == b"%PDF-"
+    if suffix == ".doc":
+        return content[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+    if suffix == ".docx":
+        if content[:4] != b"PK\x03\x04":
+            return False
+        try:
+            with zipfile.ZipFile(io.BytesIO(content)) as archive:
+                names = archive.namelist()
+                # Refuse zip bombs: tiny upload that expands to something huge.
+                if sum(info.file_size for info in archive.infolist()) > 50 * 1024 * 1024:
+                    return False
+                return "[Content_Types].xml" in names and any(n.startswith("word/") for n in names)
+        except zipfile.BadZipFile:
+            return False
+    return False
+
+
+def _check_text_lengths(**fields) -> None:
+    for label, value in fields.items():
+        if value is not None and len(str(value)) > 5000:
+            raise HTTPException(status_code=400, detail=f"{label.replace('_', ' ').capitalize()} is too long (5000 characters at most)")
 
 
 def _my_handyman_profile(db: Session, current_user: models.User) -> models.HandymanProfile:
@@ -93,6 +125,8 @@ async def register_worker(
     job_title: str | None = Form(None), qualifications: str | None = Form(None), terms_accepted: bool = Form(False), payments_on_platform_accepted: bool = Form(False), custom_job_title: str | None = Form(None), professional_name: str | None = Form(None), company_name: str | None = Form(None), work_experience: str | None = Form(None), education: str | None = Form(None), resume: UploadFile | None = File(None),
     db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user),
 ):
+    auth.require_verified_email(current_user)
+    _check_text_lengths(qualifications=qualifications, work_experience=work_experience, education=education, professional_name=professional_name, company_name=company_name, custom_job_title=custom_job_title)
     if db.query(models.HandymanProfile).filter(models.HandymanProfile.user_id == current_user.id).first():
         raise HTTPException(status_code=400, detail="You already have a service profile. Use Edit profile to update it.")
     professional_name = (professional_name or "").strip()
@@ -349,73 +383,6 @@ def worker_detail(handyman_id: str, db: Session = Depends(get_db)):
     if not worker:
         raise HTTPException(status_code=404, detail="Service professional not found")
     return worker
-
-
-# ---------- following handymen ----------
-# "/following" is a fixed path, so it can never be mistaken for a handyman id.
-
-def _sync_handyman_follower_count(db: Session, worker: models.HandymanProfile) -> None:
-    worker.follower_count = db.query(models.HandymanFollow).filter(models.HandymanFollow.handyman_id == worker.id).count()
-
-
-def _approved_worker_or_404(db: Session, handyman_id: str) -> models.HandymanProfile:
-    worker = (db.query(models.HandymanProfile)
-              .filter(models.HandymanProfile.id == handyman_id, models.HandymanProfile.status == models.ServiceStatus.approved)
-              .first())
-    if not worker:
-        raise HTTPException(status_code=404, detail="Service professional not found")
-    return worker
-
-
-@router.get("/following", response_model=list[schemas.HandymanFollowOut])
-def list_followed_handymen(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
-    return (db.query(models.HandymanFollow)
-            .options(selectinload(models.HandymanFollow.handyman).selectinload(models.HandymanProfile.portfolio))
-            .join(models.HandymanProfile, models.HandymanProfile.id == models.HandymanFollow.handyman_id)
-            .filter(models.HandymanFollow.user_id == current_user.id,
-                    models.HandymanProfile.status == models.ServiceStatus.approved)
-            .order_by(models.HandymanFollow.created_at.desc()).all())
-
-
-@router.get("/workers/{handyman_id}/follow-status")
-def handyman_follow_status(handyman_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
-    following = (db.query(models.HandymanFollow)
-                 .filter(models.HandymanFollow.user_id == current_user.id, models.HandymanFollow.handyman_id == handyman_id)
-                 .first() is not None)
-    return {"is_following": following}
-
-
-@router.post("/workers/{handyman_id}/follow", response_model=schemas.HandymanFollowOut, status_code=201)
-def follow_handyman(handyman_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
-    worker = _approved_worker_or_404(db, handyman_id)
-    if worker.user_id == current_user.id:
-        raise HTTPException(status_code=400, detail="You can't follow your own profile")
-    existing = (db.query(models.HandymanFollow)
-                .filter(models.HandymanFollow.user_id == current_user.id, models.HandymanFollow.handyman_id == handyman_id)
-                .first())
-    if existing:
-        return existing
-    follow = models.HandymanFollow(user_id=current_user.id, handyman_id=handyman_id)
-    db.add(follow)
-    db.flush()
-    _sync_handyman_follower_count(db, worker)
-    db.commit()
-    db.refresh(follow)
-    return follow
-
-
-@router.delete("/workers/{handyman_id}/follow", status_code=204)
-def unfollow_handyman(handyman_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
-    follow = (db.query(models.HandymanFollow)
-              .filter(models.HandymanFollow.user_id == current_user.id, models.HandymanFollow.handyman_id == handyman_id)
-              .first())
-    if not follow:
-        raise HTTPException(status_code=404, detail="You're not following this professional")
-    worker = follow.handyman
-    db.delete(follow)
-    db.flush()
-    _sync_handyman_follower_count(db, worker)
-    db.commit()
 
 
 @router.get("/workers/{handyman_id}/ratings", response_model=list[schemas.ServiceReviewOut])

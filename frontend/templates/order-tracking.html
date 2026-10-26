@@ -24,7 +24,7 @@
   const input = document.getElementById("orderIdInput");
   const content = document.getElementById("trackingContent");
   const errorBox = document.getElementById("trackingError");
-  const esc = value => { const div = document.createElement("div"); div.textContent = value ?? ""; return div.innerHTML; };
+  const esc = value => String(value ?? '').replace(/[&<>"'`]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c]));
   const money = value => `₵${Number(value || 0).toFixed(2)}`;
   const params = new URLSearchParams(window.location.search);
   input.value = params.get("order_id") || "";
