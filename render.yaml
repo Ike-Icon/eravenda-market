@@ -46,6 +46,11 @@ services:
         # "true" only after you have signed up with a test account and received
         # the email. If email sending is not working, true would block purchases.
         value: "false"
+      - key: DB_POOL_SIZE
+        # Connections each server keeps open (plus DB_MAX_OVERFLOW spare ones, default 10).
+        # With several servers the total is servers x (size + overflow): keep it under your
+        # database plan's connection limit.
+        value: "5"
       - key: CSP_MODE
         # "report-only" logs problems in the browser console without blocking
         # anything. After browsing the whole site with the console open and

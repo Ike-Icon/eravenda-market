@@ -11,7 +11,7 @@
   </div>
   <div id="reviewError" class="hidden mb-5 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700"></div>
   <div id="reviewNotice" class="hidden mb-5 rounded-lg bg-brand-50 border border-brand-100 p-3 text-sm text-brand-700"></div>
-  <div id="reviewOrder" class="space-y-4"><p class="text-slate-500">Loading your order…</p></div>
+  <div id="reviewOrder" class="space-y-4"><div class="space-y-3" role="status" aria-label="Loading"><div class="skeleton h-20 w-full"></div><div class="skeleton h-20 w-full"></div><div class="skeleton h-20 w-full"></div></div></div>
 </section>
 {% endblock %}
 {% block scripts %}

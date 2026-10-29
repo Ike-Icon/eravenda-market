@@ -1,0 +1,29 @@
+{
+  "files": {
+    "css/custom.css": {
+      "source_sha": "c3fdd56f93e72eef",
+      "dist": "dist/css/custom.min.css",
+      "dist_sha": "d24ce1d044197363"
+    },
+    "js/config.js": {
+      "source_sha": "4f3f39403df6d950",
+      "dist": "dist/js/config.min.js",
+      "dist_sha": "94a6a8eaf4ce841f"
+    },
+    "js/main.js": {
+      "source_sha": "6a9a798f9eca51e8",
+      "dist": "dist/js/main.min.js",
+      "dist_sha": "6642aadd2d356969"
+    },
+    "js/shell.js": {
+      "source_sha": "0513af83b0e1486e",
+      "dist": "dist/js/shell.min.js",
+      "dist_sha": "75b251a663cfb3a4"
+    },
+    "js/avatar-cropper.js": {
+      "source_sha": "ba1731d38c2ea13f",
+      "dist": "dist/js/avatar-cropper.min.js",
+      "dist_sha": "79f296cdff33cdda"
+    }
+  }
+}

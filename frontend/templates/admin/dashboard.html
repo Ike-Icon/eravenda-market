@@ -1583,7 +1583,7 @@ function renderStores(list) {
   el.querySelectorAll('[data-store-suspend]').forEach(b => b.onclick = async () => { if (!confirm('Suspend this store? Its products will be hidden from buyers.')) return; await apiFetch(`/admin/stores/${b.dataset.storeSuspend}/suspend`, { method: 'PUT' }); await loadAllStores(); });
   el.querySelectorAll('[data-store-reinstate]').forEach(b => b.onclick = async () => { await apiFetch(`/admin/stores/${b.dataset.storeReinstate}/approve`, { method: 'PUT' }); await loadAllStores(); });
 }
-document.getElementById('storeSearch').oninput = e => renderStores(allStoresCache.filter(s => s.store_name.toLowerCase().includes(e.target.value.toLowerCase())));
+document.getElementById('storeSearch').oninput = debounce(e => renderStores(allStoresCache.filter(s => s.store_name.toLowerCase().includes(e.target.value.toLowerCase()))), 200);
 
 // -------------------- Products --------------------
 let allProductsCache = [];
@@ -1627,7 +1627,7 @@ function applyProductFilters() {
   const type = document.getElementById('productTypeFilter').value;
   renderProducts(allProductsCache.filter(p => (!type || (p.sales_type || 'retail') === type) && `${p.name} ${p.store_name} ${p.seller_name || ''} ${p.seller_email || ''}`.toLowerCase().includes(q)));
 }
-document.getElementById('productSearch').oninput = applyProductFilters;
+document.getElementById('productSearch').oninput = debounce(applyProductFilters, 200);
 document.getElementById('productTypeFilter').onchange = applyProductFilters;
 
 // -------------------- Wholesale management --------------------
@@ -2064,40 +2064,62 @@ if (document.getElementById('refreshCOD')) {
 }
 
 // -------------------- Users --------------------
-let allUsers = [];
-let filteredUsers = [];
+let currentUsers = [];           // the accounts on screen: one page only
 let activeUserRoleFilter = 'all';
 let lastUserFilterSignature = null;
+let userRequestSeq = 0;          // lets a slow answer be ignored once a newer search has started
 
-// createPager (main.js) owns the page number and buttons; drawUsers renders
-// just the rows for whichever page it's given.
+// The server does the searching and paging, so only the 20 accounts on screen are
+// downloaded (the old version fetched every account, then filtered in the browser).
+// createPager (main.js) owns the page number and buttons.
 const userPager = createPager({
   nav: document.getElementById('userPagination'),
   summary: document.getElementById('userPageSummary'),
   scrollTarget: document.getElementById('userList'),
   pageSize: 20,
   noun: 'account',
-  onPage: (start, end) => drawUsers(filteredUsers.slice(start, end)),
+  onPage: (start) => fetchUsersPage(start),
 });
 
-async function loadUsers() {
-  allUsers = await apiFetch('/admin/users');
-  document.getElementById('userTotalCount').textContent = `· ${allUsers.length} total`;
-  applyUserFilters();
+function userPageUrl(start, limit) {
+  const params = new URLSearchParams({ limit, offset: start });
+  const term = document.getElementById('userSearch').value.trim();
+  if (term) params.set('q', term);
+  if (activeUserRoleFilter !== 'all') params.set('role', activeUserRoleFilter);
+  return `/admin/users/page?${params}`;
 }
 
-function applyUserFilters() {
+async function fetchUsersPage(start) {
+  const seq = ++userRequestSeq;
+  try {
+    const data = await apiFetch(userPageUrl(start, 20));
+    if (seq !== userRequestSeq) return;      // a newer search is already under way
+    currentUsers = data.items;
+    drawUsers(currentUsers);
+  } catch (err) {
+    if (seq === userRequestSeq) document.getElementById('userList').innerHTML = `<p class="text-sm text-red-600 py-6 text-center">${esc(err.message)}</p>`;
+  }
+}
+
+async function loadUsers() {
+  await applyUserFilters();
+}
+
+async function applyUserFilters() {
   const term = document.getElementById('userSearch').value.trim().toLowerCase();
-  filteredUsers = allUsers.filter(x => {
-    if (activeUserRoleFilter === 'professional' && !x.is_professional) return false;
-    if (activeUserRoleFilter !== 'all' && activeUserRoleFilter !== 'professional' && x.role !== activeUserRoleFilter) return false;
-    if (term && !`${x.full_name} ${x.email}`.toLowerCase().includes(term)) return false;
-    return true;
-  });
   const signature = `${activeUserRoleFilter}|${term}`;
   const filtersChanged = lastUserFilterSignature !== null && signature !== lastUserFilterSignature;
   lastUserFilterSignature = signature;
-  userPager.render(filteredUsers.length, { reset: filtersChanged });
+  const seq = ++userRequestSeq;
+  try {
+    const probe = await apiFetch(userPageUrl(0, 1));   // asks only for the total
+    if (seq !== userRequestSeq) return;
+    const filtered = activeUserRoleFilter !== 'all' || term;
+    document.getElementById('userTotalCount').textContent = `· ${probe.total} ${filtered ? 'match' : 'total'}`;
+    userPager.render(probe.total, { reset: filtersChanged });
+  } catch (err) {
+    document.getElementById('userList').innerHTML = `<p class="text-sm text-red-600 py-6 text-center">${esc(err.message)}</p>`;
+  }
 }
 
 function drawUsers(list) {
@@ -2107,11 +2129,11 @@ function drawUsers(list) {
     return;
   }
   el.innerHTML = list.map(x => `<div class="border border-slate-100 rounded-lg p-3 flex flex-wrap justify-between items-center gap-3"><div><strong>${esc(x.full_name)}</strong><span class="text-xs ml-2 px-2 py-1 rounded-full bg-slate-100 capitalize">${esc(x.role)}</span>${x.is_professional ? '<span class="text-xs ml-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700">Professional</span>' : ''}${!x.is_active ? '<span class="text-xs ml-1 px-2 py-1 rounded-full bg-red-50 text-red-700">Suspended</span>' : ''}<p class="text-xs text-slate-500 mt-1">${esc(x.email)}</p></div><div class="flex gap-3 shrink-0"><button data-suspend="${x.id}" class="text-xs text-amber-700 font-semibold">${x.is_active ? 'Suspend' : 'Reactivate'}</button><button data-delete-user="${x.id}" class="text-xs text-red-600 font-semibold">Delete</button></div></div>`).join('');
-  el.querySelectorAll('[data-suspend]').forEach(b => b.onclick = async () => { const x = allUsers.find(v => v.id === b.dataset.suspend); await apiFetch(`/admin/users/${b.dataset.suspend}/${x.is_active ? 'suspend' : 'reactivate'}`, { method: 'PUT' }); loadUsers(); });
+  el.querySelectorAll('[data-suspend]').forEach(b => b.onclick = async () => { const x = currentUsers.find(v => v.id === b.dataset.suspend); await apiFetch(`/admin/users/${b.dataset.suspend}/${x.is_active ? 'suspend' : 'reactivate'}`, { method: 'PUT' }); loadUsers(); });
   el.querySelectorAll('[data-delete-user]').forEach(b => b.onclick = async () => { if (!confirm('Permanently delete this account? This cannot be undone.')) return; try { await apiFetch(`/admin/users/${b.dataset.deleteUser}`, { method: 'DELETE' }); loadUsers(); } catch (e) { alert(e.message); } });
 }
 
-document.getElementById('userSearch').oninput = applyUserFilters;
+document.getElementById('userSearch').oninput = debounce(applyUserFilters, 200);
 document.querySelectorAll('#userRoleFilters [data-role-filter]').forEach(btn => {
   btn.onclick = () => {
     activeUserRoleFilter = btn.dataset.roleFilter;

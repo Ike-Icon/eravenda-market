@@ -7,7 +7,7 @@
 {% if primary_image_preview %}
 <meta property="og:image" content="{{ primary_image_preview.image_url }}">
 {% else %}
-<meta property="og:image" content="{{ site_url }}/static/img/og-default.jpg">
+<meta property="og:image" content="{{ site_url }}/static/img/og-default.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 {% endif %}
@@ -99,7 +99,7 @@
         {% endif %}
         {% if primary_image %}
         <button type="button" class="product-main-image w-full h-full" data-gallery-open aria-label="Open high-resolution image of {{ product.name }}">
-          <img id="mainImg" src="{{ primary_image.image_url }}" alt="{{ product.name }}" class="w-full h-full object-cover{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}" data-gallery-image>
+          <img id="mainImg" fetchpriority="high" src="{{ primary_image.image_url|thumb(900) }}" alt="{{ product.name }}" class="w-full h-full object-cover{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}" data-gallery-image>
         </button>
         {% if images|length > 1 %}
         <button type="button" data-gallery-prev aria-label="Show previous image of {{ product.name }}"
@@ -119,9 +119,9 @@
       {% if images|length > 1 %}
       <div class="flex gap-2 mt-3">
         {% for img in images %}
-        <button type="button" data-gallery-thumbnail data-image-src="{{ img.image_url }}" aria-label="Show image {{ loop.index }} of {{ product.name }}"
+        <button type="button" data-gallery-thumbnail data-image-src="{{ img.image_url|thumb(900) }}" aria-label="Show image {{ loop.index }} of {{ product.name }}"
                 class="w-16 h-16 rounded border border-slate-200 overflow-hidden cursor-pointer hover:border-brand-500 focus:ring-2 focus:ring-brand-500">
-          <img src="{{ img.image_url }}" alt="" class="w-full h-full object-cover">
+          <img src="{{ img.image_url|thumb(160) }}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover">
         </button>
         {% endfor %}
       </div>
@@ -422,7 +422,7 @@
 </section>
 {% endif %}
 
-{% if related_products %}<section class="max-w-7xl mx-auto px-4 pb-12"><h2 class="font-head text-xl font-semibold mb-4">Related products</h2><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">{% for p in related_products %}{% set rp_price=p.discount_price if p.discount_price else p.price %}{% set rp_img=(p.images | selectattr('is_primary') | list | first) or (p.images | first) %}{% set rp_oos = p.stock_quantity <= 0 %}<article data-product-card data-product-url="/product/{{ p.id }}" tabindex="0" role="link" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"><div class="relative aspect-square bg-slate-100">{% if rp_oos %}<div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none"><span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span></div>{% endif %}{% if rp_img %}<img src="{{ rp_img.image_url }}" class="w-full h-full object-cover{% if rp_oos %} blur-[2px] grayscale opacity-70{% endif %}" loading="lazy" alt="{{ p.name }}">{% endif %}</div><div class="p-2"><div class="text-xs line-clamp-2">{{ p.name }}</div><div class="text-xs text-amber-600 mt-1">★ {{ '%.1f'|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>{% set rp_all_badges = ((p.store.badge_keys or []) + (p.badge_keys or [])) | unique | list %}{% if rp_all_badges %}<div class="flex flex-wrap gap-1 mt-1">{% for badge in rp_all_badges[:2] %}<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}<div class="font-semibold text-sm mt-1">₵{{ '%.2f'|format(rp_price) }}</div></div></article>{% endfor %}</div></section>{% endif %}
+{% if related_products %}<section class="max-w-7xl mx-auto px-4 pb-12"><h2 class="font-head text-xl font-semibold mb-4">Related products</h2><div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">{% for p in related_products %}{% set rp_price=p.discount_price if p.discount_price else p.price %}{% set rp_img=(p.images | selectattr('is_primary') | list | first) or (p.images | first) %}{% set rp_oos = p.stock_quantity <= 0 %}<article data-product-card data-product-url="/product/{{ p.id }}" tabindex="0" role="link" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500"><div class="relative aspect-square bg-slate-100">{% if rp_oos %}<div class="absolute inset-0 z-10 flex items-center justify-center bg-white/30 pointer-events-none"><span class="bg-slate-900/85 text-white text-[9px] font-bold tracking-wider uppercase px-2 py-1 rounded-full">Out of Stock</span></div>{% endif %}{% if rp_img %}<img src="{{ rp_img.image_url|thumb(480) }}" decoding="async" class="w-full h-full object-cover{% if rp_oos %} blur-[2px] grayscale opacity-70{% endif %}" loading="lazy" alt="{{ p.name }}">{% endif %}</div><div class="p-2"><div class="text-xs line-clamp-2">{{ p.name }}</div><div class="text-xs text-amber-600 mt-1">★ {{ '%.1f'|format(p.average_rating) }} <span class="text-slate-400">({{ p.review_count }})</span></div>{% set rp_all_badges = ((p.store.badge_keys or []) + (p.badge_keys or [])) | unique | list %}{% if rp_all_badges %}<div class="flex flex-wrap gap-1 mt-1">{% for badge in rp_all_badges[:2] %}<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-700"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>{{ badge|replace('-', ' ')|title }}</span>{% endfor %}</div>{% endif %}<div class="font-semibold text-sm mt-1">₵{{ '%.2f'|format(rp_price) }}</div></div></article>{% endfor %}</div></section>{% endif %}
 
 {% if more_from_store %}
 <div class="max-w-7xl mx-auto px-4 pb-12">
@@ -437,7 +437,7 @@
     <a href="/product/{{ p.id }}" class="group border border-slate-200 rounded-md overflow-hidden bg-white hover:border-brand-500 transition-colors">
       <div class="aspect-square bg-slate-100">
         {% if mp_image %}
-        <img src="{{ mp_image.image_url }}" alt="{{ p.name }}" loading="lazy" class="w-full h-full object-cover">
+        <img src="{{ mp_image.image_url|thumb(480) }}" alt="{{ p.name }}" loading="lazy" decoding="async" class="w-full h-full object-cover">
         {% else %}
         <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>
         {% endif %}
@@ -459,7 +459,7 @@
 <div id="productImageModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-slate-950/80 p-4" role="dialog" aria-modal="true" aria-label="Product image preview">
   <button type="button" class="absolute inset-0 cursor-default" data-gallery-close aria-label="Close image preview"></button>
   <div class="relative z-10 max-w-5xl max-h-full">
-    <img id="productModalImage" src="{{ primary_image.image_url }}" alt="{{ product.name }}" class="max-h-[85vh] max-w-full rounded-md object-contain shadow-2xl">
+    <img id="productModalImage" src="{{ primary_image.image_url|thumb(1600) }}" alt="{{ product.name }}" class="max-h-[85vh] max-w-full rounded-md object-contain shadow-2xl">
     <button type="button" data-gallery-close class="absolute -right-2 -top-2 w-9 h-9 rounded-full bg-white text-slate-800 font-bold shadow" aria-label="Close image preview">×</button>
   </div>
 </div>

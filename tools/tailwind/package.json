@@ -1,0 +1,9 @@
+{
+  "name": "eravenda-tailwind-build",
+  "private": true,
+  "description": "Builds the static assets. Run tools/build-assets.sh.",
+  "devDependencies": {
+    "tailwindcss": "3.4.17",
+    "esbuild": "0.28.2"
+  }
+}

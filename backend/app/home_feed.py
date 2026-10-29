@@ -20,13 +20,21 @@ from typing import Iterable, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from . import models
+from . import cache, models
 from .platform_settings import STORE_PIN_PRODUCT_LIMIT, category_subtree_ids
 
 # Upper bound on candidate rows pulled per request. Large enough that every
 # store is represented for any realistic catalogue, small enough that the home
 # page never loads the whole products table.
 _CANDIDATE_CAP = 1500
+
+# Finding the candidates means sorting every approved product at random, which
+# gets slower as the catalogue grows, and the home page asks three or more times
+# per visit. So the pool of (product id, store id) pairs is kept for a minute and
+# every visit still shuffles it afresh. At most this many pairs are kept; a bigger
+# catalogue gets a different random slice each minute.
+_POOL_SECONDS = 60
+_POOL_CAP = 20000
 
 
 def _visible_products(db: Session):
@@ -43,6 +51,22 @@ def _visible_products(db: Session):
             models.Product.sales_type == "retail",
         )
     )
+
+
+def _candidate_pool(db: Session, filters) -> list[tuple[str, str]]:
+    """(product id, store id) pairs for every visible product matching `filters`,
+    in random order, kept for _POOL_SECONDS."""
+    def load():
+        query = _visible_products(db).with_entities(models.Product.id, models.Product.store_id)
+        for f in filters:
+            query = query.filter(f)
+        return [(pid, sid) for pid, sid in query.order_by(func.random()).limit(_POOL_CAP).all()]
+
+    try:
+        key = "home-pool:" + "|".join(str(f.compile(compile_kwargs={"literal_binds": True})) for f in filters)
+    except Exception:
+        return load()  # a filter that cannot be described as text is simply not cached
+    return cache.cached(key, _POOL_SECONDS, load)
 
 
 def fair_random_products(
@@ -62,13 +86,10 @@ def fair_random_products(
 
     Extra SQLAlchemy `filters` narrow the pool (e.g. discounted only).
     """
-    query = _visible_products(db).with_entities(models.Product.id, models.Product.store_id)
-    for f in filters:
-        query = query.filter(f)
+    pool = _candidate_pool(db, filters)
     excluded = set(exclude_ids or [])
-    if excluded:
-        query = query.filter(~models.Product.id.in_(excluded))
-    rows = query.order_by(func.random()).limit(_CANDIDATE_CAP).all()
+    candidates = [row for row in pool if row[0] not in excluded] if excluded else pool
+    rows = random.sample(candidates, min(len(candidates), _CANDIDATE_CAP))
 
     by_store: dict[str, list[str]] = {}
     for product_id, store_id in rows:
@@ -92,7 +113,10 @@ def fair_random_products(
     random.shuffle(picked)
     if not picked:
         return []
-    products = {p.id: p for p in db.query(models.Product).filter(models.Product.id.in_(picked)).all()}
+    # Load the picked products through the visibility rules again. The pool may be up
+    # to a minute old, so a product that was just rejected, deleted or whose store was
+    # just suspended is dropped here instead of lingering on the page.
+    products = {p.id: p for p in _visible_products(db).filter(models.Product.id.in_(picked)).all()}
     return [products[pid] for pid in picked if pid in products]
 
 

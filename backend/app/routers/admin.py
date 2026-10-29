@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from calendar import monthrange
-from fastapi import APIRouter, Depends, HTTPException, Response  # pyright: ignore[reportMissingImports]
+from fastapi import APIRouter, Depends, HTTPException, Query, Response  # pyright: ignore[reportMissingImports]
 from fastapi.responses import FileResponse  # pyright: ignore[reportMissingImports]
 from pydantic import BaseModel, Field  # pyright: ignore[reportMissingImports]
 from pathlib import Path
@@ -967,6 +967,38 @@ def list_users(db: Session = Depends(get_db)):
         item.is_professional = user.id in professional_ids
         out.append(item)
     return out
+
+
+@router.get("/users/page")
+def list_users_page(
+    q: str | None = Query(None, max_length=100),
+    role: str | None = Query(None, max_length=20),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """One page of accounts, with the search and role filter applied in the
+    database. The accounts table asks for 20 at a time instead of downloading
+    every account (about 300 bytes each) and filtering them in the browser."""
+    query = db.query(models.User)
+    if role == "professional":
+        query = query.filter(models.User.id.in_(db.query(models.HandymanProfile.user_id)))
+    elif role in {r.value for r in models.UserRole}:
+        query = query.filter(models.User.role == models.UserRole(role))
+    if q and q.strip():
+        like = f"%{escape_like(q.strip())}%"
+        query = query.filter(or_(models.User.full_name.ilike(like, escape="\\"), models.User.email.ilike(like, escape="\\")))
+    total = query.count()
+    users = query.order_by(models.User.created_at.desc(), models.User.id).offset(offset).limit(limit).all()
+    professional_ids = {
+        row[0] for row in db.query(models.HandymanProfile.user_id).filter(models.HandymanProfile.user_id.in_([u.id for u in users])).all()
+    } if users else set()
+    items = []
+    for user in users:
+        item = schemas.UserOut.model_validate(user)
+        item.is_professional = user.id in professional_ids
+        items.append(item)
+    return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
 @router.put("/users/{user_id}/suspend", response_model=schemas.UserOut)

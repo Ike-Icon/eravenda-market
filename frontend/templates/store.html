@@ -6,7 +6,7 @@
 {% if store.logo_url %}
 <meta property="og:image" content="{{ store.logo_url }}">
 {% else %}
-<meta property="og:image" content="{{ site_url }}/static/img/og-default.jpg">
+<meta property="og:image" content="{{ site_url }}/static/img/og-default.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 {% endif %}
@@ -110,7 +110,7 @@
         {% endif %}
         <button type="button" data-wishlist-toggle="{{ p.id }}" class="absolute top-2 right-2 bg-white/90 text-red-500 w-8 h-8 rounded-full z-20" aria-label="Add to wishlist"><i class="far fa-heart"></i></button>
         {% if primary_image %}
-        <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy" class="w-full h-full object-cover{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
+        <img src="{{ primary_image.image_url|thumb(480) }}" alt="{{ p.name }}" loading="lazy" class="w-full h-full object-cover{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
         {% else %}
         <div class="w-full h-full flex items-center justify-center text-3xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
         {% endif %}

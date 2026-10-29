@@ -2,7 +2,10 @@
 
 import os
 import time
+import hashlib
+import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -14,6 +17,7 @@ load_dotenv()
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware, DEFAULT_EXCLUDED_CONTENT_TYPES as DEFAULT_GZIP_EXCLUDED
 from fastapi.responses import Response, FileResponse, HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.exc import DataError
 from fastapi.staticfiles import StaticFiles
@@ -24,7 +28,7 @@ from sqlalchemy.orm import Session, selectinload
 from .database import Base, engine, get_db
 from .utils import escape_like
 from .migrate import run_migrations
-from . import models, security  # noqa: F401 - registers models on Base before create_all
+from . import models, security, cache  # noqa: F401 - registers models on Base before create_all
 from . import auth as auth_core
 from .routers import auth, products, categories, cart, orders, stores, admin, users, payments, contact, wishlist, services, reviews, delivery, newsletter, import_products, monetization, analytics, broadcasts
 from .platform_settings import get_settings, pinned_product_ids
@@ -122,6 +126,33 @@ async def request_guards(request: Request, call_next):
     return await call_next(request)
 
 
+# Public catalogue reads that are the same for everyone and not randomly ordered.
+# Browsers (and a CDN such as Cloudflare, if you add one) may reuse them briefly:
+# (path pattern, seconds treated as fresh, extra seconds a stale copy may be shown
+# while a new one is fetched in the background).
+_PUBLIC_API_CACHE = (
+    (re.compile(r"^/api/categories$"), 60, 300),
+    (re.compile(r"^/api/products$"), 30, 120),
+    (re.compile(r"^/api/products/[0-9a-fA-F-]{36}$"), 30, 120),
+)
+
+
+def _api_cache_policy(request: Request, response) -> str:
+    """Everything under /api is uncached, except the public reads above, and those
+    only for anonymous visitors. A request that carries a login (header or cookie)
+    is never marked public, so one person's response can never be handed to another."""
+    if (
+        request.method == "GET"
+        and response.status_code == 200
+        and not request.headers.get("authorization")
+        and security.SESSION_COOKIE_NAME not in request.cookies
+    ):
+        for pattern, fresh, stale in _PUBLIC_API_CACHE:
+            if pattern.match(request.url.path):
+                return f"public, max-age={fresh}, stale-while-revalidate={stale}"
+    return "no-store"
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -139,7 +170,7 @@ async def security_headers(request: Request, call_next):
         response.headers.setdefault(csp[0], csp[1])
     path = request.url.path
     if path.startswith("/api"):
-        response.headers.setdefault("Cache-Control", "no-store")
+        response.headers.setdefault("Cache-Control", _api_cache_policy(request, response))
     elif path in ("/", "/promoted", "/products"):
         # These pages rotate their content on every visit (fair-share random
         # home rails, promoted placements). Without an explicit header a
@@ -149,6 +180,22 @@ async def security_headers(request: Request, call_next):
         response.headers["CDN-Cache-Control"] = "no-store"
         response.headers["Pragma"] = "no-cache"
     return response
+
+
+# Compresses HTML, JSON, CSS and JS before they leave the server. Text shrinks to
+# about a fifth of its size, which matters on mobile connections. Images, PDFs and
+# spreadsheets are already compressed, so they are skipped. Added last so it wraps
+# every other layer and sees the final response.
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=800,
+    compresslevel=6,
+    exclude_content_types=DEFAULT_GZIP_EXCLUDED + (
+        "image/", "application/pdf", "application/zip",
+        "application/vnd.openxmlformats-officedocument", "application/vnd.ms-excel",
+        "font/woff", "font/woff2", "video/", "audio/",
+    ),
+)
 
 
 def on_startup():
@@ -252,12 +299,58 @@ def _clean_html_filter(value):
     return Markup(_sanitize_description_html(value or "") or "")
 
 
+_CLOUDINARY_UPLOAD = re.compile(r"^(https://res\.cloudinary\.com/[^/]+/image/upload/)(v\d+/.+)$")
+
+
+def _thumb_filter(url, width: int = 480):
+    """Ask Cloudinary for a smaller copy of a product photo.
+
+    Sellers upload full-size phone photos (often 2-5 MB). A product card shows
+    them about 240 pixels wide, so serving the original wastes mobile data. The
+    inserted f_auto,q_auto,w_N,c_limit part tells Cloudinary to pick the best
+    format (WebP/AVIF where supported), compress sensibly and never exceed N
+    pixels wide. Anything that is not a plain Cloudinary upload link, or that
+    already carries its own transformation, is returned unchanged. If Cloudinary
+    ever refuses the resized link, the page falls back to the original (see the
+    small script in base.html).
+    """
+    if not url or not isinstance(url, str):
+        return url
+    match = _CLOUDINARY_UPLOAD.match(url)
+    if not match:
+        return url
+    return f"{match.group(1)}f_auto,q_auto,w_{int(width)},c_limit/{match.group(2)}"
+
+
+templates.env.filters["thumb"] = _thumb_filter
 templates.env.filters["clean_html"] = _clean_html_filter
 templates.env.filters["compact"] = lambda d: {k: v for k, v in d.items() if v is not None}
 
 # New Tailwind-based assets (main.js, config.js, custom.css) for the
 # templated pages below.
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
+class CachedStaticFiles(StaticFiles):
+    """Static files with browser cache headers.
+
+    CSS and JS are requested with ?v=<version> (see _asset_version), so a new
+    deploy changes their address and they can be kept for a year. Images and
+    fonts are kept for a week. Without these headers a browser asks the server
+    to re-check every file on every page view.
+    """
+
+    def file_response(self, full_path, stat_result, scope, status_code=200):
+        response = super().file_response(full_path, stat_result, scope, status_code)
+        path = str(full_path).lower()
+        has_version = b"v=" in scope.get("query_string", b"")
+        if path.endswith((".js", ".css")):
+            response.headers["Cache-Control"] = (
+                "public, max-age=31536000, immutable" if has_version else "public, max-age=0, must-revalidate"
+            )
+        elif path.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".ico", ".woff", ".woff2")):
+            response.headers["Cache-Control"] = "public, max-age=604800"
+        return response
+
+
+app.mount("/static", CachedStaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
 
 # Legacy assets, still used by the order-history page, which hasn't
 # been migrated to Jinja2 yet.
@@ -285,6 +378,59 @@ def _asset_version() -> str:
     deploy (static files carry no version in their URL), so fixes appear not to
     have shipped. The value changes whenever any of those files changes.
     """
+    return cache.cached("asset-version", 10, _compute_asset_version)
+
+
+# The site's own scripts and stylesheet. tools/build_assets.py makes a minified copy of
+# each (about half the size). Keep this list in step with ASSETS in that file.
+ASSET_SOURCES = ("css/custom.css", "js/config.js", "js/main.js", "js/shell.js", "js/avatar-cropper.js")
+
+
+def _file_hash(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
+def _compute_asset_urls() -> dict:
+    """Address of each script/stylesheet to put in the page.
+
+    The minified copy is used only while it still matches its source file (the
+    manifest records the source's hash when the copy was built). If someone edits
+    main.js and forgets to rebuild, the hashes differ and the edited source is
+    served instead, so stale code can never reach visitors. The ?v= part is the
+    file's content hash: it changes exactly when the file does, which is what
+    lets browsers keep each file for a year.
+    """
+    static = FRONTEND_DIR / "static"
+    use_minified = os.getenv("MINIFIED_ASSETS", "true").strip().lower() not in {"0", "false", "no", "off"}
+    entries = {}
+    if use_minified:
+        try:
+            entries = json.loads((static / "dist" / "manifest.json").read_text()).get("files", {})
+        except (OSError, ValueError):
+            entries = {}
+    urls = {}
+    for name in ASSET_SOURCES:
+        source = static / name
+        if not source.is_file():
+            continue
+        source_hash = _file_hash(source)
+        entry = entries.get(name)
+        if entry and entry.get("source_sha") == source_hash and (static / entry.get("dist", "")).is_file():
+            urls[name] = f"/static/{entry['dist']}?v={entry['dist_sha']}"
+        else:
+            urls[name] = f"/static/{name}?v={source_hash}"
+    return urls
+
+
+def asset(name: str) -> str:
+    """Template helper: {{ asset('js/main.js') }} gives the address to load."""
+    return cache.cached("asset-urls", 10, _compute_asset_urls).get(name, f"/static/{name}")
+
+
+templates.env.globals["asset"] = asset
+
+
+def _compute_asset_version() -> str:
     newest = 0
     for sub in ("css", "js"):
         folder = FRONTEND_DIR / "static" / sub
@@ -292,6 +438,28 @@ def _asset_version() -> str:
             for f in folder.glob("*.*"):
                 newest = max(newest, int(f.stat().st_mtime))
     return str(newest or 1)
+
+
+_CATEGORY_CACHE_SECONDS = 60
+
+
+def _category_lists(db: Session):
+    """Every page shows the category menu, and it changes a few times a month.
+    Reading it from the database on every visit costs 3 queries; this keeps a
+    copy for a minute (and the category admin endpoints clear it at once)."""
+    def load():
+        rows = db.query(models.Category).order_by(models.Category.name).all()
+        flat = [cache.plain_category(c) for c in rows]
+        by_id = {c.id: c for c in flat}
+        tree = []
+        for c in flat:
+            parent = by_id.get(c.parent_id)
+            if parent is not None:
+                parent.children.append(c)
+            elif c.parent_id is None:
+                tree.append(c)
+        return flat, tree
+    return cache.cached("categories:lists", _CATEGORY_CACHE_SECONDS, load)
 
 
 def page_context(request: Request, db: Session, **extra) -> dict:
@@ -306,14 +474,7 @@ def page_context(request: Request, db: Session, **extra) -> dict:
     preloaded — used for navigation displays (header, homepage grid) where
     only parents show by default and children reveal on hover/click.
     """
-    categories = db.query(models.Category).order_by(models.Category.name).all()
-    category_tree = (
-        db.query(models.Category)
-        .filter(models.Category.parent_id.is_(None))
-        .options(selectinload(models.Category.children))
-        .order_by(models.Category.name)
-        .all()
-    )
+    categories, category_tree = _category_lists(db)
     context = {
         "request": request,
         "categories": categories,
@@ -321,6 +482,8 @@ def page_context(request: Request, db: Session, **extra) -> dict:
         "current_year": datetime.utcnow().year,
         "site_url": SITE_URL,
         "asset_v": _asset_version(),
+        # TAILWIND_MODE=cdn switches back to compiling Tailwind in the browser (see base.html).
+        "tailwind_cdn": os.getenv("TAILWIND_MODE", "built").strip().lower() == "cdn",
         # Self-referencing canonical for every page. `page` is dropped because
         # our list pages paginate client-side (history.replaceState, no
         # server reload) — every ?page=N is the same document as far as a

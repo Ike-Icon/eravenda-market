@@ -11,7 +11,7 @@
   <div id="wholesaleIssues" class="hidden mb-4 border border-red-200 bg-red-50 text-red-800 rounded-md p-4 text-sm" role="alert"></div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
     <div id="cartItems" class="md:col-span-2 space-y-4">
-      <p class="text-slate-500">Loading your cart…</p>
+      <div class="space-y-3" role="status" aria-label="Loading"><div class="skeleton h-20 w-full"></div><div class="skeleton h-20 w-full"></div><div class="skeleton h-20 w-full"></div></div>
     </div>
     <div class="border border-slate-200 rounded-md p-5 h-fit">
       <h3 class="font-semibold mb-3"><i class="fas fa-receipt text-brand-500 mr-2" aria-hidden="true"></i>Order summary</h3>
@@ -109,7 +109,7 @@
     el.innerHTML = items.map(item => `
       <div class="flex items-center gap-2 sm:gap-4 border border-slate-200 rounded-md p-3" data-product-id="${esc(item.product_id)}">
         <button type="button" class="cart-item-image shrink-0 ${item.image_url ? "cursor-pointer" : "cursor-default"}" ${item.image_url ? "" : "tabindex=\"-1\" aria-hidden=\"true\""} aria-label="View larger product image">
-          ${item.image_url ? `<img src="${esc(safeUrl(item.image_url))}" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded flex items-center justify-center text-2xl text-slate-300">🛍️</div>`}
+          ${item.image_url ? `<img src="${esc(safeUrl(cdnImg(item.image_url, 128)))}" loading="lazy" decoding="async" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded flex items-center justify-center text-2xl text-slate-300">🛍️</div>`}
         </button>
         <div class="flex-1 min-w-0">
           <div class="text-sm sm:text-base font-medium truncate">${esc(item.name || "Product")}</div>
@@ -168,7 +168,7 @@
         return `
           <div class="flex items-center gap-2 sm:gap-4 border border-slate-200 rounded-md p-3" data-item-id="${esc(item.id)}">
             <button type="button" class="cart-item-image shrink-0 ${img ? "cursor-pointer" : "cursor-default"}" ${img ? "" : "tabindex=\"-1\" aria-hidden=\"true\""} aria-label="View larger product image">
-              ${img ? `<img src="${esc(safeUrl(img.image_url))}" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded"></div>`}
+              ${img ? `<img src="${esc(safeUrl(cdnImg(img.image_url, 128)))}" loading="lazy" decoding="async" class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded">` : `<div class="w-12 h-12 sm:w-16 sm:h-16 bg-slate-100 rounded"></div>`}
             </button>
             <div class="flex-1 min-w-0">
               <div class="text-sm sm:text-base font-medium truncate">${esc(p.name)}</div>

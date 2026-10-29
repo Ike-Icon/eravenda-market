@@ -1810,3 +1810,26 @@ html[data-theme="dark"] #mobileDrawer .ev-wordmark { fill: #8fd9b6; }
 .ev-cat-cover { mix-blend-mode: multiply; }
 html[data-theme="dark"] .ev-cat-circle-cover { background: #fff; }
 html[data-theme="dark"] .ev-cat-cover { mix-blend-mode: normal; }
+
+
+/* Loading skeletons: grey placeholder blocks with a soft shimmer, shown where
+   content is being fetched. They hold the page's shape so nothing jumps when the
+   real content arrives. Size them with Tailwind (h-20 w-full) or inline styles. */
+.skeleton {
+  display: block;
+  border-radius: 0.375rem;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 37%, #e2e8f0 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 37%, #1e293b 63%);
+  background-size: 400% 100%;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}

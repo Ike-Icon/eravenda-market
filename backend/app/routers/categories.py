@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException  # type: ignore[reportMiss
 from sqlalchemy.orm import Session  # type: ignore[reportMissingImports]
 from sqlalchemy.exc import IntegrityError  # type: ignore[reportMissingImports]
 
-from .. import models, schemas, auth
+from .. import models, schemas, auth, cache
 from ..database import get_db
 from ..utils import slugify
 
@@ -30,6 +30,7 @@ def create_category(
     db.add(category)
     db.commit()
     db.refresh(category)
+    cache.invalidate("categories")
     return category
 
 
@@ -52,6 +53,7 @@ def update_category(
     category.icon_url = payload.icon_url
     db.commit()
     db.refresh(category)
+    cache.invalidate("categories")
     return category
 
 
@@ -70,6 +72,7 @@ def delete_category(
     try:
         db.delete(category)
         db.commit()
+        cache.invalidate("categories")
     except IntegrityError:
         db.rollback()
         raise HTTPException(

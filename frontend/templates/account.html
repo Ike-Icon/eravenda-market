@@ -154,7 +154,7 @@
     });
   })();
 </script>
-<script src="/static/js/avatar-cropper.js?v={{ asset_v|default(1) }}"></script>
+<script src="{{ asset('js/avatar-cropper.js') }}"></script>
 <script>
   if (!Auth.isLoggedIn()) {
     window.location.href = "/login?next=/account";

@@ -15,7 +15,7 @@
     <button class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-md text-sm font-semibold"><i class="fas fa-magnifying-glass mr-1"></i>Load order</button>
   </form>
   <div id="trackingError" class="hidden mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700"></div>
-  <div id="trackingContent" class="space-y-6"><p class="text-slate-500">Loading order details…</p></div>
+  <div id="trackingContent" class="space-y-6"><div class="space-y-3" role="status" aria-label="Loading"><div class="skeleton h-20 w-full"></div><div class="skeleton h-20 w-full"></div><div class="skeleton h-20 w-full"></div></div></div>
 </section>
 {% endblock %}
 {% block scripts %}
@@ -54,7 +54,7 @@
 
   async function loadOrder(value) {
     errorBox.classList.add("hidden");
-    content.innerHTML = '<p class="text-slate-500">Loading order details…</p>';
+    content.innerHTML = '<div class="space-y-3" role="status" aria-label="Loading"><div class="skeleton h-20 w-full"></div><div class="skeleton h-20 w-full"></div><div class="skeleton h-20 w-full"></div></div>';
     try { renderOrder(await apiFetch(`/orders/search?order_id=${encodeURIComponent(value.trim())}`)); }
     catch (error) { content.innerHTML = ""; errorBox.textContent = error.message; errorBox.classList.remove("hidden"); }
   }

@@ -175,7 +175,7 @@ class Store(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    owner = relationship("User", back_populates="store")
+    owner = relationship("User", back_populates="store", lazy="selectin")
     products = relationship("Product", back_populates="store", cascade="all, delete-orphan")
     followers = relationship("StoreFollow", back_populates="store", cascade="all, delete-orphan")
 
@@ -237,9 +237,11 @@ class Product(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    store = relationship("Store", back_populates="products")
-    category = relationship("Category")
-    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan", order_by="ProductImage.sort_order")
+    # lazy="selectin": a list of 24 products loads its stores and images in 2 extra
+    # queries total, instead of 2 per product (the N+1 pattern that made list pages slow).
+    store = relationship("Store", back_populates="products", lazy="selectin")
+    category = relationship("Category", lazy="selectin")
+    images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan", order_by="ProductImage.sort_order", lazy="selectin")
     wishlisted_by = relationship("Wishlist", back_populates="product", cascade="all, delete-orphan")
 
     @property
@@ -293,7 +295,7 @@ class CartItem(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     cart = relationship("Cart", back_populates="items")
-    product = relationship("Product")
+    product = relationship("Product", lazy="selectin")
 
 
 class Wishlist(Base):
@@ -305,7 +307,7 @@ class Wishlist(Base):
     product_id = Column(UUID(as_uuid=False), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="wishlist_items")
-    product = relationship("Product", back_populates="wishlisted_by")
+    product = relationship("Product", back_populates="wishlisted_by", lazy="selectin")
 
 
 class StoreFollow(Base):
@@ -348,10 +350,10 @@ class Order(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
-    address = relationship("Address")
-    store = relationship("Store")
-    delivery_assignment = relationship("OrderDeliveryAssignment", back_populates="order", uselist=False, cascade="all, delete-orphan")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan", lazy="selectin")
+    address = relationship("Address", lazy="selectin")
+    store = relationship("Store", lazy="selectin")
+    delivery_assignment = relationship("OrderDeliveryAssignment", back_populates="order", uselist=False, cascade="all, delete-orphan", lazy="selectin")
     # Read-only view of this order's payment attempts (a buyer can retry, so there may be several; only a
     # successful or refunded one makes a receipt). selectin keeps order lists to one extra query, not one per order.
     payments = relationship("Payment", viewonly=True, order_by="Payment.created_at", lazy="selectin")
@@ -424,7 +426,7 @@ class OrderItem(Base):
     # on product_id's FK; see admin.delete_product's IntegrityError handling),
     # so this relationship is safe to rely on: it can never point at a
     # since-deleted product.
-    product = relationship("Product")
+    product = relationship("Product", lazy="selectin")
 
     @property
     def image_url(self) -> str | None:
@@ -820,7 +822,7 @@ class PromotedListing(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     store = relationship("Store")
-    product = relationship("Product")
+    product = relationship("Product", lazy="selectin")
     category = relationship("Category")
 
 

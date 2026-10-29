@@ -22,7 +22,7 @@
     </div>
     {% endif %}
     {% if primary_image %}
-    <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+    <img src="{{ primary_image.image_url|thumb(480) }}" alt="{{ p.name }}" loading="lazy"
       class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
     {% else %}
     <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>

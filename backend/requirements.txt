@@ -1,7 +1,11 @@
 # Versions below were checked with pip-audit on 2026-10-25 (no known vulnerabilities).
 # Re-check any time with:  pip install pip-audit && pip-audit -r requirements.txt
 fastapi==0.162.0
-uvicorn[standard]==0.54.0
+uvicorn==0.54.0
+# The fast HTTP parser and event loop that "uvicorn[standard]" would install. Written out
+# one by one so websockets, watchfiles and PyYAML (all unused here) are left out.
+httptools==0.9.0
+uvloop==0.23.0; sys_platform != "win32" and platform_python_implementation == "CPython"
 sqlalchemy==2.0.49
 psycopg2-binary==2.9.13
 # PyJWT replaces python-jose, which has open security advisories and pulls in

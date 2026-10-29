@@ -50,9 +50,36 @@
     })();
   </script>
 
-  <!-- Tailwind CSS via CDN. No build step, no config file, keeps this project zero-dependency on the frontend. -->
+  <!-- Open the connections to the third-party hosts early, so the scripts, fonts and
+       photos below do not each wait for their own DNS lookup and TLS handshake. -->
+  {% if tailwind_cdn %}<link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>{% endif %}
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://res.cloudinary.com">
+
+  <!-- Resized photos ask Cloudinary for f_auto,q_auto,w_N. If Cloudinary ever refuses
+       that link (for example if the account switches on strict transformations), fall
+       back to the original photo instead of showing a broken image. -->
+  <script>
+    document.addEventListener('error', function (e) {
+      var el = e.target;
+      if (el && el.tagName === 'IMG' && /\/image\/upload\/f_auto,q_auto,w_\d+,c_limit\//.test(el.src)) {
+        el.src = el.src.replace(/f_auto,q_auto,w_\d+,c_limit\//, '');
+      }
+    }, true);
+  </script>
+
+  <!-- The icon library is large (about 450 KB). It used to load here and hold up the whole
+       page. Now the browser starts downloading it right away, but it runs at the end of the
+       page (before main.js), so the page can paint first. -->
+  <link rel="preload" href="https://unpkg.com/lucide@1.55.0/dist/umd/lucide.min.js" as="script" integrity="sha384-SZUFq9Dx112fyzY/iIBEjyd2gu3jY4XVhp+LUNXSpEMB2IEm/TOoMTNH4BHtQ6Hz" crossorigin="anonymous">
+  <!-- Tailwind CSS is built ahead of time into /static/css/tailwind.css (see tools/tailwind/README.md)
+       and linked at the end of this <head>. The old way, compiling it in every visitor's browser from
+       a CDN script, downloaded several hundred KB and blocked the page while it ran. -->
+  {% if tailwind_cdn %}
+  <!-- Fallback: Tailwind compiled in the browser. Used only when TAILWIND_MODE=cdn. -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@1.55.0/dist/umd/lucide.min.js" integrity="sha384-SZUFq9Dx112fyzY/iIBEjyd2gu3jY4XVhp+LUNXSpEMB2IEm/TOoMTNH4BHtQ6Hz" crossorigin="anonymous"></script>
   <script>
     tailwind.config = {
       // Fixed to a custom attribute selector: the theme switcher toggles
@@ -87,9 +114,10 @@
       },
     };
   </script>
+  {% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Nunito:ital,wght@1,900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/custom.css?v={{ asset_v|default(1) }}">
+  <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   {% block extra_head %}{% endblock %}
@@ -103,6 +131,9 @@
 }
 </script>
 {% block structured_data %}{% endblock %}
+  <!-- Last on purpose: the Tailwind CDN used to add its <style> after every other stylesheet, so
+       utility classes won ties against custom.css. Keeping this link last preserves that. -->
+  {% if not tailwind_cdn %}<link rel="stylesheet" href="/static/css/tailwind.css?v={{ asset_v|default(1) }}">{% endif %}
 </head>
 {# Which mobile bars this page gets. The product page has its own sticky buy bar instead of the tab bar; dashboards, checkout and sign-in flows get neither bar. #}
 {% set _path = request.url.path %}
@@ -124,9 +155,10 @@
 
   <!-- Shared config + client-side logic. Loaded on every page so cart badge / auth
        state stay in sync no matter which page the person landed on. -->
-  <script src="/static/js/config.js?v={{ asset_v|default(1) }}"></script>
-  <script src="/static/js/main.js?v={{ asset_v|default(1) }}"></script>
-  <script src="/static/js/shell.js?v={{ asset_v|default(1) }}"></script>
+  <script src="https://unpkg.com/lucide@1.55.0/dist/umd/lucide.min.js" integrity="sha384-SZUFq9Dx112fyzY/iIBEjyd2gu3jY4XVhp+LUNXSpEMB2IEm/TOoMTNH4BHtQ6Hz" crossorigin="anonymous"></script>
+  <script src="{{ asset('js/config.js') }}"></script>
+  <script src="{{ asset('js/main.js') }}"></script>
+  <script src="{{ asset('js/shell.js') }}"></script>
   {% include "components/image-lightbox.html" %}
   {% include "components/vendor-promo-popup.html" %}
   {% block scripts %}{% endblock %}

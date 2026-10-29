@@ -261,7 +261,7 @@
           </div>
           {% endif %}
           {% if primary_image %}
-          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+          <img src="{{ primary_image.image_url|thumb(480) }}" alt="{{ p.name }}" loading="lazy"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
           {% else %}
           <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300">🛍️</div>
@@ -387,7 +387,7 @@
           </div>
 
           {% if primary_image %}
-          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+          <img src="{{ primary_image.image_url|thumb(480) }}" alt="{{ p.name }}" loading="lazy"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
           {% else %}
           <div class="w-full h-full flex items-center justify-center text-3xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
@@ -579,7 +579,7 @@
         </div>
 
         {% if primary_image %}
-        <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+        <img src="{{ primary_image.image_url|thumb(480) }}" alt="{{ p.name }}" loading="lazy"
           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
         {% else %}
         <div class="w-full h-full flex items-center justify-center text-3xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
@@ -700,7 +700,7 @@
           </div>
           {% endif %}
           {% if primary_image %}
-          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+          <img src="{{ primary_image.image_url|thumb(480) }}" alt="{{ p.name }}" loading="lazy"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
           {% else %}
           <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
@@ -784,7 +784,7 @@
           </span>
           {% endif %}
           {% if primary_image %}
-          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+          <img src="{{ primary_image.image_url|thumb(480) }}" alt="{{ p.name }}" loading="lazy"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
           {% else %}
           <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
@@ -860,7 +860,7 @@
           </div>
           {% endif %}
           {% if primary_image %}
-          <img src="{{ primary_image.image_url }}" alt="{{ p.name }}" loading="lazy"
+          <img src="{{ primary_image.image_url|thumb(480) }}" alt="{{ p.name }}" loading="lazy"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">
           {% else %}
           <div class="w-full h-full flex items-center justify-center text-2xl text-slate-300{% if out_of_stock %} blur-[2px] grayscale opacity-70{% endif %}">🛍️</div>
@@ -1033,7 +1033,7 @@
             <div class="flex items-center gap-3">
               <div class="w-14 h-14 rounded-xl bg-slate-800 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center text-slate-400">
                 {% if w_photo %}
-                <img src="{{ w_photo }}" alt="{{ w_name }}" class="w-full h-full object-cover">
+                <img src="{{ w_photo|thumb(480) }}" alt="{{ w_name }}" loading="lazy" decoding="async" class="w-full h-full object-cover">
                 {% else %}
                 <i class="fas fa-user-hard-hat text-2xl text-teal-300"></i>
                 {% endif %}

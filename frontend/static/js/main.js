@@ -20,6 +20,25 @@ function safeUrl(value) {
   return "";
 }
 
+// Runs `fn` once the person has stopped typing for `wait` ms. Without it a
+// search box re-filters and re-draws the whole list on every single keystroke.
+function debounce(fn, wait = 200) {
+  let timer = null;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
+// A smaller copy of a Cloudinary photo for thumbnails. Photos from sellers can be
+// several MB; a 64 px thumbnail should not download all of that. Other links are
+// returned unchanged. Pages fall back to the original if the resized link fails
+// (see the image error handler in base.html).
+function cdnImg(url, width) {
+  const match = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(v\d+\/.+)$/.exec(String(url ?? ""));
+  return match ? `${match[1]}f_auto,q_auto,w_${Number(width) || 480},c_limit/${match[2]}` : url;
+}
+
 // A same-site path to send people to after login, or the fallback. Blocks
 // //evil.com, /\evil.com and javascript: so ?next= cannot send someone away.
 function safeNextPath(value, fallback = "/") {
